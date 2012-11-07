@@ -1,16 +1,12 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed.test;
 
-import candis.distributed.IDistributedParameter;
+import candis.distributed.DistributedParameter;
 
 /**
  *
- * @author swillenborg
+ * @author Sebastian Willenborg
  */
-public class TestParameter implements IDistributedParameter{
+public class TestParameter implements DistributedParameter{
 	public int number;
 	public TestParameter(int n) {
 		number = n;

@@ -1,37 +1,33 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed.test;
 
-import candis.distributed.IDistributedControl;
-import candis.distributed.IScheduler;
+import candis.distributed.DistributedControl;
+import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
 
 /**
  *
- * @author swillenborg
+ * @author Sebastian Willenborg
  */
-public class TestMain implements IDistributedControl{
+public class TestMain implements DistributedControl{
 
 	/**
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
 		// TODO code application logic here
-		TestMain t = new TestMain();
-		IScheduler s = t.initScheduler();
+		DistributedControl t = new TestMain();
+		Scheduler s = t.initScheduler();
 
 	}
 
 	@Override
-	public IScheduler initScheduler() {
+	public Scheduler initScheduler() {
 		TestParameter ps[] = new TestParameter[10];
 		for(int i=0; i< 10; i++)
 		{
 			ps[i] = new TestParameter(i);
 		}
-		IScheduler sch = new SimpleScheduler(ps);
+		Scheduler sch = new SimpleScheduler(ps);
 		return sch;
 	}
 }

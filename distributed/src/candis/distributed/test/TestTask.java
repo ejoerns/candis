@@ -1,24 +1,21 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed.test;
 
-import candis.distributed.IDistributedParameter;
-import candis.distributed.IDistributedResult;
-import candis.distributed.IDistributedTask;
+import candis.distributed.DistributedParameter;
+import candis.distributed.DistributedResult;
+import candis.distributed.DistributedTask;
 
 /**
  *
- * @author swillenborg
+ * @author Sebastian Willenborg
  */
-public class TestTask implements IDistributedTask {
+public class TestTask implements DistributedTask {
 
 	@Override
-	public IDistributedResult run(IDistributedParameter parameter) {
+	public DistributedResult run(DistributedParameter parameter) {
 		TestParameter p = (TestParameter)parameter;
 		//throw new UnsupportedOperationException("Not supported yet.");
-		return new TestResult(p.number*p.number);
+
+		return new TestResult(p.number * p.number);
 	}
 
 	@Override

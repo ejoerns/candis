@@ -6,8 +6,8 @@ package candis.distributed;
 
 /**
  *
- * @author swillenborg
+ * @author Sebastian Willenborg
  */
-public interface IDistributedControl {
-	public IScheduler initScheduler();
+public interface DistributedControl {
+	public Scheduler initScheduler();
 }

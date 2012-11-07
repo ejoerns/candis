@@ -1,16 +1,12 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed;
 
 /**
  *
- * @author swillenborg
+ * @author Sebastian Willenborg
  */
-public class SimpleScheduler implements IScheduler {
+public class SimpleScheduler implements Scheduler {
 	CommunicationIO comIO;
-	public SimpleScheduler(IDistributedParameter ps[]) {
+	public SimpleScheduler(DistributedParameter ps[]) {
 
 	}
 
