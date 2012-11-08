@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Toast;
+import candis.system.StaticProfiler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.X509TrustManager;
@@ -28,7 +29,7 @@ public class MainActivity extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
-		Handler mHandler = new Handler();
+		final Handler mHandler = new Handler();
 
 		startButton = (Button) findViewById(R.id.start_button);
 		startButton.setOnClickListener(this);
@@ -50,6 +51,19 @@ public class MainActivity extends Activity
 		 * ex); }
 		 */
 		//req.testme();
+
+		final Activity act = this;
+		new Thread(new Runnable() {
+			public void run() {
+				StaticProfiler statprof = new StaticProfiler(act, mHandler);
+				statprof.benchmark();
+			}
+		}).start();
+		
+		if (true) {
+			return;
+		}
+
 		new Settings(this.getApplicationContext()).test();
 
 //		System.setProperty("javax.net.ssl.trustStore", "res/raw/.sometruststore");
