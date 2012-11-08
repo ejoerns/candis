@@ -24,19 +24,21 @@ import javax.net.ssl.X509TrustManager;
 /**
  * Trustmanager that allows to dynamically add new server certificates.
  *
- * @author enrico
+ * @author Enrico Joerns
  */
 public final class ReloadableX509TrustManager
 				implements X509TrustManager, CertAcceptHandler {
 
-	private final String tspath;
-	private X509TrustManager trustManager;
-	private final List<Certificate> tempCertList = new LinkedList<Certificate>();
-	private CertAcceptRequest cad;
-	private final AtomicBoolean accepted = new AtomicBoolean(false);
 	private static final String TAG = "X509";
 	private static final Logger logger = Logger.getLogger(TAG);
-//	private final Boolean certAccepted = new Boolean(true);
+	/// Path to truststore
+	private final String tspath;
+	private X509TrustManager trustManager;
+	/// List for temporary certificates
+	private final List<Certificate> tempCertList = new LinkedList<Certificate>();
+	private CertAcceptRequest cad;
+	/// Boolean for synchronization
+	private final AtomicBoolean accepted = new AtomicBoolean(false);
 
 	/**
 	 * Creates instance of ReloadableX509TrustManager that accepts server
@@ -45,11 +47,10 @@ public final class ReloadableX509TrustManager
 	 * @param tspath Path to truststore file (Will be created if not existent)
 	 * @throws Exception
 	 */
-	public ReloadableX509TrustManager(String tspath)
+	public ReloadableX509TrustManager(final String tspath)
 					throws Exception {
 		this(tspath, null);
 		this.setCertAcceptDialog(null);
-		logger.log(Level.INFO, "Constructor called");
 	}
 
 	/**
@@ -60,21 +61,21 @@ public final class ReloadableX509TrustManager
 	 * @param cad Implementation of CertAcceptDialog to enable user interaction
 	 * @throws Exception
 	 */
-	public ReloadableX509TrustManager(String tspath, CertAcceptRequest cad) throws Exception {
+	public ReloadableX509TrustManager(final String tspath, final CertAcceptRequest cad) throws Exception {
 		this.tspath = tspath;
 		this.cad = cad;
 		reloadTrustManager();
 	}
 
 	@Override
-	public void checkClientTrusted(X509Certificate[] chain,
+	public void checkClientTrusted(final X509Certificate[] chain,
 					String authType) throws java.security.cert.CertificateException {
 		logger.log(Level.INFO, "checkClientTrusted()");
 		trustManager.checkClientTrusted(chain, authType);
 	}
 
 	@Override
-	public void checkServerTrusted(X509Certificate[] chain,
+	public void checkServerTrusted(final X509Certificate[] chain,
 					String authType) throws java.security.cert.CertificateException {
 		logger.log(Level.INFO, "checkServerTrusted()");
 		try {
@@ -113,7 +114,7 @@ public final class ReloadableX509TrustManager
 				in = null;
 			}
 		} catch (FileNotFoundException ex) {
-			logger.log(Level.INFO, "Truststore file " + tspath + " not found.");
+			logger.log(Level.INFO, "Truststore file {0} not found.", tspath);
 			in = null;
 		}
 
@@ -124,7 +125,7 @@ public final class ReloadableX509TrustManager
 			ts.store(out, "candis".toCharArray());
 			out.close();
 			in = new FileInputStream(tspath);
-			logger.log(Level.INFO, "Initialized empty truststore " + tspath);
+			logger.log(Level.INFO, "Initialized empty truststore {0}", tspath);
 		}
 
 		// load truststore
@@ -165,8 +166,7 @@ public final class ReloadableX509TrustManager
 	 * @param permanent If true, certificate will be added permanent, otherwise it
 	 * will be added temporary
 	 */
-	private void addServerCertAndReload(X509Certificate cert, boolean permanent) {
-		logger.log(Level.INFO, "addServerCertAndReload()");
+	private void addServerCertAndReload(final X509Certificate cert, final boolean permanent) {
 
 		// Call accept dialog if available, otherwise auto-accept
 		if (cad != null) {
@@ -212,37 +212,42 @@ public final class ReloadableX509TrustManager
 				ts.store(cert_ostream, "candis".toCharArray());
 				cert_ostream.close();
 
-				logger.log(Level.FINE, "Added certificate permanently...");
+				logger.log(Level.FINE, "Added certificate (permanently)");
 			} else {
 				tempCertList.add(cert);
-				logger.log(Level.FINE, "Certificate would be added here now (temporary)...");
+				logger.log(Level.FINE, "Added certificate (temporary)");
 			}
 			reloadTrustManager();
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.log(Level.SEVERE, ex.toString());
 		}
 	}
 
-	public void setCertAcceptDialog(CertAcceptRequest cad) {
+	/**
+	 * Sets the cert accept dialog.
+	 *
+	 * @param cad Class that implements the CertAcceptRequest interface
+	 */
+	public void setCertAcceptDialog(final CertAcceptRequest cad) {
 		this.cad = cad;
 	}
 
-	public boolean hasResult() {
-		return true;
-	}
-
-	/**
-	 *
-	 * @param accept
-	 */
-	public void acceptHandler(boolean accept) {
+	@Override
+	public void acceptHandler(final boolean accept) {
 		synchronized (accepted) {
 			accepted.set(accept);
 			accepted.notify();
 		}
 	}
 
-	public static String getCertFingerPrint(String mdAlg, Certificate cert)
+	/**
+	 *
+	 * @param mdAlg
+	 * @param cert
+	 * @return
+	 * @throws Exception
+	 */
+	public static String getCertFingerPrint(final String mdAlg, final Certificate cert)
 					throws Exception {
 		byte[] encCertInfo = cert.getEncoded();
 		MessageDigest md = MessageDigest.getInstance(mdAlg);
@@ -250,7 +255,12 @@ public final class ReloadableX509TrustManager
 		return toHexString(digest);
 	}
 
-	private static String toHexString(byte[] block) {
+	/**
+	 *
+	 * @param block
+	 * @return
+	 */
+	private static String toHexString(final byte[] block) {
 		StringBuffer buf = new StringBuffer();
 		int len = block.length;
 		for (int i = 0; i < len; i++) {
@@ -263,9 +273,12 @@ public final class ReloadableX509TrustManager
 	}
 
 	/**
-	 * Converts a byte to hex digit and writes to the supplied buffer
+	 * Converts a byte to hex digit and writes to the supplied buffer.
+	 *
+	 * @param b
+	 * @param buf
 	 */
-	private static void byte2hex(byte b, StringBuffer buf) {
+	private static void byte2hex(final byte b, final StringBuffer buf) {
 		char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8',
 			'9', 'A', 'B', 'C', 'D', 'E', 'F'};
 		int high = ((b & 0xf0) >> 4);
