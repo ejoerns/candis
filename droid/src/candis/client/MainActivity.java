@@ -1,9 +1,7 @@
 package candis.client;
 
-import candis.client.comm.CertAcceptRequest;
-import candis.client.comm.SecureConnection;
-import candis.client.comm.ReloadableX509TrustManager;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,7 +10,19 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Toast;
+import candis.client.comm.CertAcceptRequest;
+import candis.client.comm.RandomID;
+import candis.client.comm.ReloadableX509TrustManager;
+import candis.client.comm.SecureConnection;
+import candis.common.Utilities;
 import candis.system.StaticProfiler;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.X509TrustManager;
@@ -52,6 +62,50 @@ public class MainActivity extends Activity
 		 */
 		//req.testme();
 
+		//		int RND_SIZE = 4096;
+		//		SecureRandom random = new SecureRandom();
+		//		byte bytes[] = new byte[RND_SIZE / 8];
+		//		random.nextBytes(bytes);
+		//		
+		//		FileInputStream fis = null;
+		//		try {
+		//			fis = openFileInput("idsequence");
+		//		} catch (FileNotFoundException ex) {
+		//			FileOutputStream fos = null;
+		//			try {
+		//				fis.close();
+		//				fos = openFileOutput("idsequence", MODE_PRIVATE);
+		//			} catch (IOException ex1) {
+		//				Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex1);
+		//			}
+		//			Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
+		//		}
+		//		try {
+		//			fos = openFileOutput("idsequence", Context.MODE_PRIVATE);
+		//			fos.write(bytes);
+		//			Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
+		//		} catch (IOException ex) {
+		//			Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
+		//		} finally {
+		//			if (fos != null) {
+		//				try {
+		//					fos.close();
+		//				} catch (IOException ex) {
+		//					Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
+		//				}
+		//			}
+		//		}
+
+		RandomID rid;
+		String clientid = getFilesDir() + "clientid";
+		try {
+			rid = RandomID.readFromFile(clientid);
+		} catch (FileNotFoundException ex) {
+			rid = RandomID.init(clientid);
+		}
+
+		Log.v(TAG, "SHA-1: " + Utilities.toSHA1String(rid.getBytes()));
+
 		final Activity act = this;
 		new Thread(new Runnable() {
 			public void run() {
@@ -59,7 +113,7 @@ public class MainActivity extends Activity
 				statprof.benchmark();
 			}
 		}).start();
-		
+
 		if (true) {
 			return;
 		}
