@@ -1,27 +1,23 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.client.comm;
 
 import java.security.cert.X509Certificate;
 
 /**
+ * Interface that has to be implemented by classes to provid a user interface
+ * for certificate acceptance.
  *
- * @author enrico
+ * @author Enrico Joerns
  */
 public interface CertAcceptRequest {
 
 	/**
+	 * Called by ReloadableX509TrustManager for certificate acceptance request.
 	 *
-	 * @return
+	 * @param cert The cert that should be accepted
+	 * @param cahandler A Handler that will be invoked if a result is available
 	 */
-	void userCheckAccept(X509Certificate cert, final CertAcceptHandler cahandler);
+	void userCheckAccept(final X509Certificate cert, final CertAcceptHandler cahandler);
 
-	boolean hasResult();
-
-	public interface Listener {
-
-		public boolean getCheckResult();
-	}
+	/// Maybe for pull mechanism...
+	public boolean hasResult();
 }

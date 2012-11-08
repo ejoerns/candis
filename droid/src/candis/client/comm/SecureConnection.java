@@ -4,7 +4,6 @@
  */
 package candis.client.comm;
 
-import android.util.Log;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -23,9 +22,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * SSL/TLS based secure connection.
  *
- *
- *
- * @author enrico
+ * @author Enrico Joerns
  */
 public class SecureConnection implements Runnable {
 
@@ -40,15 +37,15 @@ public class SecureConnection implements Runnable {
 	private ObjectOutputStream oos;
 	private ObjectInputStream ois;
 	private X509TrustManager tstore;
-//	private boolean is_onnected;
 
 	/**
+	 * Creates new SecureConnection.
 	 *
 	 * @param host Host address to connect with
 	 * @param port port number to connect to
 	 * @param truststore_R truststore file to be used
 	 */
-	public SecureConnection(String host, int port, X509TrustManager tstore) {
+	public SecureConnection(final String host, final int port, final X509TrustManager tstore) {
 		this.host = host;
 		this.port = port;
 		this.tstore = tstore;
@@ -84,6 +81,7 @@ public class SecureConnection implements Runnable {
 			return;
 		} catch (Exception ex) {
 			logger.log(Level.SEVERE, null, ex);
+			return;
 		}
 		SSLSocketFactory sf = context.getSocketFactory();
 
@@ -99,18 +97,20 @@ public class SecureConnection implements Runnable {
 		logger.log(Level.INFO, "Connected to {0}:{1}",
 						new Object[]{socket.getInetAddress(), socket.getPort()});
 
-		logger.log(Level.FINE, "Creating input/output streams");
 		try {
 			oos = new ObjectOutputStream(socket.getOutputStream());
 			ois = new ObjectInputStream(socket.getInputStream());
+			logger.log(Level.FINE, "Input/output streams created");
 		} catch (IOException ex) {
 			logger.log(Level.SEVERE, "Failed creating input/output streams");
 		}
 
 		connected = true;
-		logger.log(Level.FINE, "Now Connected!");
 	}
 
+	/**
+	 * Disconnects the socket.
+	 */
 	public void disconnect() {
 		try {
 			if (socket != null) {
@@ -121,10 +121,20 @@ public class SecureConnection implements Runnable {
 		}
 	}
 
+	/**
+	 *
+	 * @return Socket
+	 */
 	public Socket getSocket() {
 		return socket;
 	}
 
+	/**
+	 * Reads object from socket.
+	 *
+	 * @return
+	 * @throws IOException
+	 */
 	public Object readObject() throws IOException {
 		Object rec = null;
 
@@ -143,7 +153,13 @@ public class SecureConnection implements Runnable {
 		return rec;
 	}
 
-	public void writeObject(Object data) throws IOException {
+	/**
+	 * Writes object to socket.
+	 *
+	 * @param data
+	 * @throws IOException
+	 */
+	public void writeObject(final Object data) throws IOException {
 		oos.writeObject(data);
 	}
 
