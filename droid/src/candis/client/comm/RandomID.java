@@ -1,5 +1,6 @@
 package candis.client.comm;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -26,7 +27,7 @@ public class RandomID {
 	 * @param file Name of file to store data to
 	 * @param id
 	 */
-	public static void writeToFile(final String file, final RandomID id) throws FileNotFoundException {
+	public static void writeToFile(final File file, final RandomID id) throws FileNotFoundException {
 		OutputStream out = new FileOutputStream(file);
 		try {
 			out.write(id.bytes);
@@ -41,13 +42,17 @@ public class RandomID {
 		}
 	}
 
+	public static void writeToFile(final String file, final RandomID id) throws FileNotFoundException {
+		writeToFile(new File(file), id);
+	}
+		
 	/**
 	 * Reads random ID from file.
 	 *
 	 * @param file Name of file to read data from
 	 * @return
 	 */
-	public static RandomID readFromFile(final String file) throws FileNotFoundException {
+	public static RandomID readFromFile(final File file) throws FileNotFoundException {
 		InputStream in = new FileInputStream(file);
 		RandomID randId = new RandomID();
 		try {
@@ -64,13 +69,17 @@ public class RandomID {
 		return randId;
 	}
 
+	public static RandomID readFromFile(final String file) throws FileNotFoundException {
+		return readFromFile(new File(file));
+	}
+
 	/**
 	 * Creates new id file with 4096 bit random sequence.
 	 *
 	 * @param file
 	 * @return RandomID that was written to file
 	 */
-	public static RandomID init(final String file) {
+	public static RandomID init(final File file) {
 		SecureRandom random = new SecureRandom();
 		RandomID id = new RandomID();
 		random.nextBytes(id.bytes);
@@ -89,6 +98,10 @@ public class RandomID {
 			}
 		}
 		return id;
+	}
+
+	public static RandomID init(final String file) {
+		return init(new File(file));
 	}
 
 	/**

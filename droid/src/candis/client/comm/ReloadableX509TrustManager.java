@@ -1,6 +1,7 @@
 package candis.client.comm;
 
 import candis.common.Utilities;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -33,7 +34,7 @@ public final class ReloadableX509TrustManager
 	private static final String TAG = "X509";
 	private static final Logger logger = Logger.getLogger(TAG);
 	/// Path to truststore
-	private final String tspath;
+	private final File tsfile;
 	private X509TrustManager trustManager;
 	/// List for temporary certificates
 	private final List<Certificate> tempCertList = new LinkedList<Certificate>();
@@ -58,16 +59,21 @@ public final class ReloadableX509TrustManager
 	 * Creates instance of ReloadableX509TrustManager with choosable
 	 * ClientAcceptDialog (CAD).
 	 *
-	 * @param tspath Path to truststore file (Will be created if not existent)
+	 * @param tsfile Path to truststore file (Will be created if not existent)
 	 * @param cad Implementation of CertAcceptDialog to enable user interaction
 	 * @throws Exception
 	 */
-	public ReloadableX509TrustManager(final String tspath, final CertAcceptRequest cad) throws Exception {
-		this.tspath = tspath;
+	public ReloadableX509TrustManager(final File tsfile, final CertAcceptRequest cad) throws Exception {
+		this.tsfile = tsfile;
 		this.cad = cad;
 		reloadTrustManager();
 	}
 
+	public ReloadableX509TrustManager(final String tspath, final CertAcceptRequest cad) throws Exception {
+		this(new File(tspath), cad);
+	}
+
+	
 	@Override
 	public void checkClientTrusted(final X509Certificate[] chain,
 					String authType) throws java.security.cert.CertificateException {
@@ -109,24 +115,24 @@ public final class ReloadableX509TrustManager
 		InputStream in;
 		// Check if file exists and is not empty
 		try {
-			in = new FileInputStream(tspath);
+			in = new FileInputStream(tsfile);
 			if (in.available() == 0) {
 				in.close();
 				in = null;
 			}
 		} catch (FileNotFoundException ex) {
-			logger.log(Level.INFO, "Truststore file {0} not found.", tspath);
+			logger.log(Level.INFO, "Truststore file {0} not found.", tsfile);
 			in = null;
 		}
 
 		// Initialize empty truststore if none available
 		if (in == null) {
-			OutputStream out = new FileOutputStream(tspath);
+			OutputStream out = new FileOutputStream(tsfile);
 			ts.load(null, "candis".toCharArray());
 			ts.store(out, "candis".toCharArray());
 			out.close();
-			in = new FileInputStream(tspath);
-			logger.log(Level.INFO, "Initialized empty truststore {0}", tspath);
+			in = new FileInputStream(tsfile);
+			logger.log(Level.INFO, "Initialized empty truststore {0}", tsfile);
 		}
 
 		// load truststore
@@ -197,7 +203,7 @@ public final class ReloadableX509TrustManager
 				KeyStore ts = KeyStore.getInstance("BKS");
 
 				// load truststore from file
-				FileInputStream cert_istream = new FileInputStream(tspath);
+				FileInputStream cert_istream = new FileInputStream(tsfile);
 				ts.load(cert_istream, "candis".toCharArray());
 				cert_istream.close();
 
@@ -209,7 +215,7 @@ public final class ReloadableX509TrustManager
 				}
 
 				// write truststore to file
-				FileOutputStream cert_ostream = new FileOutputStream(tspath);
+				FileOutputStream cert_ostream = new FileOutputStream(tsfile);
 				ts.store(cert_ostream, "candis".toCharArray());
 				cert_ostream.close();
 
