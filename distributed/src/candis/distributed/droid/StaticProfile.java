@@ -1,15 +1,17 @@
 package candis.distributed.droid;
 
+import java.io.Serializable;
+
 /**
  * System Profile to provide scheduler information about device.
  *
  * @author Enrico Joerns
  */
-public class StaticProfile {
+public class StaticProfile implements Serializable {
 
 	public final long memoryMB;
 	public final int processors;
-	public final int benchmark;
+	public final long benchmark;
 
 	/**
 	 * Creates a new system profile from provided Data.
@@ -18,7 +20,7 @@ public class StaticProfile {
 	 * @param proc Total number of processors
 	 * @param bench Benchmark result
 	 */
-	public StaticProfile(final int mem, final int proc, final int bench) {
+	public StaticProfile(final long mem, final int proc, final long bench) {
 		this.memoryMB = mem;
 		this.processors = proc;
 		this.benchmark = bench;
