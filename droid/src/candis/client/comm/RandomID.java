@@ -21,6 +21,18 @@ public class RandomID {
 	public static final int ID_LENGTH = 4096;
 	private byte bytes[] = new byte[ID_LENGTH / 8];
 
+	public RandomID() {
+	}
+
+	/**
+	 * Copy constructor
+	 *
+	 * @param id
+	 */
+	public RandomID(RandomID id) {
+		setBytes(id.getBytes());
+	}
+
 	/**
 	 * Writes random ID to file.
 	 *
@@ -45,7 +57,7 @@ public class RandomID {
 	public static void writeToFile(final String file, final RandomID id) throws FileNotFoundException {
 		writeToFile(new File(file), id);
 	}
-		
+
 	/**
 	 * Reads random ID from file.
 	 *
@@ -110,5 +122,9 @@ public class RandomID {
 	 */
 	public byte[] getBytes() {
 		return bytes;
+	}
+
+	public final void setBytes(byte[] b) {
+		bytes = b;
 	}
 }
