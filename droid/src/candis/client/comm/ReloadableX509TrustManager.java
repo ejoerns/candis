@@ -121,7 +121,7 @@ public final class ReloadableX509TrustManager
 				in = null;
 			}
 		} catch (FileNotFoundException ex) {
-			logger.log(Level.INFO, "Truststore file {0} not found.", tsfile);
+			logger.log(Level.INFO, "Truststore file {0} not found.", tsfile.getName());
 			in = null;
 		}
 
@@ -132,7 +132,7 @@ public final class ReloadableX509TrustManager
 			ts.store(out, "candis".toCharArray());
 			out.close();
 			in = new FileInputStream(tsfile);
-			logger.log(Level.INFO, "Initialized empty truststore {0}", tsfile);
+			logger.log(Level.INFO, "Initialized empty truststore {0}", tsfile.getName());
 		}
 
 		// load truststore

@@ -26,9 +26,15 @@ public class Settings {
 	// Holds all key-value pairs
 	public static Map<String, String> mKeyMap = new HashMap<String, String>();
 
-	public static void load(Context c) {
+	/**
+	 * Loads settings from a Ressource file
+	 *
+	 * @param c Context
+	 * @param id Id of file
+	 */
+	public static void load(final Context c, final int id) {
 		Settings.con = c;
-		InputStream ins = con.getResources().openRawResource(R.raw.settings);
+		InputStream ins = con.getResources().openRawResource(id);
 		ResourceBundle bundle = null;
 		try {
 			bundle = new PropertyResourceBundle(ins);
@@ -39,52 +45,17 @@ public class Settings {
 
 		for (String key : keys) {
 			mKeyMap.put(key, bundle.getString(key));
-			Log.v(TAG, key + ":" + mKeyMap.get(key));
+			Log.v(TAG, "Loaded: " + key + "=" + mKeyMap.get(key));
 		}
 	}
 
-	/*
-	 void test() {
-	 Writer writer = null;
-	 Reader reader = null;
-	 try {
-	 FileOutputStream fos = con.openFileOutput(path, Context.MODE_PRIVATE);
-	 writer = new OutputStreamWriter(fos);
-	 //			fos.close();
-
-
-	 //			path = con.getFilesDir() + "/" + path;
-	 Log.v(TAG, "File: " + writer.toString());
-
-	 //			writer = new FileWriter(path);
-
-	 Properties prop1 = new Properties(System.getProperties());
-	 prop1.setProperty("MeinNameIst", "Forrest Gump");
-	 prop1.store(writer, "Eine Insel mit zwei Bergen");
-
-	 //			reader = new FileReader(fos.getFD());
-
-	 Properties prop2 = new Properties();
-	 //			prop2.load(reader);
-	 prop2.list(System.out);
-	 } catch (IOException e) {
-	 e.printStackTrace();
-	 } finally {
-	 try {
-	 writer.close();
-	 } catch (Exception e) {
-	 }
-	 try {
-	 reader.close();
-	 } catch (Exception e) {
-	 }
-	 }
-	 }*/
 	public static int getInt(final String key) {
+		if (key == null) return 0;
 		return Integer.valueOf(mKeyMap.get(key));
 	}
 
 	public static String getString(final String key) {
+		if (key == null) return "";
 		return mKeyMap.get(key);
 	}
 }
