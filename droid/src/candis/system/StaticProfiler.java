@@ -10,13 +10,24 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 import candis.client.CertAcceptDialog;
 import candis.client.R;
 import candis.distributed.droid.StaticProfile;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.StreamCorruptedException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -28,42 +39,64 @@ public class StaticProfiler {
 
 	private static final String TAG = "Profiler";
 	private final Activity activity;
-	private final StaticProfile profile = null;
-	private final ActivityManager activityManager;
+//	private final StaticProfile profile = null;
+//	private final ActivityManager activityManager;
 	private final Handler handler;
 	private final AtomicBoolean accepted = new AtomicBoolean(false);
 
 	public StaticProfiler(final Activity act, final Handler handler) {
 		this.activity = act;
 		this.handler = handler;
-		activityManager = (ActivityManager) activity.getSystemService(Activity.ACTIVITY_SERVICE);
+//		activityManager = (ActivityManager) activity.getSystemService(Activity.ACTIVITY_SERVICE);
 	}
 
-	public void profile() {
+	/**
+	 * Runs profiling tests and returns a StaticProfile object including all
+	 * collected informations.
+	 *
+	 * @param activityManager
+	 * @return
+	 */
+	public static StaticProfile profile(final ActivityManager activityManager) {
+		long mem = getMemorySize(activityManager);
+		int cores = getNumCores();
+		long bench = benchmark();
+		return new StaticProfile(mem, cores, bench);
 	}
 
-	public void benchmark() {
-		// get number of running processes / services
-		handler.post(new Runnable() {
-			public void run() {
-				KillProcessesDialogFragment kpdf = new KillProcessesDialogFragment();
-				kpdf.show(activity.getFragmentManager(), TAG);
-			}
-		});
+	public static long benchmark() {
+//		// get number of running processes / services
+//		handler.post(new Runnable() {
+//			public void run() {
+//				KillProcessesDialogFragment kpdf = new KillProcessesDialogFragment();
+//				kpdf.show(activity.getFragmentManager(), TAG);
+//			}
+//		});
+//
+//		Log.i(TAG, "Waiting for accept");
+//		synchronized (accepted) {
+//			try {
+//				accepted.wait();
+//			} catch (InterruptedException ex) {
+//				Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+//			}
+//		}
+//		Log.i(TAG, "Received accept: " + accepted);
+		long start = SystemClock.uptimeMillis();
+		Benchmark bench = new FakBenchmark();
+		bench.run();
+		long result = SystemClock.uptimeMillis() - start;
+		Log.i(TAG, "It took me " + result + " millis to finish calculation");
 
-		Log.i(TAG, "Waiting for accept");
-		synchronized (accepted) {
-			try {
-				accepted.wait();
-			} catch (InterruptedException ex) {
-				Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
-			}
-		}
-		Log.i(TAG, "Received accept: " + accepted);
-
+		return result;
 	}
 
-	private void killBackgroundProcess() {
+	/**
+	 * Kills all background processes.
+	 *
+	 * @param activityManager
+	 */
+	private static void killBackgroundProcesses(final ActivityManager activityManager) {
 		int nr_of_killed_processes = 0;
 		for (ActivityManager.RunningAppProcessInfo apps : activityManager.getRunningAppProcesses()) {
 			if (apps != null) {
@@ -80,7 +113,7 @@ public class StaticProfiler {
 		Log.i(TAG, "Killed processes: " + nr_of_killed_processes);
 	}
 
-	private long getMemorySize() {
+	private static long getMemorySize(final ActivityManager activityManager) {
 		MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
 		activityManager.getMemoryInfo(memoryInfo);
 		Log.i(TAG, "Memory: " + memoryInfo.availMem);
@@ -88,7 +121,7 @@ public class StaticProfiler {
 		return memoryInfo.availMem;
 	}
 
-	private class KillProcessesDialogFragment extends DialogFragment {
+	public class KillProcessesDialogFragment extends DialogFragment {
 
 		@Override
 		public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -121,6 +154,99 @@ public class StaticProfiler {
 			}
 			// Create the AlertDialog object and return it
 			return builder.create();
+		}
+	}
+
+	/**
+	 * Gets the number of cores available in this device, across all processors.
+	 * Requires: Ability to peruse the filesystem at "/sys/devices/system/cpu"
+	 *
+	 * @return The number of cores, or 1 if failed to get result
+	 */
+	public static int getNumCores() {
+		//Private Class to display only CPU devices in the directory listing
+		class CpuFilter implements FileFilter {
+
+			@Override
+			public boolean accept(File pathname) {
+				//Check if filename is "cpu", followed by a single digit number
+				if (Pattern.matches("cpu[0-9]", pathname.getName())) {
+					return true;
+				}
+				return false;
+			}
+		}
+
+		try {
+			//Get directory containing CPU info
+			File dir = new File("/sys/devices/system/cpu/");
+			//Filter to only list the devices we care about
+			File[] files = dir.listFiles(new CpuFilter());
+			//Return the number of cores (virtual CPU devices)
+			return files.length;
+		} catch (Exception e) {
+			//Default to return 1 core
+			return 1;
+		}
+	}
+
+	public static StaticProfile readProfile(File f) {
+		ObjectInputStream ois = null;
+		try {
+			ois = new ObjectInputStream(new FileInputStream(f));
+
+			Object obj = ois.readObject();
+
+			if (obj instanceof StaticProfile) {
+				return (StaticProfile) obj;
+			} else {
+				return null;
+			}
+
+		} catch (StreamCorruptedException ex) {
+			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (FileNotFoundException ex) {
+			Log.e(TAG, "Profile file " + f + " not found!");
+		} catch (IOException ex) {
+			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (ClassNotFoundException ex) {
+			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+		} finally {
+			if (ois != null) {
+				try {
+					ois.close();
+				} catch (IOException ex) {
+					Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Writes StaticProfile to file
+	 *
+	 * @param f Store destination
+	 * @param p Profile to store
+	 */
+	public static void writeProfile(File f, StaticProfile p) {
+		ObjectOutputStream oos = null;
+		try {
+			oos = new ObjectOutputStream(new FileOutputStream(f));
+			oos.writeObject(p);
+		} catch (FileNotFoundException ex) {
+			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (IOException ex) {
+			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+		} finally {
+			if (oos != null) {
+				try {
+					oos.close();
+				} catch (IOException ex) {
+					Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
 		}
 	}
 }
