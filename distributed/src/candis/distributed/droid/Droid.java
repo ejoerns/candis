@@ -1,13 +1,18 @@
-package candis.distributed;
+package candis.distributed.droid;
 
 /**
  *
  * @author Sebastian Willenborg
  */
 public class Droid {
+	public int id;
+
+	public Droid(int id) {
+		this.id = id;
+	}
 
 	public boolean equals(Droid other) {
-		return false;
+		return this.id == other.id;
 	}
 
 	@Override
