@@ -4,48 +4,59 @@
  */
 package candis.common;
 
-/** Message enum type.
- * 
- * Serialize: 
- *   CandisMsg mymessage = CandisMsg.GET_INFO;  
- *   int simpleVal = mymessage.toValue();
- * 
- * Deserialize:
- *   CandisMsg newmessage = CandisMsg.fromValue(simpleVal);
+/**
+ * Message enum type.
+ *
+ * Serialize: CandisMsg mymessage = CandisMsg.GET_INFO; int simpleVal =
+ * mymessage.toValue();
+ *
+ * Deserialize: CandisMsg newmessage = CandisMsg.fromValue(simpleVal);
  *
  * @author enrico
  */
 public enum Instruction {
-	
+
 	// -- Available messages
 	NO_MSG(0),
+	/// Request information - unused
 	GET_INFO(10),
+	/// Send information - unused
 	SEND_INFO(20),
-	GET_CERTIFICATE(30),
-	SEND_CERTIFICATE(40),
-	GET_TRUSTSTORE(50);
+	/// Droid requests connection to master
+	REQUEST_CONNECTION(40),
+	// Master requests ID - unused
+	//	REQUEST_ID(50),
+	/// Master requests profile data from droid
+	REQUEST_PROFILE(60),
+	/// Master accepts connection
+	ACCEPT_CONNECTION(70),
+	/// Master rejects connection
+	REJECT_CONNECTION(80),
+	/// Droid requests job
+	REQUEST_JOB(90),
+	/// Master sends job
+	SEND_JOB(100);
 	// --
-
-	
 	private final int val;
-	
+
 	Instruction(int val) {
 		this.val = val;
 	}
-	
+
 	public static Instruction fromValue(int val) {
 		// search for equivalent enum type
-		for(Instruction test : values()) {
-			if (test.val == val) return test;
+		for (Instruction test : values()) {
+			if (test.val == val) {
+				return test;
+			}
 		}
 		// default return if lookup failed
 		return NO_MSG;
 	}
-	
+
 	public int toValue() {
 		return val;
 	}
-	
 //	public static final CandisMsg GET_INFO = new CandisMsg("GET_INFO", 10);
 //	public static final CandisMsg GET_CERTIFICATE = new CandisMsg("GET_CERT", 20);
 //
@@ -61,5 +72,4 @@ public enum Instruction {
 //	public int getVal() {
 //		return this.val;
 //	}
-	
 }
