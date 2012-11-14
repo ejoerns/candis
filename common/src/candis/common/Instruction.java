@@ -28,6 +28,8 @@ public enum Instruction {
 	//	REQUEST_ID(50),
 	/// Master requests profile data from droid
 	REQUEST_PROFILE(60),
+	/// Droid sends profile data
+	SEND_PROFILE(65),
 	/// Master accepts connection
 	ACCEPT_CONNECTION(70),
 	/// Master rejects connection
@@ -35,7 +37,11 @@ public enum Instruction {
 	/// Droid requests job
 	REQUEST_JOB(90),
 	/// Master sends job
-	SEND_JOB(100);
+	SEND_JOB(100),
+	/// Droid sends result to master
+	SEND_RESULT(105),
+	/// Droid/Master informs that it will terminate
+	SELF_TERMINATE(110);
 	// --
 	private final int val;
 
