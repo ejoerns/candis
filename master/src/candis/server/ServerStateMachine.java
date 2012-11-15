@@ -1,108 +1,89 @@
 package candis.server;
 
 import candis.common.Instruction;
-import candis.common.fsm.SMInput;
-import candis.common.fsm.State;
+import candis.common.fsm.ActionHandler;
+import candis.common.fsm.FSM;
+import candis.common.fsm.HandlerID;
+import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
+import candis.common.fsm.Transition;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author Enrico Joerns
  */
-public enum ServerStateMachine implements State {
+public class ServerStateMachine extends FSM {
 
-	/**
-	 * The droid is not connected to the master.
-	 */
-	UNCONNECTED {
-		@Override
-		public State process(final SMInput input) throws StateMachineException {
-			ServerSMInput ssmi = (ServerSMInput) input;
-			switch (ssmi) {
-				case CLIENT_MSG:
-					switch ((Instruction) ssmi.getData()) {
-						case REQUEST_CONNECTION:
-							return CHECK;
-						default:
-							return UNCONNECTED;
-					}
-				default:
-					return UNCONNECTED;
-			}
+	private static final String TAG = "ClientStateMachine";
+	private static final Logger logger = Logger.getLogger(TAG);
+
+	private enum ServerStates implements StateEnum {
+
+		UNCONNECTED,
+		CHECK,
+		PROFILE_REQUESTED,
+		CONNECTED,
+		JOB_SENT;
+	}
+
+	public enum ServerTrans implements Transition {
+
+		SOCKET_CONNECTED,
+		//		ACCEPT_CONNECTION,
+		//		REJECT_CONNECTION,
+		//		REQUEST_PROFILE,
+		//		SEND_JOB,
+		JOB_FINISHED;
+	}
+
+	private enum ClientHandlerID implements HandlerID {
+
+		MY_ID;
+	}
+
+	ServerStateMachine() {
+		init();
+	}
+
+	protected void init() {
+		addState(ServerStates.UNCONNECTED);
+		addState(ServerStates.CHECK);
+		addState(ServerStates.PROFILE_REQUESTED);
+		addState(ServerStates.CONNECTED);
+		addState(ServerStates.JOB_SENT);
+
+
+
+		// Run test
+		try {
+			setState(ServerStates.UNCONNECTED);
+			System.out.println("State: " + getState());
+			process(ServerTrans.SOCKET_CONNECTED);
+			System.out.println("State: " + getState());
+			process(Instruction.ACCEPT_CONNECTION);
+			System.out.println("State: " + getState());
+			process(Instruction.SEND_JOB);
+			System.out.println("State: " + getState());
+		} catch (StateMachineException ex) {
+			logger.log(Level.SEVERE, null, ex);
 		}
-	},
-	/**
-	 * Droid requested connection and droid checks it.
-	 */
-	CHECK {
+	}
+
+	private class SocketConnectedHandler implements ActionHandler {
+
 		@Override
-		public State process(final SMInput input) throws StateMachineException {
-			ServerSMInput ssmi = (ServerSMInput) input;
-			switch (ssmi) {
-				case CLIENT_ACCEPTED:
-					return CONNECTED;
-				case CLIENT_BLACKLISTED:
-					return UNCONNECTED;
-				case NEW_CLIENT:
-					return PROFILE_REQUEST;
-				default:
-					return CHECK;
-			}
+		public void handle() {
+			System.out.println("Handle :)");
 		}
-	},
-	/**
-	 * Master requested profile from droid.
-	 */
-	PROFILE_REQUEST {
+	}
+
+	private class MySecondHandler implements ActionHandler {
+
 		@Override
-		public State process(final SMInput input) throws StateMachineException {
-			ServerSMInput ssmi = (ServerSMInput) input;
-			switch (ssmi) {
-				case CLIENT_MSG:
-					switch ((Instruction) ssmi.getData()) {
-						case SEND_PROFILE:
-							return CONNECTED;
-						default:
-							return PROFILE_REQUEST;
-					}
-				default:
-					return PROFILE_REQUEST;
-			}
+		public void handle() {
+			System.out.println("Handle :)");
 		}
-	},
-	/**
-	 * Droid is connected to master.
-	 */
-	CONNECTED {
-		@Override
-		public State process(final SMInput input) throws StateMachineException {
-			ServerSMInput ssmi = (ServerSMInput) input;
-			switch (ssmi) {
-				case POST_JOB:
-					return JOB_SENT;
-				default:
-					return CONNECTED;
-			}
-		}
-	},
-	/**
-	 * A job was sent to the connected droid.
-	 */
-	JOB_SENT {
-		@Override
-		public State process(final SMInput input) throws StateMachineException {
-			ServerSMInput ssmi = (ServerSMInput) input;
-			switch (ssmi) {
-				case CLIENT_MSG:
-					switch ((Instruction) ssmi.getData()) {
-						case SEND_RESULT:
-							return CONNECTED;
-						default:
-							return JOB_SENT;
-					}
-				default:
-					return JOB_SENT;
-			}
-		}
-	};
+	}
 }
