@@ -3,6 +3,8 @@ package candis.distributed.test;
 import candis.distributed.DistributedControl;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -16,7 +18,18 @@ public class TestMain implements DistributedControl{
 	public static void main(String[] args) {
 		// TODO code application logic here
 		DistributedControl t = new TestMain();
+
 		Scheduler s = t.initScheduler();
+		TestCommunicationIO comio = new TestCommunicationIO();
+		comio.initDroids();
+		s.setCommunicationIO(comio);
+		try {
+			Thread.sleep(1000);
+		}
+		catch (InterruptedException ex) {
+			Logger.getLogger(TestMain.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		comio.stopDroids();
 
 	}
 
