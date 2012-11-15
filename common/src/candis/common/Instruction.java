@@ -4,6 +4,8 @@
  */
 package candis.common;
 
+import candis.common.fsm.Transition;
+
 /**
  * Message enum type.
  *
@@ -14,7 +16,7 @@ package candis.common;
  *
  * @author enrico
  */
-public enum Instruction {
+public enum Instruction implements Transition {
 
 	// -- Available messages
 	NO_MSG(0),
