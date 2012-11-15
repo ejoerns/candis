@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.client.comm;
 
 import java.io.IOException;
@@ -37,6 +33,7 @@ public class SecureConnection implements Runnable {
 	private ObjectOutputStream oos;
 	private ObjectInputStream ois;
 	private X509TrustManager tstore;
+	private boolean isStopped = false;
 
 	/**
 	 * Creates new SecureConnection.

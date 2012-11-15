@@ -2,7 +2,6 @@ package candis.client;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -11,19 +10,8 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Toast;
 import candis.client.comm.CertAcceptRequest;
-import candis.client.comm.RandomID;
-import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.SecureConnection;
-import candis.common.Utilities;
-import candis.distributed.droid.StaticProfile;
-import candis.system.KillProcessesDialogFragment;
-import candis.system.StaticProfiler;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.X509TrustManager;
 
 public class MainActivity extends Activity
 				implements OnClickListener {
@@ -54,49 +42,7 @@ public class MainActivity extends Activity
 		// Run droid
 		new Droid(this).start();
 
-//		if (true) return;
-
-//		StaticProfilerTask spt = new StaticProfilerTask(this);
-
-//		File tsfile = getFileStreamPath(Settings.getString("truststore"));
 		CertAcceptRequest cad = new CertAcceptDialog(this, mHandler);
-//		Log.v(TAG, "path: " + getFileStreamPath(Settings.getString("truststore")));
-
-//		try {
-//			new Thread(
-//							sconn = new SecureConnection(
-//							"10.0.2.2", 9999,
-//							(X509TrustManager) new ReloadableX509TrustManager(tsfile, cad))).start();
-//		} catch (Exception ex) {
-//			logger.log(Level.SEVERE, null, ex);
-//		}
-//		logger.log(Level.SEVERE, "CONNECTING...");
-//		try {
-//			ConnectTask ct = new ConnectTask(this);
-//			ct.execute("10.0.2.2", 9999,
-//							(X509TrustManager) new ReloadableX509TrustManager(tsfile, cad));
-//		} catch (Exception ex) {
-//			logger.log(Level.SEVERE, null, ex);
-//		}
-
-		// get random client ID
-//		RandomID rid;
-//		File clientid = getFileStreamPath(Settings.getString("idstore"));
-//		try {
-//			rid = RandomID.readFromFile(clientid);
-//		} catch (FileNotFoundException ex) {
-//			rid = RandomID.init(clientid);
-//		}
-
-//		Log.v(TAG, "SHA-1: " + Utilities.toSHA1String(rid.getBytes()));
-
-//		final Activity act = this;
-//		new Thread(new Runnable() {
-//			public void run() {
-//				StaticProfiler statprof = new StaticProfiler(act, mHandler);
-//				statprof.benchmark();
-//			}
-//		}).start();
 	}
 
 	public void onClick(View v) {

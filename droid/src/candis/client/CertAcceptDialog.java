@@ -23,11 +23,8 @@ import java.util.logging.Logger;
 public class CertAcceptDialog implements CertAcceptRequest {
 
 	private static String TAG = "CertAcceptDialog";
-//	private boolean accept = false;
-//	private boolean clicked = false;
 	private final Activity activity;
 	private X509Certificate cert_to_check;
-//	private boolean accepted = false;
 	private boolean has_result;
 	// Handler to execute UI stuff
 	private final Handler handler;

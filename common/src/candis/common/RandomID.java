@@ -1,4 +1,4 @@
-package candis.client.comm;
+package candis.common;
 
 import java.io.File;
 import java.io.FileInputStream;

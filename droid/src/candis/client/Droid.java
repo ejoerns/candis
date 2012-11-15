@@ -3,12 +3,16 @@ package candis.client;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
-import candis.client.comm.RandomID;
+import candis.client.comm.CertAcceptRequest;
+import candis.client.comm.CommRequestBroker;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.SecureConnection;
+import candis.common.RandomID;
 import candis.common.Utilities;
+import candis.common.fsm.FSM;
 import candis.distributed.droid.StaticProfile;
 import candis.system.StaticProfiler;
 import java.io.File;
@@ -25,6 +29,7 @@ import javax.net.ssl.X509TrustManager;
  */
 public class Droid {
 
+	private static final String TAG = "Droid";
 	private final Activity app;
 	private final StaticProfile profile = null;
 	private final RandomID id = null;
@@ -32,24 +37,37 @@ public class Droid {
 	private final GetIDTask idg;
 	private final ProfilerTask ptask;
 	private final ConnectTask ctask;
+	SecureConnection sc = null;
+	CommRequestBroker comm;
+	private FSM fsm;
 
 	public Droid(Activity a) {
 		app = a;
 		idg = new GetIDTask(app, new File(app.getFilesDir() + "/" + Settings.getString("idstore")), id);
 		ptask = new ProfilerTask(a, new File(app.getFilesDir() + "/" + Settings.getString("profilestore")));
-		ctask = new ConnectTask(a);
+		ctask = new ConnectTask(app, new File(app.getFilesDir() + "/" + Settings.getString("truststore")));
+		// Todo: run comm
+		fsm = new ClientStateMachine(sc);
 	}
 
 	public void start() {
 		idg.execute();
 		ptask.execute();
-		Log.i("Droid", "CONNECTING...");
+		Log.i(TAG, "CONNECTING...");
 		try {
-			ConnectTask ct = new ConnectTask(app);
-			ct.execute("10.0.2.2", 9999,
-							(X509TrustManager) new ReloadableX509TrustManager(new File(app.getFilesDir() + "/" + Settings.getString("truststore")), null));
+			ctask.execute("10.0.2.2", 9999,
+							(X509TrustManager) new ReloadableX509TrustManager(
+							new File(app.getFilesDir() + "/" + Settings.getString("truststore")), null));
 		} catch (Exception ex) {
-			Log.i("Droid", ex.toString());
+			Log.i(TAG, ex.toString());
+		}
+		try {
+			sc = ctask.get();
+			comm = new CommRequestBroker(sc, fsm);
+		} catch (InterruptedException ex) {
+			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (ExecutionException ex) {
+			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
 
@@ -61,6 +79,7 @@ public class Droid {
 	 */
 	private class GetIDTask extends AsyncTask<Void, Object, RandomID> {
 
+		private static final String TAG = "GetIDTask";
 		private final Activity app;
 		private final File idfile;
 		private RandomID randID;
@@ -75,7 +94,7 @@ public class Droid {
 		@Override
 		protected void onPreExecute() {
 			if (!idfile.exists()) {
-				Log.v("BLA", "ID file " + idfile + " does not exist. Will be generated...");
+				Log.v(TAG, "ID file " + idfile + " does not exist. Will be generated...");
 				do_generate = true;
 				Toast.makeText(
 								app.getApplicationContext(),
@@ -98,7 +117,7 @@ public class Droid {
 				try {
 					randID = RandomID.readFromFile(idfile);
 				} catch (FileNotFoundException ex) {
-					Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
+					Log.e(TAG, ex.toString());
 				}
 			}
 			return null;
@@ -116,7 +135,7 @@ public class Droid {
 			}
 			Toast.makeText(
 							app.getApplicationContext(),
-							"SHA1: " + Utilities.toSHA1String(randID.getBytes()),
+							"ClientID SHA1: " + Utilities.toSHA1String(randID.getBytes()),
 							Toast.LENGTH_SHORT).show();
 		}
 	}
@@ -165,16 +184,21 @@ public class Droid {
 //         setProgressPercent(progress[0]);
 		}
 	}
-	
+
 	/**
 	 *
 	 */
 	private class ConnectTask extends AsyncTask<Object, Object, SecureConnection> {
 
+		private static final String TAG = "ConnectTask";
 		Activity activity;
+		private final File tstore;
+		CertAcceptRequest cad;
 
-		public ConnectTask(Activity act) {
+		public ConnectTask(final Activity act, final File ts) {
 			activity = act;
+			tstore = ts;
+			cad = new CertAcceptDialog(activity, new Handler());
 		}
 
 		@Override
@@ -200,14 +224,7 @@ public class Droid {
 
 		@Override
 		protected void onPostExecute(SecureConnection args) {
-//			try {
-//				sconn = get();
-//			} catch (InterruptedException ex) {
-//				Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
-//			} catch (ExecutionException ex) {
-//				Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
-//			}
-			Log.w("Droid", "CONNECTED!!!!");
+			Log.w(TAG, "CONNECTED!!!!");
 		}
 	}
 }
