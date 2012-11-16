@@ -11,19 +11,32 @@ import android.widget.Button;
 import android.widget.Toast;
 import candis.client.comm.CertAcceptRequest;
 import candis.client.comm.SecureConnection;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class MainActivity extends Activity
 				implements OnClickListener {
 
 	private static final String TAG = "MainActivity";
-	private static final Logger logger = Logger.getLogger(TAG);
+	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private Button startButton;
 	private Button stopButton;
 	SecureConnection sconn = null;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+
+		// load logger.properties from /raw/res
+		final InputStream inputStream = getResources().openRawResource(R.raw.logger);
+		try {
+			LogManager.getLogManager().readConfiguration(inputStream);
+		} catch (final IOException e) {
+			Logger.getAnonymousLogger().severe("Could not load default logging.properties file");
+			Logger.getAnonymousLogger().severe(e.getMessage());
+		}
+
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
