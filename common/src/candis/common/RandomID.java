@@ -7,15 +7,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Manage random id based on SecureRandom.
  *
  * @author Enrico Joerns
  */
-public class RandomID {
+public class RandomID implements Serializable {
 
 	/// Length of ID in bits
 	public static final int ID_LENGTH = 4096;
