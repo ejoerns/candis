@@ -32,7 +32,7 @@ public class Droid {
 	private static final String TAG = "Droid";
 	private final Activity app;
 	private final StaticProfile profile = null;
-	private final RandomID id = null;
+	private RandomID id = null;
 	private final TrustManager tm = null;
 	private final GetIDTask idg;
 	private final ProfilerTask ptask;
@@ -47,7 +47,6 @@ public class Droid {
 		ptask = new ProfilerTask(a, new File(app.getFilesDir() + "/" + Settings.getString("profilestore")));
 		ctask = new ConnectTask(app, new File(app.getFilesDir() + "/" + Settings.getString("truststore")));
 		// Todo: run comm
-		fsm = new ClientStateMachine(sc);
 	}
 
 	public void start() {
@@ -63,7 +62,11 @@ public class Droid {
 		}
 		try {
 			sc = ctask.get();
+			fsm = new ClientStateMachine(sc, id, profile);
+			Log.i("Droid", "Starting CommRequestBroker");
 			comm = new CommRequestBroker(sc, fsm);
+			new Thread(comm).start();
+			Log.i("Droid", "[DONE]");
 		} catch (InterruptedException ex) {
 			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (ExecutionException ex) {
@@ -120,6 +123,7 @@ public class Droid {
 					Log.e(TAG, ex.toString());
 				}
 			}
+			id = randID;
 			return null;
 		}
 

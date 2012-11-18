@@ -1,5 +1,6 @@
 package candis.client.comm;
 
+import android.util.Log;
 import candis.client.ClientStateMachine;
 import candis.common.Message;
 import candis.common.fsm.FSM;
@@ -25,7 +26,6 @@ public class CommRequestBroker implements Runnable {
 //					final FSM fsm) {
 //		super(host, port, tstore);
 //	}
-
 	public CommRequestBroker(final SecureConnection sconn, final FSM fsm) {
 		this.sconn = sconn;
 		this.fsm = fsm;
@@ -33,6 +33,7 @@ public class CommRequestBroker implements Runnable {
 
 	@Override
 	public void run() {
+		Log.i("CRB", "run() called");
 		sconn.connect();
 		try {
 			fsm.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
@@ -44,11 +45,17 @@ public class CommRequestBroker implements Runnable {
 			try {
 				Object o = sconn.readObject();
 				if (o instanceof Message) {
+					Logger.getLogger("CRB").log(Level.INFO, "Read new Message");
 					try {
 						fsm.process(((Message) o).getRequest());
 					} catch (StateMachineException ex) {
 						Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
 					}
+				}
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException ex) {
+					Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
 				}
 			} catch (IOException ex) {
 				Logger.getLogger(SecureConnection.class.getName()).log(Level.SEVERE, null, ex);

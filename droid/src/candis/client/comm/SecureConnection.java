@@ -91,13 +91,16 @@ public class SecureConnection implements Runnable {
 			logger.log(Level.SEVERE, null, ex);
 		}
 
-		logger.log(Level.INFO, "Connected to {0}:{1}",
-						new Object[]{socket.getInetAddress(), socket.getPort()});
+		logger.log(Level.INFO, String.format(
+						"Connected to %s:%d", socket.getInetAddress(), socket.getPort()));
 
 		try {
 			oos = new ObjectOutputStream(socket.getOutputStream());
+			Thread.sleep(500);
 			ois = new ObjectInputStream(socket.getInputStream());
 			logger.log(Level.FINE, "Input/output streams created");
+		} catch (InterruptedException ex) {
+			Logger.getLogger(SecureConnection.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (IOException ex) {
 			logger.log(Level.SEVERE, "Failed creating input/output streams");
 		}
@@ -109,6 +112,7 @@ public class SecureConnection implements Runnable {
 	 * Disconnects the socket.
 	 */
 	public void disconnect() {
+		logger.log(Level.INFO, "Closing socket...");
 		try {
 			if (socket != null) {
 				socket.close();
@@ -134,8 +138,16 @@ public class SecureConnection implements Runnable {
 	 */
 	public Object readObject() throws IOException {
 		Object rec = null;
+//		if ((ois == null) && (!isStopped)) {
+//			isStopped = true;
+//			ois = new ObjectInputStream(socket.getInputStream());
+//		}
+		if (ois == null) {
+			logger.warning("ois is null");
+			return null;
+		}
 
-		if (ois.available() > 0) {
+//		if (ois.available() > 0) {
 			try {
 				rec = ois.readObject();
 			} catch (OptionalDataException ex) {
@@ -143,9 +155,9 @@ public class SecureConnection implements Runnable {
 			} catch (ClassNotFoundException ex) {
 				logger.log(Level.SEVERE, null, ex);
 			}
-		} else {
-			logger.log(Level.FINE, "No data");
-		}
+//		} else {
+//			logger.log(Level.FINE, "No data");
+//		}
 
 		return rec;
 	}
@@ -157,6 +169,7 @@ public class SecureConnection implements Runnable {
 	 * @throws IOException
 	 */
 	public void writeObject(final Object data) throws IOException {
+		logger.log(Level.FINE, "writeObject() called " + data.toString());
 		oos.writeObject(data);
 	}
 
