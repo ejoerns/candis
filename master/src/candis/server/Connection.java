@@ -1,14 +1,9 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server;
 
-import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.FSM;
-import candis.common.fsm.State;
 import candis.common.fsm.StateMachineException;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -17,86 +12,80 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Designed to run in seperate thread for every connected client.
  *
  * @author enrico
  */
 public class Connection implements Runnable {
 
-	private static final Logger logger = Logger.getLogger(Server.class.getName());
-	private Socket socket;
-	private ObjectInputStream ois;
-	private ObjectOutputStream oos;
+	private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
+	private final Socket socket;
+//	private ObjectOutputStream oos;
 	private boolean isStopped;
-	private FSM ssm;
+	private FSM fsm = null;
 
-	public Connection(Socket socket) throws IOException {
+	public Connection(final Socket socket) throws IOException {
 		this.socket = socket;
-		logger.log(Level.INFO, "Client connected...");
-//		ssm = ServerStateMachine.UNCONNECTED;
+		LOGGER.log(Level.INFO, "Client {0} connected...", socket.getInetAddress());
 	}
 
 	@Override
 	public void run() {
+		ObjectOutputStream oos = null;
+		ObjectInputStream ois = null;
 
 		try {
-			ois = new ObjectInputStream(socket.getInputStream());
 			oos = new ObjectOutputStream(socket.getOutputStream());
-			if ((ois == null) || (oos == null)) {
-				logger.log(Level.SEVERE, "Failed creating Input/Output stream!");
+			ois = new ObjectInputStream(socket.getInputStream());
+			fsm = new ServerStateMachine(oos);
+			if (ois == null) {
+				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream!");
 			}
 		} catch (IOException ex) {
 			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
 		}
 
-		while (!isStopped) {
+		// Handle incoming client requests
+		while ((!isStopped) && (!socket.isClosed())) {
 			try {
 
 				Message rec_msg = (Message) ois.readObject();
-				logger.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
+				LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 				try {
-					ssm.process(rec_msg.getRequest());
+					fsm.process(rec_msg.getRequest(), rec_msg.getData());
 				} catch (StateMachineException ex) {
-					logger.log(Level.SEVERE, null, ex);
+					LOGGER.log(Level.SEVERE, null, ex);
 				}
 
 				try {
 					Thread.sleep(10);// todo: improve
 					//
 				} catch (InterruptedException ex) {
-					Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+					LOGGER.log(Level.SEVERE, null, ex);
 				}
-			} catch (IOException ex) {
-				logger.log(Level.SEVERE, null, ex);
-			} catch (ClassNotFoundException ex) {
-				logger.log(Level.SEVERE, null, ex);
-			} finally {
+			} catch (EOFException ex) {
+				LOGGER.log(Level.SEVERE, "EOF detected, closing socket ...");
+				// TODO: add handler?
+				// terminate connection to client
 				isStopped = true;
 				try {
 					socket.close();
-				} catch (IOException ex) {
-					Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+				} catch (IOException e) {
+					LOGGER.log(Level.SEVERE, null, ex);
 				}
+			} catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			} catch (ClassNotFoundException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			} finally {
 			}
 		}
-
-
-//		System.out.println("Transfering file...");
-//		File myFile = new File("example_app-debug.apk");
-//		byte[] mybytearray = new byte[(int) myFile.length()];
-//		try {
-//			in = new DataInputStream(socket.getInputStream());
-//
-//			System.out.println("Done");
-//		} catch (FileNotFoundException ex) {
-//			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-//		} catch (IOException ex) {
-//			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-//		} finally {
-//			try {
-//				socket.close();
-//			} catch (IOException ex) {
-//				Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-//			}
-//		}
+		try {
+			LOGGER.log(Level.INFO, "Connection terminated, closing streams");
+			oos.close();
+			ois.close();
+		} catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
 	}
 }

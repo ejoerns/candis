@@ -1,18 +1,13 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server;
 
-import candis.server.gui.ServerFrame;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ServerSocketFactory;
@@ -26,7 +21,7 @@ import javax.net.ssl.SSLServerSocketFactory;
  */
 public class Server {
 
-	private static final Logger logger = Logger.getLogger(Server.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 	private static ExecutorService tpool;
 	private static final int port = 9999;
 	private ServerSocket ssocket;
@@ -35,102 +30,76 @@ public class Server {
 	/**
 	 * @param args the command line arguments
 	 */
-	public static void main(String[] args) {
+	public static void main(final String[] args) {
 //		ServerFrame win = new ServerFrame();
 
-//		System.out.print("Running keytool...");
-//		try {
-//			Runtime rt = Runtime.getRuntime();
-//			Process proc = rt.exec("keytool -import -v -alias clientCert -keystore sometruststore.bks -storetype bks -file ../../../test_server/test.cert -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath \"../../../bcprov-jdk16-146.jar\"");
-//			int exitVal = proc.exitValue();
-//			System.out.println("Process exitValue: " + exitVal);
-//		} catch (IOException ex) {
-//			Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-//		}
-//		System.out.println("[DONE]");
-
-		// try to exec keytool -- the nice way
-		try {
-			Runtime rt = Runtime.getRuntime();
-			String tsname = "sometruststore.bks";
-			Process proc = rt.exec("keytool -import -v -alias clientCert -keystore " + tsname + " -storetype bks -file test.cert -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath ../bcprov-jdk16-146.jar -storepass changeit -noprompt");
-//			Process proc = rt.exec("ls ../");
-			InputStream stdin = proc.getInputStream();
-			InputStreamReader isr = new InputStreamReader(stdin);
-			BufferedReader br = new BufferedReader(isr);
-			String line = null;
-			logger.log(Level.FINE, "<OUTPUT>");
-			while ((line = br.readLine()) != null) {
-				logger.log(Level.FINE, line);
-			}
-			logger.log(Level.FINE, "</OUTPUT>");
-			int exitVal = proc.waitFor();
-			logger.log(Level.FINE, "Process exitValue: {0}", exitVal);
-			if (exitVal == 0) {
-				logger.log(Level.INFO, "Truststore sucessfully generated");
-			} else {
-				logger.log(Level.WARNING, "Creating truststore failed!");
-			}
-		} catch (Throwable t) {
-			t.printStackTrace();
-		}
-
 		final Server server = new Server();
-//		Runtime.getRuntime().addShutdownHook(new Thread() {
-//
-//			@Override
-//			public void run() {
-//				System.out.println("aa");
-//				server.stop();
-//			}
-//		});
-
-//		SignalHandler signalHandler = new SignalHandler() {
-//
-//			public void handle(Signal signal) {
-//				server.stop();
-//			}
-//		};
-//		Signal.handle(new Signal("TERM"), signalHandler);
-//		Signal.handle(new Signal("INT"), signalHandler);
-
+		tpool = Executors.newCachedThreadPool();
 		server.connect();
-		logger.log(Level.INFO, "Ende im Gelände");
+		LOGGER.log(Level.INFO, "Server terminated");
 	}
 
 	public void stop() {
 		doStop = true;
 	}
 
-	public void connect() {
-		tpool = Executors.newCachedThreadPool();
+	public void runKeytool() {
+		// try to exec keytool -- the nice way
 		try {
-			logger.log(Level.FINE, System.getProperty("ssl.ServerSocketFactory.provider"));
+			String tsname = "sometruststore.bks";
+			Process proc = Runtime.getRuntime().exec(
+							"keytool -import -v -alias clientCert -keystore " + tsname + " -storetype bks -file test.cert -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath ../bcprov-jdk16-146.jar -storepass changeit -noprompt");
+//			Process proc = rt.exec("ls ../");
+			BufferedReader buffreader = new BufferedReader(
+							new InputStreamReader(proc.getInputStream()));
+			String line;
+			// Display program output
+			LOGGER.log(Level.FINE, "<OUTPUT>");
+			while ((line = buffreader.readLine()) != null) {
+				LOGGER.log(Level.FINE, line);
+			}
+			LOGGER.log(Level.FINE, "</OUTPUT>");
+			int exitVal = -1;
+			try {
+				exitVal = proc.waitFor();
+			} catch (InterruptedException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+			LOGGER.log(Level.FINE, "Process exitValue: {0}", exitVal);
+			if (exitVal == 0) {
+				LOGGER.log(Level.INFO, "Truststore sucessfully generated");
+			} else {
+				LOGGER.log(Level.WARNING, "Creating truststore failed!");
+			}
+		} catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	public final void connect() {
+		Socket socket = null;
+		try {
+			LOGGER.log(Level.FINE, System.getProperty("ssl.ServerSocketFactory.provider"));
 
 			ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
 			ssocket = ssocketFactory.createServerSocket(port);
-			ssocket.setSoTimeout(10);
+//			ssocket.setSoTimeout(1000);
 
 			// Listen for connections
 			while (!doStop) {
-				logger.log(Level.INFO, "Waiting for connection");
+				LOGGER.log(Level.INFO, String.format("Waiting for connection on port %d", ssocket.getLocalPort()));
 
-				while (!doStop) {
-
-					try {
-						Socket socket = ssocket.accept();
-						// Start new server thread in thread pool
-						tpool.execute(new Connection(socket));
-					} catch (SocketTimeoutException e) {
-					}
-				}
+				socket = ssocket.accept();
+				tpool.execute(new Connection(socket));
 			}
+			LOGGER.log(Level.INFO, "Server terminated");
 			ssocket.close();
 
+		} catch (BindException e) {
+			LOGGER.log(Level.SEVERE, "Binding port failed, Address already in use");
 		} catch (IOException e) {
-			logger.log(Level.SEVERE, null, e);
+			LOGGER.log(Level.SEVERE, null, e);
 		}
-
 
 	}
 }

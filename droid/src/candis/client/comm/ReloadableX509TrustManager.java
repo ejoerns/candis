@@ -73,7 +73,6 @@ public final class ReloadableX509TrustManager
 		this(new File(tspath), cad);
 	}
 
-	
 	@Override
 	public void checkClientTrusted(final X509Certificate[] chain,
 					String authType) throws java.security.cert.CertificateException {
@@ -88,9 +87,11 @@ public final class ReloadableX509TrustManager
 		try {
 			trustManager.checkServerTrusted(chain, authType);
 		} catch (java.security.cert.CertificateException cx) {
+			logger.log(Level.FINEST, "CertificateException");
 			addServerCertAndReload(chain[0], true);
 			trustManager.checkServerTrusted(chain, authType);
 		}
+		logger.log(Level.FINEST, "checkServerTrusted() DONE");
 	}
 
 	@Override

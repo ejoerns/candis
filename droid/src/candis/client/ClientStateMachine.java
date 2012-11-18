@@ -4,13 +4,15 @@ import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
 import candis.common.Instruction;
 import candis.common.Message;
+import candis.common.RandomID;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
-import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
+import candis.distributed.droid.StaticProfile;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,7 +24,9 @@ public final class ClientStateMachine extends FSM {
 
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger logger = Logger.getLogger(TAG);
-	private final SecureConnection sconn;
+	private ObjectOutputStream mOutStream = null;
+	final RandomID rid;
+	final StaticProfile profile;
 
 	private enum ClientStates implements StateEnum {
 
@@ -48,8 +52,14 @@ public final class ClientStateMachine extends FSM {
 		MY_ID;
 	}
 
-	ClientStateMachine(SecureConnection sconn) {
-		this.sconn = sconn;
+	ClientStateMachine(SecureConnection sconn, final RandomID rid, final StaticProfile profile) {
+		this.rid = rid;
+		this.profile = profile;
+		try {
+			this.mOutStream = new ObjectOutputStream(sconn.getOutputStream());
+		} catch (IOException ex) {
+			logger.log(Level.SEVERE, null, ex);
+		}
 		init();
 	}
 
@@ -63,7 +73,7 @@ public final class ClientStateMachine extends FSM {
 						.addTransition(
 						Instruction.REQUEST_PROFILE,
 						ClientStates.PROFILE_SENT,
-						new MySecondHandler())
+						new ProfileRequestHandler())
 						.addTransition(
 						Instruction.ACCEPT_CONNECTION,
 						ClientStates.WAIT_FOR_JOB,
@@ -83,42 +93,33 @@ public final class ClientStateMachine extends FSM {
 						ClientTrans.JOB_FINISHED,
 						ClientStates.WAIT_FOR_JOB,
 						null);
-
-
-		// Run test
-		try {
-			setState(ClientStates.UNCONNECTED);
-			System.out.println("State: " + getState());
-			process(ClientTrans.SOCKET_CONNECTED);
-			System.out.println("State: " + getState());
-			process(Instruction.ACCEPT_CONNECTION);
-			System.out.println("State: " + getState());
-			process(Instruction.SEND_JOB);
-			System.out.println("State: " + getState());
-		} catch (StateMachineException ex) {
-			logger.log(Level.SEVERE, null, ex);
-		}
+		setState(ClientStates.UNCONNECTED);
 	}
 
 	private class SocketConnectedHandler implements ActionHandler {
 
 		@Override
-		public void handle() {
-			System.out.println("Handler knows that socket is connected :)");
+		public void handle(Object obj) {
+			System.out.println("SocketConnectedHandler() called");
 			try {
 				// todo: ID
-				sconn.writeObject(new Message(Instruction.REQUEST_CONNECTION, null));
+				mOutStream.writeObject(new Message(Instruction.REQUEST_CONNECTION, rid));
 			} catch (IOException ex) {
 				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
 	}
 
-	private class MySecondHandler implements ActionHandler {
+	private class ProfileRequestHandler implements ActionHandler {
 
 		@Override
-		public void handle() {
-			System.out.println("Handle :)");
+		public void handle(Object obj) {
+			System.out.println("ProfileRequestHandler() called");
+			try {
+				mOutStream.writeObject(new Message(Instruction.SEND_PROFILE, profile));
+			} catch (IOException ex) {
+				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
 		}
 	}
 }

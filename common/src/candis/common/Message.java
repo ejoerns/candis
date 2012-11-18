@@ -1,18 +1,14 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.common;
 
 import java.io.Serializable;
 
 /**
+ * Data packet that is transmitted between client and server.
  *
  * @author enrico
  */
 public class Message implements Serializable {
-	
-	
+
 	private Serializable data;
 	private Instruction req;
 
@@ -20,13 +16,16 @@ public class Message implements Serializable {
 		this.req = req;
 		this.data = data;
 	}
-	
-	public Instruction getRequest() {	
+
+	public Message(final Instruction req) {
+		this(req, null);
+	}
+
+	public Instruction getRequest() {
 		return req;
 	}
-	
+
 	public Serializable getData() {
 		return data;
 	}
-	
 }

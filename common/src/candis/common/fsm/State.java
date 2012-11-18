@@ -2,6 +2,9 @@ package candis.common.fsm;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -52,14 +55,34 @@ public class State {
 	 * @param trans Transition
 	 * @return Resulting state
 	 */
-	public StateEnum process(final Transition trans) {
-		if ((mHandlerMap.containsKey(trans)) && (mHandlerMap.get(trans) != null)) {
-			mHandlerMap.get(trans).handle();
-		}
+//	public StateEnum process(final Transition trans) {
+//		return process(trans, null);
+//	}
+//	public StateEnum process(final Transition trans, final Object obj) {
+//		if ((mHandlerMap.containsKey(trans)) && (mHandlerMap.get(trans) != null)) {
+//			mHandlerMap.get(trans).handle(obj);
+//		}
+//
+//		if (!mTransitionMap.containsKey(trans)) {
+//			return null;
+//		}
+//		return mTransitionMap.get(trans);
+//	}
+	void process(Transition trans, Object obj, AtomicReference<StateEnum> mCurrentState) {
+		Logger.getLogger("FSM").log(Level.FINE, String.format(
+						"FSM: State: %s, Transition: %s, Object: %s", mCurrentState.get(), trans, obj));
 
 		if (!mTransitionMap.containsKey(trans)) {
-			return null;
+			mCurrentState.set(null);
+		} else {
+			mCurrentState.set(mTransitionMap.get(trans));
 		}
-		return mTransitionMap.get(trans);
+		Logger.getLogger("FSM").log(Level.FINE, String.format(
+						"FSM: New State: %s", mCurrentState.get()));
+
+		if ((mHandlerMap.containsKey(trans)) && (mHandlerMap.get(trans) != null)) {
+			mHandlerMap.get(trans).handle(obj);
+		}
+//		return mCurrentState = process(trans, obj);
 	}
 }
