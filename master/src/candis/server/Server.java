@@ -3,19 +3,15 @@ package candis.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ServerSocketFactory;
-import javax.net.ssl.HandshakeCompletedEvent;
-import javax.net.ssl.HandshakeCompletedListener;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.SSLSocket;
 //import sun.misc.Signal;
 //import sun.misc.SignalHandler;
 
@@ -34,12 +30,13 @@ public class Server {
 	/**
 	 * @param args the command line arguments
 	 */
-	public static void main(String[] args) {
+	public static void main(final String[] args) {
 //		ServerFrame win = new ServerFrame();
 
 		final Server server = new Server();
+		tpool = Executors.newCachedThreadPool();
 		server.connect();
-		LOGGER.log(Level.INFO, "Ende im Gelände");
+		LOGGER.log(Level.INFO, "Server terminated");
 	}
 
 	public void stop() {
@@ -79,8 +76,8 @@ public class Server {
 		}
 	}
 
-	public void connect() {
-		tpool = Executors.newCachedThreadPool();
+	public final void connect() {
+		Socket socket = null;
 		try {
 			LOGGER.log(Level.FINE, System.getProperty("ssl.ServerSocketFactory.provider"));
 
@@ -90,19 +87,16 @@ public class Server {
 
 			// Listen for connections
 			while (!doStop) {
-				LOGGER.log(Level.INFO, "Waiting for connection");
+				LOGGER.log(Level.INFO, String.format("Waiting for connection on port %d", ssocket.getLocalPort()));
 
-				try {
-					Socket socket = ssocket.accept();
-					// Start new server thread in thread pool
-					tpool.execute(new Connection(socket));
-				} catch (SocketTimeoutException e) {
-//					LOGGER.log(Level.SEVERE, "SocketTimeoutException");
-				}
+				socket = ssocket.accept();
+				tpool.execute(new Connection(socket));
 			}
 			LOGGER.log(Level.INFO, "Server terminated");
 			ssocket.close();
 
+		} catch (BindException e) {
+			LOGGER.log(Level.SEVERE, "Binding port failed, Address already in use");
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, null, e);
 		}

@@ -10,11 +10,9 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.HandshakeCompletedEvent;
-import javax.net.ssl.HandshakeCompletedListener;
-import javax.net.ssl.SSLSocket;
 
 /**
+ * Designed to run in seperate thread for every connected client.
  *
  * @author enrico
  */
@@ -47,6 +45,7 @@ public class Connection implements Runnable {
 			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
 		}
 
+		// Handle incoming client requests
 		while ((!isStopped) && (!socket.isClosed())) {
 			try {
 
@@ -65,7 +64,8 @@ public class Connection implements Runnable {
 					LOGGER.log(Level.SEVERE, null, ex);
 				}
 			} catch (EOFException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
+				LOGGER.log(Level.SEVERE, "EOF detected, closing socket ...");
+				// TODO: add handler?
 				// terminate connection to client
 				isStopped = true;
 				try {
@@ -87,25 +87,5 @@ public class Connection implements Runnable {
 		} catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
-
-
-//		System.out.println("Transfering file...");
-//		File myFile = new File("example_app-debug.apk");
-//		byte[] mybytearray = new byte[(int) myFile.length()];
-//		try {
-//			in = new DataInputStream(socket.getInputStream());
-//
-//			System.out.println("Done");
-//		} catch (FileNotFoundException ex) {
-//			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-//		} catch (IOException ex) {
-//			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-//		} finally {
-//			try {
-//				socket.close();
-//			} catch (IOException ex) {
-//				Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-//			}
-//		}
 	}
 }
