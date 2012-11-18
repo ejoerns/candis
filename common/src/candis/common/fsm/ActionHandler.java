@@ -10,6 +10,5 @@ public interface ActionHandler {
 	 *
 	 * @param hid
 	 */
-	void handle();
-//	<T> T handle(T n);
+	void handle(Object obj);
 }
