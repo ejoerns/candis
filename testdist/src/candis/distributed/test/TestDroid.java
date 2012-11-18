@@ -26,7 +26,11 @@ public class TestDroid implements Runnable{
 
 	private Droid droid;
 	public ObjectInputStream ois;
-	private ObjectOutputStream oos;
+	public ObjectOutputStream oos;
+
+	private ObjectOutputStream internalOos;
+	private ObjectInputStream internalOis;
+
 	private static final Logger logger = Logger.getLogger(TestDroid.class.getName());
 	private final DistributedTask task;
 
@@ -40,10 +44,12 @@ public class TestDroid implements Runnable{
 		try {
 			droid = new Droid(id);
 
-			PipedInputStream in = new PipedInputStream();
-
-			oos = new ObjectOutputStream(new PipedOutputStream(in));
-			ois = new ObjectInputStream(in);
+			PipedInputStream incomming = new PipedInputStream();
+			PipedInputStream outgoing = new PipedInputStream();
+			internalOos = new ObjectOutputStream(new PipedOutputStream(incomming));
+			ois = new ObjectInputStream(incomming);
+			oos = new ObjectOutputStream(new PipedOutputStream(outgoing));
+			internalOis = new ObjectInputStream(outgoing);
 
 		}
 		catch (IOException ex) {
@@ -59,11 +65,19 @@ public class TestDroid implements Runnable{
 		try {
 
 				Message m = new Message(Instruction.NO_MSG, null);
-				oos.writeObject(m);
-				TestParameter p = new TestParameter(4);
-				runTask(p);
-				//this.notify();
+				internalOos.writeObject(m);
+
 				while(true) {
+				try {
+					Message m_in = (Message) internalOis.readObject();
+					if(m_in != null)
+					{
+						
+					}
+				}
+				catch (ClassNotFoundException ex) {
+					Logger.getLogger(TestDroid.class.getName()).log(Level.SEVERE, null, ex);
+				}
 					Thread.sleep(10);
 				}
 
