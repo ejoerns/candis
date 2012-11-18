@@ -17,6 +17,9 @@ import candis.distributed.droid.StaticProfile;
 import candis.system.StaticProfiler;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.StreamCorruptedException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,7 +49,6 @@ public class Droid {
 		idg = new GetIDTask(app, new File(app.getFilesDir() + "/" + Settings.getString("idstore")), id);
 		ptask = new ProfilerTask(a, new File(app.getFilesDir() + "/" + Settings.getString("profilestore")));
 		ctask = new ConnectTask(app, new File(app.getFilesDir() + "/" + Settings.getString("truststore")));
-		// Todo: run comm
 	}
 
 	public void start() {
@@ -54,7 +56,9 @@ public class Droid {
 		ptask.execute();
 		Log.i(TAG, "CONNECTING...");
 		try {
-			ctask.execute("10.0.2.2", 9999,
+			ctask.execute(
+							Settings.getString("masteraddress"),
+							Settings.getInt("masterport"),
 							(X509TrustManager) new ReloadableX509TrustManager(
 							new File(app.getFilesDir() + "/" + Settings.getString("truststore")), null));
 		} catch (Exception ex) {
@@ -62,11 +66,17 @@ public class Droid {
 		}
 		try {
 			sc = ctask.get();
-			fsm = new ClientStateMachine(sc, id, profile);
 			Log.i("Droid", "Starting CommRequestBroker");
-			comm = new CommRequestBroker(sc, fsm);
+			fsm = new ClientStateMachine(sc, id, profile);
+			comm = new CommRequestBroker(
+							new ObjectInputStream(sc.getInputStream()),
+							fsm);
 			new Thread(comm).start();
 			Log.i("Droid", "[DONE]");
+		} catch (StreamCorruptedException ex) {
+			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (IOException ex) {
+			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (InterruptedException ex) {
 			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (ExecutionException ex) {
@@ -215,10 +225,8 @@ public class Droid {
 
 		@Override
 		protected SecureConnection doInBackground(Object... params) {
-			SecureConnection sc = new SecureConnection(
-							(String) params[0], ((Integer) params[1]).intValue(),
-							(X509TrustManager) params[2]);
-			sc.connect();
+			SecureConnection sc = new SecureConnection((X509TrustManager) params[2]);
+			sc.connect((String) params[0], ((Integer) params[1]).intValue());
 			return sc;
 		}
 

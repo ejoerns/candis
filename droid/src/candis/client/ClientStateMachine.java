@@ -1,5 +1,6 @@
 package candis.client;
 
+import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
 import candis.common.Instruction;
 import candis.common.Message;
@@ -11,6 +12,7 @@ import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
 import candis.distributed.droid.StaticProfile;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,7 +24,7 @@ public final class ClientStateMachine extends FSM {
 
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger logger = Logger.getLogger(TAG);
-	private final SecureConnection sconn;
+	private ObjectOutputStream mOutStream = null;
 	final RandomID rid;
 	final StaticProfile profile;
 
@@ -51,9 +53,13 @@ public final class ClientStateMachine extends FSM {
 	}
 
 	ClientStateMachine(SecureConnection sconn, final RandomID rid, final StaticProfile profile) {
-		this.sconn = sconn;
 		this.rid = rid;
 		this.profile = profile;
+		try {
+			this.mOutStream = new ObjectOutputStream(sconn.getOutputStream());
+		} catch (IOException ex) {
+			logger.log(Level.SEVERE, null, ex);
+		}
 		init();
 	}
 
@@ -97,7 +103,7 @@ public final class ClientStateMachine extends FSM {
 			System.out.println("SocketConnectedHandler() called");
 			try {
 				// todo: ID
-				sconn.writeObject(new Message(Instruction.REQUEST_CONNECTION, rid));
+				mOutStream.writeObject(new Message(Instruction.REQUEST_CONNECTION, rid));
 			} catch (IOException ex) {
 				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
 			}
@@ -110,7 +116,7 @@ public final class ClientStateMachine extends FSM {
 		public void handle(Object obj) {
 			System.out.println("ProfileRequestHandler() called");
 			try {
-				sconn.writeObject(new Message(Instruction.SEND_PROFILE, profile));
+				mOutStream.writeObject(new Message(Instruction.SEND_PROFILE, profile));
 			} catch (IOException ex) {
 				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
 			}
