@@ -6,6 +6,9 @@ package candis.distributed.test;
 
 import candis.common.Instruction;
 import candis.common.Message;
+import candis.distributed.DistributedParameter;
+import candis.distributed.DistributedResult;
+import candis.distributed.DistributedTask;
 import candis.distributed.droid.Droid;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -25,14 +28,15 @@ public class TestDroid implements Runnable{
 	public ObjectInputStream ois;
 	private ObjectOutputStream oos;
 	private static final Logger logger = Logger.getLogger(TestDroid.class.getName());
+	private final DistributedTask task;
 
 	public int getId() {
 		return droid.id;
 	}
 
-	public TestDroid(int id) {
+	public TestDroid(int id, DistributedTask task) {
 		Logger.getLogger(TestDroid.class.getName()).log(Level.INFO, String.format("New Droid %d", id));
-
+		this.task = task;
 		try {
 			droid = new Droid(id);
 
@@ -56,6 +60,8 @@ public class TestDroid implements Runnable{
 
 				Message m = new Message(Instruction.NO_MSG, null);
 				oos.writeObject(m);
+				TestParameter p = new TestParameter(4);
+				runTask(p);
 				//this.notify();
 				while(true) {
 					Thread.sleep(10);
@@ -72,6 +78,11 @@ public class TestDroid implements Runnable{
 		finally {
 			logger.log(Level.INFO, String.format("TestDroid %d: stop", droid.id));
 		}
+
+	}
+
+	private DistributedResult runTask(DistributedParameter param) {
+		return task.run(param);
 
 	}
 

@@ -3,6 +3,7 @@ package candis.distributed.test;
 
 import candis.common.Message;
 import candis.distributed.CommunicationIO;
+import candis.distributed.DistributedTask;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.LinkedList;
@@ -13,10 +14,14 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestCommunicationIO extends CommunicationIO {
+public class TestCommunicationIO<T extends DistributedTask> extends CommunicationIO {
 
 	private LinkedList<TestDroid> droids;
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
+	private final TaskFactory<T> factory;
+	public TestCommunicationIO(TaskFactory<T> fact) {
+		factory = fact;
+	}
 	public void initDroids()
 	{
 		initDroids(4);
@@ -36,7 +41,8 @@ public class TestCommunicationIO extends CommunicationIO {
 	 * @return The new TestDroid
 	 */
 	private TestDroid initDroid(int id) {
-		TestDroid d = new TestDroid(id);
+
+		TestDroid d = new TestDroid(id, factory.createTask());
 		droids.add(d);
 		Thread t = new Thread(d);
 		Thread l = new Thread(new DroidListener(d));
@@ -45,13 +51,13 @@ public class TestCommunicationIO extends CommunicationIO {
 		t.start();
 		l.start();
 		return d;
+
 	}
 
 	private class DroidListener implements Runnable {
 		TestDroid droid;
 		private final Logger logger = Logger.getLogger(TestDroid.class.getName());
 		public DroidListener(TestDroid droid) {
-			logger.log(Level.INFO, String.format("New Droid %d", droid.getId()));
 			this.droid = droid;
 		}
 

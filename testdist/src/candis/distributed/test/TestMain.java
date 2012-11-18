@@ -16,11 +16,11 @@ public class TestMain implements DistributedControl{
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
-		// TODO code application logic here
+		
 		DistributedControl t = new TestMain();
 
 		Scheduler s = t.initScheduler();
-		TestCommunicationIO comio = new TestCommunicationIO();
+		TestCommunicationIO comio = new TestCommunicationIO<TestTask>(new TestTaskFactory());
 		comio.initDroids();
 		s.setCommunicationIO(comio);
 		try {

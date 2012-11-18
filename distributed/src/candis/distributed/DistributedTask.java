@@ -4,7 +4,7 @@ package candis.distributed;
  *
  * @author Sebastian Willenborg
  */
-public interface DistributedTask {
-	DistributedResult run(DistributedParameter parameter);
-	void stop();
+public abstract class DistributedTask {
+	abstract public DistributedResult run(DistributedParameter parameter);
+	abstract public void stop();
 }
