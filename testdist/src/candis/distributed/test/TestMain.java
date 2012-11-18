@@ -11,12 +11,13 @@ import java.util.logging.Logger;
  * @author Sebastian Willenborg
  */
 public class TestMain implements DistributedControl{
+	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
 
 	/**
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
-		
+
 		DistributedControl t = new TestMain();
 
 		Scheduler s = t.initScheduler();
@@ -27,12 +28,17 @@ public class TestMain implements DistributedControl{
 			Thread.sleep(1000);
 		}
 		catch (InterruptedException ex) {
-			Logger.getLogger(TestMain.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		comio.stopDroids();
 
 	}
 
+	/**
+	 * Initializes the Scheduler with its Parameters.
+	 *
+	 * @return The intialized Scheduler
+	 */
 	@Override
 	public Scheduler initScheduler() {
 		TestParameter ps[] = new TestParameter[10];

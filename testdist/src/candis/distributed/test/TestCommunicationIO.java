@@ -1,4 +1,3 @@
-
 package candis.distributed.test;
 
 import candis.common.Message;

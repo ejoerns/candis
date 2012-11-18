@@ -5,7 +5,8 @@ package candis.distributed.droid;
  * @author Sebastian Willenborg
  */
 public class Droid {
-	public int id;
+	public final int id;
+	public StaticProfile profile;
 
 	public Droid(int id) {
 		this.id = id;
@@ -23,4 +24,10 @@ public class Droid {
 		return false;
 	}
 
+	@Override
+	public int hashCode() {
+		int hash = 7;
+		hash = 97 * hash + this.id;
+		return hash;
+	}
 }

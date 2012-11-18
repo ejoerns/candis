@@ -16,7 +16,7 @@ public class StaticProfile implements Serializable {
 	/**
 	 * Creates a new system profile from provided Data.
 	 *
-	 * @param mem Total device memory
+	 * @param mem Total device memory in megabyte
 	 * @param proc Total number of processors
 	 * @param bench Benchmark result
 	 */
@@ -25,5 +25,5 @@ public class StaticProfile implements Serializable {
 		this.processors = proc;
 		this.benchmark = bench;
 	}
-	
+
 }

@@ -8,14 +8,28 @@ import java.util.LinkedList;
  * @author Sebastian Willenborg
  */
 public class CommunicationIO {
-	private LinkedList<Droid> knownDroids;
+	private final LinkedList<Droid> knownDroids;
 
 	public CommunicationIO() {
 		knownDroids = new LinkedList<Droid>();
 	}
 
 	public int getDroidCount() {
-		return knownDroids.size();
+		synchronized(knownDroids) {
+			return knownDroids.size();
+		}
+	}
+
+	public Droid getDroid(int i) {
+		synchronized(knownDroids) {
+			return knownDroids.get(i);
+		}
+	}
+
+	public void addDroid(Droid droid) {
+		synchronized(knownDroids) {
+			knownDroids.add(droid);
+		}
 	}
 
 	public void startTask(DistributedParameter p, Droid droid) {
