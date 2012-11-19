@@ -35,7 +35,7 @@ public final class DroidManager {
 	/**
 	 * List of known droids true means whitelisted, false means blacklisted.
 	 */
-	private final Map<String, DroidData> knownDroids = new HashMap<String, DroidData>();
+	private Map<String, DroidData> knownDroids = null;
 
 	/**
 	 * Hidden to match Singleton requirements.
@@ -158,13 +158,43 @@ public final class DroidManager {
 	}
 
 	/**
+	 * Loads droid database form xml file.
+	 *
+	 * @param file XML file to load from
+	 * @throws FileNotFoundException File not found
+	 */
+	public void load(final File file) throws FileNotFoundException {
+		knownDroids = readFromXMLFile(file);
+	}
+
+	/**
+	 * Stores droid database to xml file.
+	 *
+	 * @param file XML file to store to
+	 * @throws FileNotFoundException File not found
+	 */
+	public void store(final File file) throws FileNotFoundException {
+		writeToXMLFile(file, knownDroids);
+	}
+
+	/**
+	 * Initialize droid manager database.
+	 */
+	public void init() {
+		knownDroids = new HashMap<String, DroidData>();
+	}
+
+	/**
 	 * Loads droid data set from server.
 	 *
 	 * @param file xml file to load from
 	 * @return
 	 */
-	public static Map<String, DroidData> readFromXMLFile(final File file) throws FileNotFoundException {
+	private static Map<String, DroidData> readFromXMLFile(final File file) throws FileNotFoundException {
 		DroidHashMapType map = null;
+		if (!file.exists()) {
+			throw new FileNotFoundException();
+		}
 		try {
 
 			final JAXBContext jaxbContext = JAXBContext.newInstance(
@@ -183,12 +213,12 @@ public final class DroidManager {
 	 * Stores droid data set to xml file.
 	 *
 	 * @param file filename to store under
-	 * @param manager map data to store
+	 * @param droidmap map data to store
 	 * @throws FileNotFoundException If file was not found
 	 */
-	public static void writeToXMLFile(
+	private static void writeToXMLFile(
 					final File file,
-					final DroidManager manager)
+					final Map<String, DroidData> droidmap)
 					throws FileNotFoundException {
 		try {
 
@@ -199,8 +229,7 @@ public final class DroidManager {
 			// output pretty printed
 			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 			// write to stdout
-			jaxbMarshaller.marshal(new DroidHashMapType(manager.getKnownDroid()), System.out);
-			jaxbMarshaller.marshal(new DroidHashMapType(manager.getKnownDroid()), file);
+			jaxbMarshaller.marshal(new DroidHashMapType(droidmap), file);
 			// write to file
 		} catch (JAXBException ex) {
 			Logger.getLogger(DroidManager.class.getName()).log(Level.SEVERE, null, ex);
