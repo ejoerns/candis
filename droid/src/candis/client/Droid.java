@@ -1,5 +1,6 @@
 package candis.client;
 
+import candis.common.Settings;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.os.AsyncTask;

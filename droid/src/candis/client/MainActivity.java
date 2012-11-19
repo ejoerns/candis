@@ -1,5 +1,6 @@
 package candis.client;
 
+import candis.common.Settings;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -50,7 +51,7 @@ public class MainActivity extends Activity
 
 
 		// Load settings from R.raw.settings
-		Settings.load(this, R.raw.settings);
+		Settings.load(this.getResources().openRawResource(R.raw.settings));
 
 		// Run droid
 		new Droid(this).start();
