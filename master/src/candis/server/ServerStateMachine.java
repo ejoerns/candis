@@ -100,12 +100,12 @@ public class ServerStateMachine extends FSM {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
 			}
-			ByteArray barray = new ByteArray(((RandomID) obj).getBytes());
+			RandomID rand = ((RandomID) obj);
 			Transition trans;
 			Instruction instr;
 			// check droid in db
-			if (mDroidManager.isDroidKnown(barray)) {
-				if (mDroidManager.isDroidBlacklisted(barray)) {
+			if (mDroidManager.isDroidKnown(rand)) {
+				if (mDroidManager.isDroidBlacklisted(rand)) {
 					trans = ServerTrans.CLIENT_BLACKLISTED;
 					instr = Instruction.REJECT_CONNECTION;
 				} else {

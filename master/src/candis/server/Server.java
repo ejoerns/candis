@@ -1,11 +1,16 @@
 package candis.server;
 
+import candis.common.RandomID;
+import candis.distributed.droid.StaticProfile;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -32,6 +37,29 @@ public class Server {
 	 */
 	public static void main(final String[] args) {
 //		ServerFrame win = new ServerFrame();
+
+		DroidManager manager = DroidManager.getInstance();
+		manager.addDroid(
+						RandomID.init("foo"),
+						new StaticProfile(1024, 2, 4711));
+		manager.addDroid(
+						RandomID.init("foo"),
+						new StaticProfile(1024, 2, 4711));
+		try {
+			DroidManager.writeToFile(new File("/home/enrico/droiddb"), manager);
+			Map<String, DroidData> map;
+			map = DroidManager.readFromFile(new File("/home/enrico/droiddb"));
+			for (Map.Entry<String, DroidData> e : map.entrySet()) {
+				System.out.println("Key: " + e.getKey());
+				System.out.println("blacklist: " + e.getValue().getBlacklist() + ", mem:" + e.getValue().getProfile().memoryMB);
+			}
+		} catch (FileNotFoundException ex) {
+			Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+		}
+
+		if (true) {
+			return;
+		}
 
 		final Server server = new Server();
 		tpool = Executors.newCachedThreadPool();

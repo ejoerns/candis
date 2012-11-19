@@ -25,5 +25,8 @@ public class StaticProfile implements Serializable {
 		this.processors = proc;
 		this.benchmark = bench;
 	}
-	
+
+	public StaticProfile() {
+		this(0, 0, 0);
+	}
 }

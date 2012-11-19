@@ -1,7 +1,6 @@
 package candis.server;
 
 import candis.common.Message;
-import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.EOFException;
 import java.io.IOException;
@@ -22,7 +21,7 @@ public class Connection implements Runnable {
 	private final Socket socket;
 //	private ObjectOutputStream oos;
 	private boolean isStopped;
-	private FSM fsm = null;
+	private ServerStateMachine fsm = null;
 
 	public Connection(final Socket socket) throws IOException {
 		this.socket = socket;

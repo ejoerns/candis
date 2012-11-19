@@ -1,10 +1,24 @@
 package candis.server;
 
-import candis.common.ByteArray;
 import candis.common.RandomID;
+import candis.common.Utilities;
 import candis.distributed.droid.StaticProfile;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.bind.JAXB;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.namespace.QName;
 
 /**
  * Designed to manage all Droids that ever connected to the Master.
@@ -13,6 +27,7 @@ import java.util.Map;
  *
  * @author Enrico Joerns
  */
+@XmlRootElement
 public final class DroidManager {
 
 	/// Singleton-Instance
@@ -20,7 +35,7 @@ public final class DroidManager {
 	/**
 	 * List of known droids true means whitelisted, false means blacklisted.
 	 */
-	private final Map<ByteArray, DroidData> knownDroids = new HashMap<ByteArray, DroidData>();
+	private final Map<String, DroidData> knownDroids = new HashMap<String, DroidData>();
 
 	/**
 	 * Hidden to match Singleton requirements.
@@ -41,8 +56,9 @@ public final class DroidManager {
 	 * Adds a Droid to the list of (whitelisted) known Droids.
 	 *
 	 * @param rid ID of Droid to add
+	 * @param profile
 	 */
-	public void addDroid(final ByteArray rid, StaticProfile profile) {
+	public void addDroid(final String rid, StaticProfile profile) {
 		if (!knownDroids.containsKey(rid)) {
 			synchronized (knownDroids) {
 				knownDroids.put(rid, new DroidData(true, profile));
@@ -54,9 +70,10 @@ public final class DroidManager {
 	 * Adds a Droid to the list of (whitelisted) known Droids.
 	 *
 	 * @param rid ID of Droid to add
+	 * @param profile
 	 */
-	public void addDroid(final RandomID rid, StaticProfile profile) {
-		addDroid(new ByteArray(rid.getBytes()), profile);
+	public void addDroid(final RandomID rid, final StaticProfile profile) {
+		addDroid(Utilities.toSHA1String(rid.getBytes()), profile);
 	}
 
 	/**
@@ -64,10 +81,10 @@ public final class DroidManager {
 	 *
 	 * @param rid Droid to blacklist
 	 */
-	public void blacklistDroid(final ByteArray rid) {
+	public void blacklistDroid(final String rid) {
 		if (knownDroids.containsKey(rid)) {
 			synchronized (knownDroids) {
-				knownDroids.get(rid).setWhitelisted(false);
+				knownDroids.get(rid).setBlacklist(true);
 			}
 		}
 	}
@@ -78,7 +95,7 @@ public final class DroidManager {
 	 * @param rid Droid to blacklist
 	 */
 	public void blacklistDroid(final RandomID rid) {
-		blacklistDroid(new ByteArray(rid.getBytes()));
+		blacklistDroid(new String(rid.getBytes()));
 	}
 
 	/**
@@ -87,12 +104,16 @@ public final class DroidManager {
 	 * @param rid ID of Droid to check
 	 * @return true if Droid is knonw, otherwise false
 	 */
-	public boolean isDroidKnown(final ByteArray rid) {
+	public boolean isDroidKnown(final String rid) {
 		if (knownDroids.containsKey(rid)) {
 			return true;
 		} else {
 			return false;
 		}
+	}
+
+	public Map<String, DroidData> getKnownDroid() {
+		return knownDroids;
 	}
 
 	/**
@@ -102,7 +123,7 @@ public final class DroidManager {
 	 * @return true if Droid is knonw, otherwise false
 	 */
 	public boolean isDroidKnown(final RandomID rid) {
-		return isDroidKnown(new ByteArray(rid.getBytes()));
+		return isDroidKnown(new String(rid.getBytes()));
 	}
 
 	/**
@@ -111,15 +132,11 @@ public final class DroidManager {
 	 * @param rid ID of Droid to check
 	 * @return true if Droid is blacklisted, otherwise false (also if unknown)
 	 */
-	public boolean isDroidBlacklisted(final ByteArray rid) {
+	public boolean isDroidBlacklisted(final String rid) {
 		if (!knownDroids.containsKey(rid)) {
 			return false;
 		}
-		if (knownDroids.get(rid).isWhitelisted()) {
-			return false;
-		} else {
-			return true;
-		}
+		return knownDroids.get(rid).getBlacklist();
 	}
 
 	/**
@@ -129,44 +146,78 @@ public final class DroidManager {
 	 * @return true if Droid is blacklisted, otherwise false (also if unknown)
 	 */
 	public boolean isDroidBlacklisted(final RandomID rid) {
-		return isDroidBlacklisted(new ByteArray(rid.getBytes()));
+		return isDroidBlacklisted(new String(rid.getBytes()));
 	}
 
-	public StaticProfile getStaticProfile(final ByteArray barray) {
+	public StaticProfile getStaticProfile(final String barray) {
 		if (!knownDroids.containsKey(barray)) {
 			return null;
 		}
 
-		return knownDroids.get(barray).getStaticProfile();
+		return knownDroids.get(barray).getProfile();
 	}
 
 	/**
-	 * Class to hold droid data.
+	 * Loads droid data set from server.
 	 *
-	 * - Blacklisted/Whitelisted
-	 *
-	 * - Static profile
+	 * @param file
+	 * @return
 	 */
-	private class DroidData {
+	public static Map<String, DroidData> readFromFile(final File file) throws FileNotFoundException {
+		DroidHashMapType map = null;
+		try {
 
-		private boolean whitelisted;
-		private StaticProfile profile;
+			final JAXBContext jaxbContext = JAXBContext.newInstance(
+							DroidHashMapType.class);
+			final Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
-		public DroidData(boolean whitelisted, StaticProfile profile) {
-			this.whitelisted = whitelisted;
-			this.profile = profile;
+			// output pretty printed
+//			jaxbUnmarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+			// write to stdout
+			map = (DroidHashMapType) jaxbUnmarshaller.unmarshal(file);
+
+		} catch (JAXBException ex) {
+			Logger.getLogger(DroidManager.class.getName()).log(Level.SEVERE, null, ex);
 		}
+		return map.getHashMap();
+	}
 
-		public void setWhitelisted(boolean white) {
-			this.whitelisted = white;
-		}
+	/**
+	 * Stores droid data set to file.
+	 *
+	 * @param file filename to store under
+	 * @param manager map data to store
+	 * @throws FileNotFoundException If file was not found
+	 */
+	public static void writeToFile(
+					final File file,
+					final DroidManager manager)
+					throws FileNotFoundException {
+		try {
 
-		public boolean isWhitelisted() {
-			return this.whitelisted;
-		}
+			final JAXBContext jaxbContext = JAXBContext.newInstance(
+							DroidHashMapType.class);
+			final Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
 
-		public StaticProfile getStaticProfile() {
-			return this.profile;
+			// output pretty printed
+			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+			// write to stdout
+//			jaxbMarshaller.marshal(new JAXBElement(
+//							new QName("droiddb"),
+//							DroidHashMapType.class,
+//							new DroidHashMapType(manager.getKnownDroid())),
+//							System.out);
+			jaxbMarshaller.marshal(new DroidHashMapType(manager.getKnownDroid()), System.out);
+			jaxbMarshaller.marshal(new DroidHashMapType(manager.getKnownDroid()), file);
+			// write to file
+//			jaxbMarshaller.marshal(new JAXBElement(
+//							new QName("droiddb"),
+//							DroidHashMapType.class,
+//							new DroidHashMapType(manager.getKnownDroid())),
+//							file); 
+		} catch (JAXBException ex) {
+			Logger.getLogger(DroidManager.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
+	Class<?> myclass = null;
 }
