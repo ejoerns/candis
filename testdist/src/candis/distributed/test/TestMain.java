@@ -41,12 +41,14 @@ public class TestMain implements DistributedControl{
 	 */
 	@Override
 	public Scheduler initScheduler() {
-		TestParameter ps[] = new TestParameter[10];
+		
+		Scheduler sch = new SimpleScheduler();
 		for(int i=0; i< 10; i++)
 		{
-			ps[i] = new TestParameter(i);
+			sch.addParameter(new TestParameter(i));
 		}
-		Scheduler sch = new SimpleScheduler(ps);
+
+
 		return sch;
 	}
 }

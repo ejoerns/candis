@@ -32,7 +32,12 @@ public class CommunicationIO {
 		}
 	}
 
-	public void startTask(DistributedParameter p, Droid droid) {
+	public void startTask(Droid droid, DistributedParameter p) {
 
+	}
+
+	public void stopTask(Droid droid)
+	{
+		
 	}
 }

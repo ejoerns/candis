@@ -1,15 +1,24 @@
 package candis.distributed;
 
 import candis.distributed.droid.Droid;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author Sebastian Willenborg
  */
 public class SimpleScheduler implements Scheduler {
+
+	private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
+
 	private CommunicationIO comIO;
 	private Stack<DistributedParameter> params = new Stack<DistributedParameter>();
+	private final Map<Droid, DistributedParameter> running = new HashMap<Droid, DistributedParameter>();
+	private final Map<DistributedParameter, DistributedResult> done = new HashMap<DistributedParameter, DistributedResult>();
 
 	public SimpleScheduler() {
 
@@ -20,33 +29,63 @@ public class SimpleScheduler implements Scheduler {
 	}
 
 	public void start() {
-		if(comIO != null) {
-			return;
-		}
+		assignTasks();
+	}
+
+	private void assignTasks() {
 		for(int i = comIO.getDroidCount(); i > 0; i--) {
 			Droid d = comIO.getDroid(i);
-			if(params.isEmpty()) {
-				return;
+			if(!running.containsKey(d)) {
+				if(!assignTask(d)){
+					return;
+				}
 			}
-			DistributedParameter param = params.pop();
-			comIO.startTask(param, d);
 		}
+	}
+
+	private boolean assignTask(Droid d) {
+		if(params.isEmpty())
+		{
+			return false;
+		}
+		DistributedParameter param = params.pop();
+		comIO.startTask(d, param);
+		running.put(d, param);
+		return true;
 	}
 
 	public void abort() {
-		throw new UnsupportedOperationException("Not supported yet.");
+		for(Droid d: running.keySet()) {
+			comIO.stopTask(d);
+		}
 	}
 
 	public void onNewDroid(Droid droid) {
-		throw new UnsupportedOperationException("Not supported yet.");
+		LOGGER.log(Level.INFO, "Got new Droid");
+		assignTask(droid);
 	}
 
 	public void onTaskDone(Droid droid, DistributedResult result) {
-		throw new UnsupportedOperationException("Not supported yet.");
+		if(running.containsKey(droid))
+		{
+			DistributedParameter p = running.get(droid);
+			done.put(p, result);
+			LOGGER.log(Level.INFO, "Param {0} on {1} done with {2}", new Object[] {p, droid, result});
+		}
+		assignTask(droid);
 	}
 
+
 	public void onDroidError(Droid droid, DistributedError error) {
-		throw new UnsupportedOperationException("Not supported yet.");
+		LOGGER.log(Level.SEVERE, "Droid {0}, Error {1}", new Object[] {droid, error});
+		// removed Droids won't stay in the droid List
+		// therefore it is not neccesary to check, for DROID_LOST in error
+		if(running.containsKey(droid))
+		{
+			DistributedParameter p = running.get(droid);
+			params.push(p);
+		}
+		assignTasks();
 	}
 
 	public void addParameter(DistributedParameter param) {
