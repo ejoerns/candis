@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server;
 
 import java.util.ArrayList;
@@ -12,10 +8,11 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
+ * Wrapper class for xml generation with JXAB.
  *
  * @author Enrico Joerns
  */
-@XmlRootElement
+@XmlRootElement(name = "droiddb")
 public class DroidHashMapType {
 
 	@XmlElement(name = "droid")
@@ -30,6 +27,11 @@ public class DroidHashMapType {
 	public DroidHashMapType() {
 	}
 
+	/**
+	 * Converts Wrapper back to Map.
+	 *
+	 * @return Map
+	 */
 	public Map<String, DroidData> getHashMap() {
 		Map<String, DroidData> map = new HashMap<String, DroidData>();
 		for (DroidHashMapEntryType e : entry) {

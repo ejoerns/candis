@@ -3,7 +3,7 @@ package candis.server;
 import candis.distributed.droid.StaticProfile;
 
 /**
- * Class to hold droid data.
+ * Class (bean) to hold droid data.
  *
  * - Blacklisted/Whitelisted
  *
@@ -27,11 +27,11 @@ class DroidData {
 		return this.blacklist;
 	}
 
-	public StaticProfile getProfile() {
-		return this.profile;
+	public void setProfile(StaticProfile profile) {
+		this.profile = profile;
 	}
 
-	public void getProfile(StaticProfile profile) {
-		this.profile = profile;
+	public StaticProfile getProfile() {
+		return this.profile;
 	}
 }

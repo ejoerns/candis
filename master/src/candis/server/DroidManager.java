@@ -160,10 +160,10 @@ public final class DroidManager {
 	/**
 	 * Loads droid data set from server.
 	 *
-	 * @param file
+	 * @param file xml file to load from
 	 * @return
 	 */
-	public static Map<String, DroidData> readFromFile(final File file) throws FileNotFoundException {
+	public static Map<String, DroidData> readFromXMLFile(final File file) throws FileNotFoundException {
 		DroidHashMapType map = null;
 		try {
 
@@ -171,9 +171,6 @@ public final class DroidManager {
 							DroidHashMapType.class);
 			final Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 
-			// output pretty printed
-//			jaxbUnmarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-			// write to stdout
 			map = (DroidHashMapType) jaxbUnmarshaller.unmarshal(file);
 
 		} catch (JAXBException ex) {
@@ -183,13 +180,13 @@ public final class DroidManager {
 	}
 
 	/**
-	 * Stores droid data set to file.
+	 * Stores droid data set to xml file.
 	 *
 	 * @param file filename to store under
 	 * @param manager map data to store
 	 * @throws FileNotFoundException If file was not found
 	 */
-	public static void writeToFile(
+	public static void writeToXMLFile(
 					final File file,
 					final DroidManager manager)
 					throws FileNotFoundException {
@@ -202,22 +199,11 @@ public final class DroidManager {
 			// output pretty printed
 			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 			// write to stdout
-//			jaxbMarshaller.marshal(new JAXBElement(
-//							new QName("droiddb"),
-//							DroidHashMapType.class,
-//							new DroidHashMapType(manager.getKnownDroid())),
-//							System.out);
 			jaxbMarshaller.marshal(new DroidHashMapType(manager.getKnownDroid()), System.out);
 			jaxbMarshaller.marshal(new DroidHashMapType(manager.getKnownDroid()), file);
 			// write to file
-//			jaxbMarshaller.marshal(new JAXBElement(
-//							new QName("droiddb"),
-//							DroidHashMapType.class,
-//							new DroidHashMapType(manager.getKnownDroid())),
-//							file); 
 		} catch (JAXBException ex) {
 			Logger.getLogger(DroidManager.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
-	Class<?> myclass = null;
 }

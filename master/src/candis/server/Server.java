@@ -46,9 +46,9 @@ public class Server {
 						RandomID.init("foo"),
 						new StaticProfile(1024, 2, 4711));
 		try {
-			DroidManager.writeToFile(new File("/home/enrico/droiddb"), manager);
+			DroidManager.writeToXMLFile(new File("/home/enrico/droiddb"), manager);
 			Map<String, DroidData> map;
-			map = DroidManager.readFromFile(new File("/home/enrico/droiddb"));
+			map = DroidManager.readFromXMLFile(new File("/home/enrico/droiddb"));
 			for (Map.Entry<String, DroidData> e : map.entrySet()) {
 				System.out.println("Key: " + e.getKey());
 				System.out.println("blacklist: " + e.getValue().getBlacklist() + ", mem:" + e.getValue().getProfile().memoryMB);

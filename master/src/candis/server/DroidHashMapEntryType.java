@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server;
 
 import candis.distributed.droid.StaticProfile;
@@ -10,6 +6,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
 /**
+ * Wrapper class for xml generation with jXAB.
  *
  * @author Enrico Joerns
  */
