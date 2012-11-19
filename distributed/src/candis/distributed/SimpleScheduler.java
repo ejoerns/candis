@@ -8,6 +8,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Simple Scheduler to assign tasks to Droids without special predictions.
+ *
+ * Every Droid will get DistributedParameters, if a Droid finishes it's task or
+ * a new Droid appears it will get is next DistributedParameter
  *
  * @author Sebastian Willenborg
  */
