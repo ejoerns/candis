@@ -9,16 +9,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.namespace.QName;
 
 /**
  * Designed to manage all Droids that ever connected to the Master.
@@ -146,7 +141,7 @@ public final class DroidManager {
 	 * @return true if Droid is blacklisted, otherwise false (also if unknown)
 	 */
 	public boolean isDroidBlacklisted(final RandomID rid) {
-		return isDroidBlacklisted(new String(rid.getBytes()));
+		return isDroidBlacklisted(Utilities.toSHA1String(rid.getBytes()));
 	}
 
 	public StaticProfile getStaticProfile(final String barray) {

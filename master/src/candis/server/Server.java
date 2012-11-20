@@ -1,18 +1,14 @@
 package candis.server;
 
-import candis.common.RandomID;
 import candis.common.Settings;
-import candis.distributed.droid.StaticProfile;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
