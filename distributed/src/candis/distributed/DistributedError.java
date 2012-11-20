@@ -4,6 +4,8 @@ package candis.distributed;
  *
  * @author Sebastian Willenborg
  */
-public interface DistributedControl {
-	public Scheduler initScheduler();
+public enum DistributedError {
+	DROID_LOST,
+	DROID_EXCEPTION,
+	UNKNOWN,
 }
