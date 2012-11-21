@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.XmlElement;
  */
 public class DroidHashMapEntryType {
 
-	@XmlAttribute(name = "whitelist")
+	@XmlAttribute(name = "blacklisted")
 	public boolean blacklisted;
 	@XmlAttribute(name = "id-sha1")
 	public String key;
