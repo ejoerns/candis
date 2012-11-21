@@ -11,6 +11,7 @@ import candis.distributed.DistributedResult;
 import candis.distributed.DistributedTask;
 import candis.distributed.droid.Droid;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PipedInputStream;
@@ -60,32 +61,53 @@ public class TestDroid implements Runnable{
 
 	}
 
+	public void sendMessage(Message msg) {
+		try {
+			this.oos.writeObject(msg);
+		}
+		catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
 	@Override
 	public void run() {
 		LOGGER.log(Level.INFO, String.format("TestDroid %d: start", droid.id));
 
 		try {
 
-				Message m = new Message(Instruction.NO_MSG, null);
-				internalOos.writeObject(m);
 
 				while(true) {
-				try {
-					Message m_in = (Message) internalOis.readObject();
-					if(m_in != null)
-					{
+					try {
+						Message m_in = (Message) internalOis.readObject();
+						if(m_in != null)
+						{
+							// Handle job
+							switch(m_in.getRequest())
+							{
+								case SEND_JOB:
+									DistributedParameter parameters = (DistributedParameter)m_in.getData();
+									DistributedResult result = runTask(parameters);
+									Message m_result = new Message(Instruction.SEND_RESULT, result);
+									internalOos.writeObject(m_result);
+									break;
+							};
 
+
+						}
 					}
-				}
-				catch (ClassNotFoundException ex) {
-					Logger.getLogger(TestDroid.class.getName()).log(Level.SEVERE, null, ex);
-				}
-					Thread.sleep(10);
+					catch (ClassNotFoundException ex) {
+						LOGGER.log(Level.SEVERE, null, ex);
+					}
+						Thread.sleep(10);
 				}
 
 
 		}
 		catch (InterruptedException iex) {
+			LOGGER.log(Level.INFO, String.format("TestDroid %d: interrupted => stop", droid.id));
+		}
+		catch (InterruptedIOException iex) {
 			LOGGER.log(Level.INFO, String.format("TestDroid %d: interrupted => stop", droid.id));
 		}
 		catch (IOException ex) {

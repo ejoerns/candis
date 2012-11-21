@@ -9,9 +9,15 @@ import java.util.LinkedList;
  */
 public class CommunicationIO {
 	private final LinkedList<Droid> knownDroids;
+	protected Scheduler scheduler;
 
 	public CommunicationIO() {
 		knownDroids = new LinkedList<Droid>();
+	}
+
+	public void setScheduler(Scheduler s) {
+		scheduler = s;
+		s.setCommunicationIO(this);
 	}
 
 	public int getDroidCount() {
@@ -33,11 +39,10 @@ public class CommunicationIO {
 	}
 
 	public void startTask(Droid droid, DistributedParameter p) {
-
 	}
 
 	public void stopTask(Droid droid)
 	{
-		
+
 	}
 }

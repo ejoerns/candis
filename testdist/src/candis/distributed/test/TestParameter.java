@@ -7,8 +7,8 @@ import java.io.Serializable;
  *
  * @author Sebastian Willenborg
  */
-public class TestParameter implements DistributedParameter, Serializable{
-	public int number;
+public class TestParameter extends DistributedParameter implements Serializable{
+	public final int number;
 	public TestParameter(int n) {
 		number = n;
 	}

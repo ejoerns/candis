@@ -1,9 +1,11 @@
 package candis.distributed;
 
+import java.io.Serializable;
+
 /**
  *
  * @author Sebastian Willenborg
  */
-public interface DistributedParameter {
+public abstract class DistributedParameter implements Serializable{
 
 }

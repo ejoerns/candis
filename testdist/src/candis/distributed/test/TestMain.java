@@ -23,9 +23,14 @@ public class TestMain implements DistributedControl{
 		Scheduler s = t.initScheduler();
 		TestCommunicationIO comio = new TestCommunicationIO<TestTask>(new TestTaskFactory());
 		comio.initDroids();
-		s.setCommunicationIO(comio);
+		comio.setScheduler(s);
+		s.start();
 		try {
-			Thread.sleep(1000);
+			for(int i=0; i < 10; i++) {
+
+				System.out.println(i);
+				Thread.sleep(1000);
+			}
 		}
 		catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -41,7 +46,7 @@ public class TestMain implements DistributedControl{
 	 */
 	@Override
 	public Scheduler initScheduler() {
-		
+
 		Scheduler sch = new SimpleScheduler();
 		for(int i=0; i< 10; i++)
 		{

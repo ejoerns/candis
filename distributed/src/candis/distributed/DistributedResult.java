@@ -1,9 +1,11 @@
 package candis.distributed;
 
+import java.io.Serializable;
+
 /**
  *
  * @author Sebastian Willenborg
  */
-public interface DistributedResult {
+public abstract class DistributedResult implements Serializable{
 
 }

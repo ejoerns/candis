@@ -33,11 +33,13 @@ public class SimpleScheduler implements Scheduler {
 	}
 
 	public void start() {
+
 		assignTasks();
 	}
 
 	private void assignTasks() {
-		for(int i = comIO.getDroidCount(); i > 0; i--) {
+		LOGGER.log(Level.INFO, "Assigning to {0} possible Droids", new Object[] {comIO.getDroidCount()});
+		for(int i = comIO.getDroidCount()-1; i >= 0; i--) {
 			Droid d = comIO.getDroid(i);
 			if(!running.containsKey(d)) {
 				if(!assignTask(d)){
