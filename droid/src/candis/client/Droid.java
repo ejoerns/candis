@@ -35,7 +35,7 @@ public class Droid {
 
 	private static final String TAG = "Droid";
 	private final Activity app;
-	private final StaticProfile profile = null;
+	private StaticProfile profile = null;
 	private RandomID id = null;
 	private final TrustManager tm = null;
 	private final GetIDTask idg;
@@ -67,6 +67,7 @@ public class Droid {
 		}
 		try {
 			sc = ctask.get();
+			profile = ptask.get();
 			Log.i("Droid", "Starting CommRequestBroker");
 			fsm = new ClientStateMachine(sc, id, profile);
 			comm = new CommRequestBroker(
