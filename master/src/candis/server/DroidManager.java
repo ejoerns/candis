@@ -122,8 +122,22 @@ public final class DroidManager {
 		}
 	}
 
-	public Map<String, DroidData> getKnownDroid() {
+	/**
+	 * Returns the list of known Droids.
+	 *
+	 * @return Map of known Droids.
+	 */
+	public Map<String, DroidData> getKnownDroids() {
 		return knownDroids;
+	}
+
+	/**
+	 * Returns the list of connected Droids.
+	 *
+	 * @return Map of connected Droids.
+	 */
+	public Map<String, AtomicBoolean> getConnectedDroids() {
+		return connectedDroids;
 	}
 
 	/**
@@ -212,6 +226,7 @@ public final class DroidManager {
 	 */
 	public void load(final File file) throws FileNotFoundException {
 		knownDroids = readFromXMLFile(file);
+		notifyListeners(DroidManagerEvent.UPDATE);
 	}
 
 	/**

@@ -2,6 +2,7 @@ package candis.server.gui;
 
 import candis.distributed.droid.StaticProfile;
 import candis.server.DroidData;
+import candis.server.DroidManager;
 import candis.server.DroidManagerEvent;
 import candis.server.DroidManagerListener;
 import java.util.LinkedList;
@@ -17,11 +18,21 @@ import javax.swing.table.AbstractTableModel;
  *
  * @author Enrico Joerns
  */
-class DroidlistTableModel extends AbstractTableModel implements DroidManagerListener {
+class DroidInfoTableModel extends AbstractTableModel {
 
+	private static final int POS_ID = 0;
+	private static final int POS_MODEL = 1;
+	private static final int POS_CPU = 2;
+	private static final int POS_MEM = 3;
 	private boolean DEBUG = true;
-	private String[] columnNames = {"", "Device ID", "Model"};
-	private List<TableData> mTableDataList = new LinkedList();
+//	private String[] columnNames = {"", "Device ID", "Model"};
+//	private List<TableData> mTableDataList = new LinkedList();
+	private String[][] data = {
+		{"ID: ", ""},
+		{"Model: ", ""},
+		{"CPUs: ", ""},
+		{"Memory: ", ""}
+	};
 
 	private class TableData {
 
@@ -39,32 +50,22 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 
 	@Override
 	public int getColumnCount() {
-		return columnNames.length;
+		return data[0].length;
 	}
 
 	@Override
 	public int getRowCount() {
-		return mTableDataList.size();
+		return data.length;
 	}
 
 	@Override
 	public String getColumnName(int col) {
-		return columnNames[col];
+		return "";
 	}
 
 	@Override
 	public Object getValueAt(int row, int col) {
-		TableData td = (TableData) mTableDataList.get(row);
-		switch (col) {
-			case 0:
-				return td.icon;
-			case 1:
-				return td.deviceID;
-			case 2:
-				return td.deviceModel;
-			default:
-				return td.droidID;
-		}
+		return data[row][col];
 	}
 
 	/*
@@ -120,44 +121,20 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 		for (int i = 0; i < numRows; i++) {
 			System.out.print("    row " + i + ":");
 			for (int j = 0; j < numCols; j++) {
-				System.out.print("  " + mTableDataList.get(i));
+				System.out.print("  " + data[i]);
 			}
 			System.out.println();
 		}
 		System.out.println("--------------------------");
 	}
 
-	@Override
-	public void handle(
-					DroidManagerEvent event,
-					Map<String, DroidData> knownDroids,
-					Map<String, AtomicBoolean> connectedDroids) {
-		System.out.println("Droid handler in TableModel called with event: " + event);
-		synchronized (mTableDataList) {
-			mTableDataList.clear();
-		}
-		for (Map.Entry<String, DroidData> entry : knownDroids.entrySet()) {
-			StaticProfile profile;
-			ImageIcon icon;
-			if (connectedDroids.containsKey(entry.getKey())) {
-				icon = new ImageIcon("res/connected.png", "a pretty but meaningless splat");
-			} else {
-				if (entry.getValue().getBlacklist()) {
-					icon = new ImageIcon("res/known.png", "a pretty but meaningless splat");
-				} else {
-					icon = new ImageIcon("res/blacklisted.png", "a pretty but meaningless splat");
-				}
-			}
-			profile = knownDroids.get(entry.getKey()).getProfile();
-			synchronized (mTableDataList) {
-				mTableDataList.add(new TableData(
-								entry.getKey(),
-								icon,
-								profile.id,
-								profile.model));
-			}
-		}
-		// update table
+	public void update(DroidManager droidmanager, String id) {
+		DroidData d = (DroidData) droidmanager.getKnownDroids().get(id);
+		data[POS_ID][1] = id;
+		data[POS_MODEL][1] = d.getProfile().model;
+		data[POS_CPU][1] = String.valueOf(d.getProfile().processors);
+		data[POS_MEM][1] = String.valueOf(d.getProfile().memoryMB);
+		
 		fireTableDataChanged();
 	}
 }
