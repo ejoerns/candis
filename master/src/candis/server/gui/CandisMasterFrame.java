@@ -16,6 +16,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private DroidlistTableModel mDroidlistTableModel;
 	private DroidInfoTableModel mDroidInfoTableModel;
 	private DroidManager mDroidManager;
+	private OptionsDialog mOptionDialog;
 
 	/**
 	 * Creates new form CandisMasterFrame
@@ -24,6 +25,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		mDroidManager = droidmanager;
 		mDroidlistTableModel = droidlisttablemodel;
 		mDroidInfoTableModel = new DroidInfoTableModel();
+		mOptionDialog = new OptionsDialog(this, false);
 //		initComponents();
 	}
 
@@ -124,6 +126,11 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     getContentPane().add(mDroidlistScrollPane, gridBagConstraints);
 
     mOptionButton.setText("Optionen");
+    mOptionButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mOptionButtonActionPerformed(evt);
+      }
+    });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 3;
     gridBagConstraints.gridy = 0;
@@ -185,6 +192,11 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
 		mDroidInfoTableModel.update(mDroidManager, id);
   }//GEN-LAST:event_mDroidlistTableMouseClicked
+
+  private void mOptionButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOptionButtonActionPerformed
+    // TODO add your handling code here:
+		mOptionDialog.setVisible(true);
+  }//GEN-LAST:event_mOptionButtonActionPerformed
 
 	/**
 	 * @param args the command line arguments
