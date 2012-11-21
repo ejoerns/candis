@@ -22,31 +22,37 @@ import javax.net.ssl.SSLServerSocketFactory;
  *
  * @author enrico
  */
-public class Server {
+public class Server implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
-	private static ExecutorService tpool;
 	private static final int port = 9999;
+	private final ExecutorService tpool;
 	private ServerSocket ssocket;
 	private boolean doStop = false;
+	final DroidManager mDroidManager;
 
 	/**
 	 * @param args the command line arguments
 	 */
 	public static void main(final String[] args) {
-		//		ServerFrame win = new ServerFrame();
+
+		new Server(DroidManager.getInstance());
+//		CandisMasterFrame win = new CandisMasterFrame();
+	}
+
+	public Server(DroidManager droidmanager) {
 		Settings.load(Server.class.getResourceAsStream("settings.properties"));
-		final DroidManager droidmanager = DroidManager.getInstance();
+		mDroidManager = droidmanager;
 		// try to load drodmanager
 		try {
-			droidmanager.load(new File(Settings.getString("droiddb.file")));
+			mDroidManager.load(new File(Settings.getString("droiddb.file")));
 		} catch (FileNotFoundException ex) {
 			LOGGER.log(Level.WARNING, "Droid database could not be loaded, initialized empty db");
-			droidmanager.init();
+			mDroidManager.init();
 		}
-		final Server server = new Server();
+//		final Server server = new Server();
 		tpool = Executors.newCachedThreadPool();
-		server.connect();
+		connect();
 		LOGGER.log(Level.INFO, "Server terminated");
 	}
 
@@ -98,19 +104,26 @@ public class Server {
 
 			// Listen for connections
 			while (!doStop) {
-				LOGGER.log(Level.INFO, String.format("Waiting for connection on port %d", ssocket.getLocalPort()));
+				LOGGER.log(Level.INFO, String.format(
+								"Waiting for connection on port %d", ssocket.getLocalPort()));
 
 				socket = ssocket.accept();
-				tpool.execute(new Connection(socket));
+				tpool.execute(new Connection(socket, mDroidManager));
 			}
 			LOGGER.log(Level.INFO, "Server terminated");
 			ssocket.close();
 
 		} catch (BindException e) {
-			LOGGER.log(Level.SEVERE, "Binding port failed, Address already in use");
+			LOGGER.log(Level.SEVERE, String.format(
+							"Binding port %s failed, Address already in use", ssocket.getLocalPort()));
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, null, e);
 		}
 
+	}
+
+	@Override
+	public final void run() {
+		connect();
 	}
 }

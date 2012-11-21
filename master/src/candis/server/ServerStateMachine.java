@@ -1,15 +1,17 @@
 package candis.server;
 
-import candis.common.ByteArray;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.RandomID;
+import candis.common.Settings;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
+import candis.distributed.droid.StaticProfile;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
@@ -24,7 +26,8 @@ public class ServerStateMachine extends FSM {
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private final ObjectOutputStream mOutStream;
-	private final DroidManager mDroidManager = DroidManager.getInstance();
+	private final DroidManager mDroidManager;
+	RandomID mCurrentlyConnectingID;
 
 	private enum ServerStates implements StateEnum {
 
@@ -40,7 +43,8 @@ public class ServerStateMachine extends FSM {
 		CLIENT_BLACKLISTED,
 		CLIENT_NEW,
 		CLIENT_ACCEPTED,
-		POST_JOB;
+		POST_JOB,
+		CLIENT_INVALID;
 	}
 
 	private enum ClientHandlerID implements HandlerID {
@@ -48,13 +52,15 @@ public class ServerStateMachine extends FSM {
 		MY_ID;
 	}
 
-	ServerStateMachine(final ObjectOutputStream outstream) {
+	ServerStateMachine(final ObjectOutputStream outstream, final DroidManager droidManager) {
 		super();
 		this.mOutStream = outstream;
+		mDroidManager = droidManager;
 		init();
 	}
 
 	private void init() {
+		// TODO: add default transition?
 		addState(ServerStates.UNCONNECTED)
 						.addTransition(
 						Instruction.REQUEST_CONNECTION,
@@ -72,6 +78,10 @@ public class ServerStateMachine extends FSM {
 						.addTransition(
 						ServerTrans.CLIENT_ACCEPTED,
 						ServerStates.CONNECTED,
+						new ClientConnectedHandler())
+						.addTransition(
+						ServerTrans.CLIENT_INVALID,
+						ServerStates.UNCONNECTED,
 						null);
 		addState(ServerStates.PROFILE_REQUESTED)
 						.addTransition(
@@ -91,6 +101,9 @@ public class ServerStateMachine extends FSM {
 		setState(ServerStates.UNCONNECTED);
 	}
 
+	/**
+	 * Invoked if server got connection from a client.
+	 */
 	private class ConnectionRequestedHandler implements ActionHandler {
 
 		@Override
@@ -100,12 +113,16 @@ public class ServerStateMachine extends FSM {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
 			}
-			RandomID rand = ((RandomID) obj);
+			mCurrentlyConnectingID = ((RandomID) obj);
 			Transition trans;
 			Instruction instr;
-			// check droid in db
-			if (mDroidManager.isDroidKnown(rand)) {
-				if (mDroidManager.isDroidBlacklisted(rand)) {
+			// catch invalid messages
+			if (mCurrentlyConnectingID == null) {
+				trans = ServerTrans.CLIENT_INVALID;
+				instr = Instruction.ERROR;
+				// check droid in db
+			} else if (mDroidManager.isDroidKnown(mCurrentlyConnectingID)) {
+				if (mDroidManager.isDroidBlacklisted(mCurrentlyConnectingID)) {
 					trans = ServerTrans.CLIENT_BLACKLISTED;
 					instr = Instruction.REJECT_CONNECTION;
 				} else {
@@ -128,17 +145,35 @@ public class ServerStateMachine extends FSM {
 	}
 
 	// TODO: make static?
+	/**
+	 * Invoked if server received a clients profile data.
+	 */
 	private class ReceivedProfileHandler implements ActionHandler {
 
 		@Override
-		public void handle(Object obj) {
+		public void handle(final Object obj) {
 			System.out.println("ReceivedProfileHandler called");
 			try {
 				// store profile data
+				if (!(obj instanceof StaticProfile)) {
+					LOGGER.log(Level.WARNING, "EMPTY PROFILE DATA!");
+				}
+				mDroidManager.addDroid(mCurrentlyConnectingID, (StaticProfile) obj);
+				mDroidManager.store(new File(Settings.getString("droiddb.file")));
+				mDroidManager.connectDroid(mCurrentlyConnectingID);
 				mOutStream.writeObject(new Message(Instruction.ACCEPT_CONNECTION));
+				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentlyConnectingID));
 			} catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
+		}
+	}
+
+	private class ClientConnectedHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			mDroidManager.connectDroid(mCurrentlyConnectingID);
 		}
 	}
 }
