@@ -42,6 +42,9 @@
       <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
       <SubComponents>
         <Component class="javax.swing.JTextPane" name="jTextPane1">
+          <Properties>
+            <Property name="editable" type="boolean" value="false"/>
+          </Properties>
         </Component>
       </SubComponents>
     </Container>
@@ -108,7 +111,7 @@
         </Constraint>
       </Constraints>
     </Component>
-    <Container class="javax.swing.JScrollPane" name="jScrollPane3">
+    <Container class="javax.swing.JScrollPane" name="tableScrollPane">
       <AuxValues>
         <AuxValue name="autoScrollPane" type="java.lang.Boolean" value="true"/>
       </AuxValues>
@@ -122,12 +125,13 @@
       <SubComponents>
         <Component class="javax.swing.JTable" name="jTable1">
           <Properties>
-            <Property name="model" type="javax.swing.table.TableModel" editor="org.netbeans.modules.form.RADConnectionPropertyEditor" postCode="jTable1.setDefaultRenderer(Color.class, new ColorRenderer(false));&#xa;&#x9;&#x9;DefaultTableCellRenderer r = new DefaultTableCellRenderer() {&#xa;&#x9;&#x9;&#x9;public void setValue(Object value) {&#xa;&#x9;&#x9;&#x9;&#x9;if (value instanceof Icon) {&#xa;&#x9;&#x9;&#x9;&#x9;&#x9;setIcon((Icon) value);&#xa;&#x9;&#x9;&#x9;&#x9;&#x9;setText(&quot;&quot;);&#xa;&#x9;&#x9;&#x9;&#x9;} else {&#xa;&#x9;&#x9;&#x9;&#x9;&#x9;setIcon(null);&#xa;&#x9;&#x9;&#x9;&#x9;&#x9;super.setValue(value);&#xa;&#x9;&#x9;&#x9;&#x9;}&#xa;&#x9;&#x9;&#x9;}&#xa;&#x9;&#x9;}; // der Stichpunkt ist notwendig!&#xa;&#x9;&#x9;jTable1.setDefaultRenderer(Object.class, r);">
-              <Connection code="new MyTableModel()" type="code"/>
+            <Property name="model" type="javax.swing.table.TableModel" editor="org.netbeans.modules.form.RADConnectionPropertyEditor" postCode="jTable1.getColumnModel().getColumn(0).setMinWidth(25);&#xa;jTable1.getColumnModel().getColumn(0).setMaxWidth(25);">
+              <Connection code="mDroidlistTableModel" type="code"/>
             </Property>
             <Property name="columnModel" type="javax.swing.table.TableColumnModel" editor="org.netbeans.modules.form.editors2.TableColumnModelEditor">
-              <TableColumnModel selectionModel="0"/>
+              <TableColumnModel selectionModel="1"/>
             </Property>
+            <Property name="columnSelectionAllowed" type="boolean" value="true"/>
             <Property name="fillsViewportHeight" type="boolean" value="true"/>
             <Property name="tableHeader" type="javax.swing.table.JTableHeader" editor="org.netbeans.modules.form.editors2.JTableHeaderEditor">
               <TableHeader reorderingAllowed="true" resizingAllowed="true"/>

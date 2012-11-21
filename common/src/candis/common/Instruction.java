@@ -20,6 +20,8 @@ public enum Instruction implements Transition {
 
 	// -- Available messages
 	NO_MSG(0),
+	/// Remote error occured 
+	ERROR(1),
 	/// Request information - unused
 	GET_INFO(10),
 	/// Send information - unused
@@ -43,7 +45,9 @@ public enum Instruction implements Transition {
 	/// Droid sends result to master
 	SEND_RESULT(105),
 	/// Droid/Master informs that it will terminate
-	SELF_TERMINATE(110);
+	SELF_TERMINATE(110),
+	/// Droid wants to disconnect from master
+	DISCONNECT(120);
 	// --
 	private final int val;
 

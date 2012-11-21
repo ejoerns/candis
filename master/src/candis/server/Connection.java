@@ -21,10 +21,13 @@ public class Connection implements Runnable {
 	private final Socket socket;
 //	private ObjectOutputStream oos;
 	private boolean isStopped;
+	// each connection has its own state machine
 	private ServerStateMachine fsm = null;
+	private final DroidManager mDroidManager;
 
-	public Connection(final Socket socket) throws IOException {
+	public Connection(final Socket socket, final DroidManager droidmanager) throws IOException {
 		this.socket = socket;
+		mDroidManager = droidmanager;
 		LOGGER.log(Level.INFO, "Client {0} connected...", socket.getInetAddress());
 	}
 
@@ -36,7 +39,7 @@ public class Connection implements Runnable {
 		try {
 			oos = new ObjectOutputStream(socket.getOutputStream());
 			ois = new ObjectInputStream(socket.getInputStream());
-			fsm = new ServerStateMachine(oos);
+			fsm = new ServerStateMachine(oos, mDroidManager);
 			if (ois == null) {
 				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream!");
 			}

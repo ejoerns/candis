@@ -28,6 +28,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public final class DroidManager {
 
+	private static final String TAG = "DroidManager";
+	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Singleton-Instance
 	private static DroidManager instance = new DroidManager();
 	/**
@@ -171,8 +173,12 @@ public final class DroidManager {
 	 * @param rid
 	 */
 	public void connectDroid(final String rid) {
-		connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
+		LOGGER.log(Level.SEVERE, "connectDroid called with ID: " + rid);
+		synchronized (connectedDroids) {
+			connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
+		}
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
+		LOGGER.log(Level.WARNING, "connectDroid finished.");
 	}
 
 	public void connectDroid(final RandomID rid) {
