@@ -3,7 +3,7 @@ package candis.distributed.droid;
 import java.io.Serializable;
 
 /**
- * System Profile to provide scheduler information about device.
+ * System Profile to provide information about device.
  *
  * @author Enrico Joerns
  */
@@ -39,5 +39,12 @@ public class StaticProfile implements Serializable {
 
 	public StaticProfile() {
 		this("not_set", "not_set", 0, 0, 0);
+	}
+
+	@Override
+	public String toString() {
+		return String.format(
+						"ID: %s,\nModel: %s,\nProcessors: %d,\nMemory: %d,\nBenchmark: %d",
+						id, model, processors, memoryMB, benchmark);
 	}
 }

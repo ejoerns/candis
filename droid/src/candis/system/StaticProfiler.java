@@ -2,7 +2,6 @@ package candis.system;
 
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.ActivityManager.MemoryInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -17,11 +16,13 @@ import android.util.Log;
 import candis.client.CertAcceptDialog;
 import candis.client.R;
 import candis.distributed.droid.StaticProfile;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -32,8 +33,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
- *
- * Not to be run in GUI thread!
+ * Provides functionality to get static profile information from the device.
  *
  * @author Enrico Joerns
  */
@@ -41,14 +41,10 @@ public class StaticProfiler {
 
 	private static final String TAG = "Profiler";
 	private final Activity mActivity;
-	private final ActivityManager mActivityManager;
-	private final Handler handler;
 	private final AtomicBoolean accepted = new AtomicBoolean(false);
 
-	public StaticProfiler(final Activity act, final Handler handler) {
+	public StaticProfiler(final Activity act) {
 		this.mActivity = act;
-		this.handler = handler;
-		this.mActivityManager = (ActivityManager) this.mActivity.getSystemService(Activity.ACTIVITY_SERVICE);
 	}
 
 	/**
@@ -115,18 +111,6 @@ public class StaticProfiler {
 		Log.i(TAG, "Killed processes: " + nr_of_killed_processes);
 	}
 
-	/**
-	 *
-	 * @return
-	 */
-	public long getMemorySize() {
-		MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-		// mActivityManager.getMemoryInfo();
-		Log.i(TAG, "Memory: " + memoryInfo.availMem);
-
-		return memoryInfo.availMem;
-	}
-
 	public class KillProcessesDialogFragment extends DialogFragment {
 
 		@Override
@@ -164,8 +148,31 @@ public class StaticProfiler {
 	}
 
 	/**
-	 * Gets the number of cores available in this device, across all processors.
-	 * Requires: Ability to peruse the filesystem at "/sys/devices/system/cpu"
+	 * Reads the entire memory size of the device
+	 *
+	 * @return Size in [bytes]
+	 */
+	public long getMemorySize() {
+		String str1 = "/proc/meminfo";
+		String[] arrayOfString;
+		long initial_memory = 0;
+		try {
+			FileReader localFileReader = new FileReader(str1);
+			BufferedReader localBufferedReader = new BufferedReader(localFileReader, 8192);
+			arrayOfString = localBufferedReader.readLine().split("\\s+");
+			//total Memory
+			initial_memory = Integer.valueOf(arrayOfString[1]).intValue() * 1024;
+			localBufferedReader.close();
+		} catch (IOException e) {
+			Log.e(TAG, "Failed to read memory size from /proc/meminfo");
+		}
+		return initial_memory;
+	}
+
+	/**
+	 * Returns the number of cores available in this device, across all
+	 * processors. Requires: Ability to peruse the filesystem at
+	 * "/sys/devices/system/cpu"
 	 *
 	 * @return The number of cores, or 1 if failed to get result
 	 */
@@ -182,7 +189,6 @@ public class StaticProfiler {
 				return false;
 			}
 		}
-
 		try {
 			//Get directory containing CPU info
 			File dir = new File("/sys/devices/system/cpu/");
@@ -191,28 +197,34 @@ public class StaticProfiler {
 			//Return the number of cores (virtual CPU devices)
 			return files.length;
 		} catch (Exception e) {
+			Log.w(TAG, "Failed to get processor number of /sys/devices/sytstem/cpu");
 			//Default to return 1 core
 			return 1;
 		}
 	}
 
 	/**
+	 * Returns the device ID.
+	 *
+	 * This might be either the IMEI,
 	 *
 	 * @return
 	 */
 	public String getDeviecID() {
 		TelephonyManager tm = (TelephonyManager) mActivity.getSystemService(Context.TELEPHONY_SERVICE);
 		// get IMEI
-		String imei = tm.getDeviceId();
+		String imei = tm.getDeviceId();// depends on device, but may be not available
+		// imei =  Settings.Secure.ANDROID_ID;// depends on installation, but may be not unique
 		Log.v(TAG, "IMEI: " + imei);
-		String phone = tm.getLine1Number();
-		Log.v(TAG, "phone: " + phone);
 		return imei;
 	}
 
 	/**
+	 * Returns the device model.
 	 *
-	 * @return
+	 * Might be used to lookup performance data from a table
+	 *
+	 * @return Model of device
 	 */
 	public String getModel() {
 		String model = android.os.Build.MODEL;
@@ -220,6 +232,12 @@ public class StaticProfiler {
 		return model;
 	}
 
+	/**
+	 * Reads profile data from given file.
+	 *
+	 * @param f File to read profile from
+	 * @return StaticProfile instance
+	 */
 	public static StaticProfile readProfile(File f) {
 		ObjectInputStream ois = null;
 		try {
@@ -230,27 +248,26 @@ public class StaticProfiler {
 			if (obj instanceof StaticProfile) {
 				return (StaticProfile) obj;
 			} else {
+				Log.e(TAG, "invalid profile file");
 				return null;
 			}
-
 		} catch (StreamCorruptedException ex) {
-			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+			Log.e(TAG, ex.toString());
 		} catch (FileNotFoundException ex) {
 			Log.e(TAG, "Profile file " + f + " not found!");
 		} catch (IOException ex) {
-			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+			Log.e(TAG, ex.toString());
 		} catch (ClassNotFoundException ex) {
-			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+			Log.e(TAG, ex.toString());
 		} finally {
 			if (ois != null) {
 				try {
 					ois.close();
 				} catch (IOException ex) {
-					Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+					Log.e(TAG, ex.toString());
 				}
 			}
 		}
-
 		return null;
 	}
 
@@ -266,15 +283,15 @@ public class StaticProfiler {
 			oos = new ObjectOutputStream(new FileOutputStream(f));
 			oos.writeObject(p);
 		} catch (FileNotFoundException ex) {
-			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+			Log.e(TAG, ex.toString());
 		} catch (IOException ex) {
-			Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+			Log.e(TAG, ex.toString());
 		} finally {
 			if (oos != null) {
 				try {
 					oos.close();
 				} catch (IOException ex) {
-					Logger.getLogger(StaticProfiler.class.getName()).log(Level.SEVERE, null, ex);
+					Log.e(TAG, ex.toString());
 				}
 			}
 		}
