@@ -212,6 +212,7 @@ public final class DroidManager {
 	 */
 	public void load(final File file) throws FileNotFoundException {
 		knownDroids = readFromXMLFile(file);
+		notifyListeners(DroidManagerEvent.UPDATE);
 	}
 
 	/**

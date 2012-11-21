@@ -42,13 +42,13 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     jScrollPane2 = new javax.swing.JScrollPane();
     jTextArea1 = new javax.swing.JTextArea();
     jPanel1 = new javax.swing.JPanel();
-    jToggleButton1 = new javax.swing.JToggleButton();
-    jButton1 = new javax.swing.JButton();
-    tableScrollPane = new javax.swing.JScrollPane();
-    jTable1 = new javax.swing.JTable();
+    mBlacklistButton = new javax.swing.JToggleButton();
+    mExecuteButton = new javax.swing.JButton();
+    mDroidlistScrollPane = new javax.swing.JScrollPane();
+    mDroidlistTable = new javax.swing.JTable();
     jButton2 = new javax.swing.JButton();
-    jButton4 = new javax.swing.JButton();
-    jButton5 = new javax.swing.JButton();
+    mUploadButton = new javax.swing.JButton();
+    mStopButton = new javax.swing.JButton();
 
     jButton3.setText("jButton3");
 
@@ -61,6 +61,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 2;
+    gridBagConstraints.gridheight = 2;
     gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
     getContentPane().add(jScrollPane1, gridBagConstraints);
 
@@ -72,6 +73,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.gridx = 1;
     gridBagConstraints.gridy = 1;
     gridBagConstraints.gridwidth = 3;
+    gridBagConstraints.gridheight = 2;
     gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 5);
     getContentPane().add(jScrollPane2, gridBagConstraints);
@@ -92,39 +94,37 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.gridy = 1;
     getContentPane().add(jPanel1, gridBagConstraints);
 
-    jToggleButton1.setText("Blacklist");
+    mBlacklistButton.setText("Blacklist");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
     gridBagConstraints.gridy = 0;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 5);
-    getContentPane().add(jToggleButton1, gridBagConstraints);
+    getContentPane().add(mBlacklistButton, gridBagConstraints);
 
-    jButton1.setText("Execute");
-    jButton1.addActionListener(new java.awt.event.ActionListener() {
+    mExecuteButton.setText("Execute");
+    mExecuteButton.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        jButton1ActionPerformed(evt);
+        mExecuteButtonActionPerformed(evt);
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 2;
+    gridBagConstraints.gridy = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 1, 5);
-    getContentPane().add(jButton1, gridBagConstraints);
+    getContentPane().add(mExecuteButton, gridBagConstraints);
 
-    jTable1.setModel(mDroidlistTableModel);
-    jTable1.getColumnModel().getColumn(0).setMinWidth(25);
-    jTable1.getColumnModel().getColumn(0).setMaxWidth(25);
-    jTable1.setColumnSelectionAllowed(true);
-    jTable1.setFillsViewportHeight(true);
-    tableScrollPane.setViewportView(jTable1);
-    jTable1.getColumnModel().getSelectionModel().setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+    mDroidlistTable.setModel(mDroidlistTableModel);
+    mDroidlistTable.getColumnModel().getColumn(0).setMinWidth(25);
+    mDroidlistTable.getColumnModel().getColumn(0).setMaxWidth(25);
+    mDroidlistTable.setFillsViewportHeight(true);
+    mDroidlistScrollPane.setViewportView(mDroidlistTable);
 
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 0;
     gridBagConstraints.gridheight = 2;
-    getContentPane().add(tableScrollPane, gridBagConstraints);
+    getContentPane().add(mDroidlistScrollPane, gridBagConstraints);
 
     jButton2.setText("jButton2");
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -133,28 +133,28 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 5);
     getContentPane().add(jButton2, gridBagConstraints);
 
-    jButton4.setText("Upload");
+    mUploadButton.setText("Upload");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 2;
+    gridBagConstraints.gridy = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
-    getContentPane().add(jButton4, gridBagConstraints);
+    getContentPane().add(mUploadButton, gridBagConstraints);
 
-    jButton5.setText("Stop");
+    mStopButton.setText("Stop");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 3;
-    gridBagConstraints.gridy = 2;
+    gridBagConstraints.gridy = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
-    getContentPane().add(jButton5, gridBagConstraints);
+    getContentPane().add(mStopButton, gridBagConstraints);
 
     pack();
   }// </editor-fold>//GEN-END:initComponents
 
-  private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+  private void mExecuteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mExecuteButtonActionPerformed
 		// TODO add your handling code here:
-  }//GEN-LAST:event_jButton1ActionPerformed
+  }//GEN-LAST:event_mExecuteButtonActionPerformed
 
 	/**
 	 * @param args the command line arguments
@@ -198,18 +198,18 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JButton jButton1;
   private javax.swing.JButton jButton2;
   private javax.swing.JButton jButton3;
-  private javax.swing.JButton jButton4;
-  private javax.swing.JButton jButton5;
   private javax.swing.JPanel jPanel1;
   private javax.swing.JScrollPane jScrollPane1;
   private javax.swing.JScrollPane jScrollPane2;
-  private javax.swing.JTable jTable1;
   private javax.swing.JTextArea jTextArea1;
   private javax.swing.JTextPane jTextPane1;
-  private javax.swing.JToggleButton jToggleButton1;
-  private javax.swing.JScrollPane tableScrollPane;
+  private javax.swing.JToggleButton mBlacklistButton;
+  private javax.swing.JScrollPane mDroidlistScrollPane;
+  private javax.swing.JTable mDroidlistTable;
+  private javax.swing.JButton mExecuteButton;
+  private javax.swing.JButton mStopButton;
+  private javax.swing.JButton mUploadButton;
   // End of variables declaration//GEN-END:variables
 }

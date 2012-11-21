@@ -3,6 +3,7 @@ package candis.server;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.RandomID;
+import candis.common.Settings;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
@@ -10,6 +11,7 @@ import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.droid.StaticProfile;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
@@ -157,9 +159,10 @@ public class ServerStateMachine extends FSM {
 					LOGGER.log(Level.WARNING, "EMPTY PROFILE DATA!");
 				}
 				mDroidManager.addDroid(mCurrentlyConnectingID, (StaticProfile) obj);
+				mDroidManager.store(new File(Settings.getString("droiddb.file")));
 				mDroidManager.connectDroid(mCurrentlyConnectingID);
 				mOutStream.writeObject(new Message(Instruction.ACCEPT_CONNECTION));
-				LOGGER.log(Level.INFO, "Client " + mCurrentlyConnectingID + " connected");
+				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentlyConnectingID));
 			} catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 			}

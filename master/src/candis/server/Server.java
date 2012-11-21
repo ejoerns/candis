@@ -1,7 +1,6 @@
 package candis.server;
 
 import candis.common.Settings;
-import candis.server.gui.CandisMasterFrame;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -105,7 +104,8 @@ public class Server implements Runnable {
 
 			// Listen for connections
 			while (!doStop) {
-				LOGGER.log(Level.INFO, String.format("Waiting for connection on port %d", ssocket.getLocalPort()));
+				LOGGER.log(Level.INFO, String.format(
+								"Waiting for connection on port %d", ssocket.getLocalPort()));
 
 				socket = ssocket.accept();
 				tpool.execute(new Connection(socket, mDroidManager));
@@ -114,7 +114,8 @@ public class Server implements Runnable {
 			ssocket.close();
 
 		} catch (BindException e) {
-			LOGGER.log(Level.SEVERE, "Binding port failed, Address already in use");
+			LOGGER.log(Level.SEVERE, String.format(
+							"Binding port %s failed, Address already in use", ssocket.getLocalPort()));
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, null, e);
 		}
