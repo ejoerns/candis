@@ -6,11 +6,6 @@ package candis.server.gui;
 
 import candis.server.DroidManager;
 import candis.server.Server;
-import java.awt.Color;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.Icon;
-import javax.swing.table.DefaultTableCellRenderer;
 
 /**
  *
@@ -50,7 +45,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     mExecuteButton = new javax.swing.JButton();
     mDroidlistScrollPane = new javax.swing.JScrollPane();
     mDroidlistTable = new javax.swing.JTable();
-    jButton2 = new javax.swing.JButton();
+    mOptionButton = new javax.swing.JButton();
     mUploadButton = new javax.swing.JButton();
     mStopButton = new javax.swing.JButton();
     jScrollPane3 = new javax.swing.JScrollPane();
@@ -128,12 +123,12 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.gridheight = 2;
     getContentPane().add(mDroidlistScrollPane, gridBagConstraints);
 
-    jButton2.setText("jButton2");
+    mOptionButton.setText("Optionen");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 3;
     gridBagConstraints.gridy = 0;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 5);
-    getContentPane().add(jButton2, gridBagConstraints);
+    getContentPane().add(mOptionButton, gridBagConstraints);
 
     mUploadButton.setText("Upload");
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -183,14 +178,10 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
   private void mDroidInfoTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_mDroidInfoTableMouseClicked
 		// TODO add your handling code here:
-		System.out.println("I WAS CLICKED!");
-		Logger.getLogger("Foo").log(Level.WARNING, "I WAS CLICKED!");
   }//GEN-LAST:event_mDroidInfoTableMouseClicked
 
   private void mDroidlistTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_mDroidlistTableMouseClicked
 		// TODO add your handling code here:
-		System.out.println("YEAH, I WAS CLICKED!");
-		Logger.getLogger("Foo").log(Level.WARNING, "YEAH, I WAS CLICKED!");
 		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
 		mDroidInfoTableModel.update(mDroidManager, id);
   }//GEN-LAST:event_mDroidlistTableMouseClicked
@@ -237,7 +228,6 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JButton jButton2;
   private javax.swing.JButton jButton3;
   private javax.swing.JPanel jPanel1;
   private javax.swing.JScrollPane jScrollPane2;
@@ -248,6 +238,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private javax.swing.JScrollPane mDroidlistScrollPane;
   private javax.swing.JTable mDroidlistTable;
   private javax.swing.JButton mExecuteButton;
+  private javax.swing.JButton mOptionButton;
   private javax.swing.JButton mStopButton;
   private javax.swing.JButton mUploadButton;
   // End of variables declaration//GEN-END:variables

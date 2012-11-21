@@ -8,9 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
 /**
@@ -75,56 +73,6 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 	@Override
 	public Class getColumnClass(int c) {
 		return getValueAt(0, c).getClass();
-	}
-
-	/*
-	 * Don't need to implement this method unless your table's editable.
-	 */
-	@Override
-	public boolean isCellEditable(int row, int col) {
-		//Note that the data/cell address is constant,
-		//no matter where the cell appears onscreen.
-		if (col < 2) {
-			return false;
-		} else {
-			return true;
-		}
-	}
-
-	/*
-	 * Don't need to implement this method unless your table's data can
-	 * change.
-	 */
-	@Override
-	public void setValueAt(Object value, int row, int col) {
-		if (DEBUG) {
-			System.out.println("Setting value at " + row + "," + col
-							+ " to " + value + " (an instance of "
-							+ value.getClass() + ")");
-		}
-
-//		data[row][col] = value;
-		fireTableCellUpdated(row, col);
-		fireTableDataChanged();// DEBUG
-
-//		if (DEBUG) {
-		System.out.println("New value of data:");
-		printDebugData();
-//		}
-	}
-
-	private void printDebugData() {
-		int numRows = getRowCount();
-		int numCols = getColumnCount();
-
-		for (int i = 0; i < numRows; i++) {
-			System.out.print("    row " + i + ":");
-			for (int j = 0; j < numCols; j++) {
-				System.out.print("  " + mTableDataList.get(i));
-			}
-			System.out.println();
-		}
-		System.out.println("--------------------------");
 	}
 
 	@Override
