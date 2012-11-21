@@ -6,11 +6,13 @@ import android.app.ActivityManager.MemoryInfo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import candis.client.CertAcceptDialog;
 import candis.client.R;
@@ -38,30 +40,30 @@ import java.util.regex.Pattern;
 public class StaticProfiler {
 
 	private static final String TAG = "Profiler";
-	private final Activity activity;
-//	private final StaticProfile profile = null;
-//	private final ActivityManager activityManager;
+	private final Activity mActivity;
+	private final ActivityManager mActivityManager;
 	private final Handler handler;
 	private final AtomicBoolean accepted = new AtomicBoolean(false);
 
 	public StaticProfiler(final Activity act, final Handler handler) {
-		this.activity = act;
+		this.mActivity = act;
 		this.handler = handler;
-//		activityManager = (ActivityManager) activity.getSystemService(Activity.ACTIVITY_SERVICE);
+		this.mActivityManager = (ActivityManager) this.mActivity.getSystemService(Activity.ACTIVITY_SERVICE);
 	}
 
 	/**
 	 * Runs profiling tests and returns a StaticProfile object including all
 	 * collected informations.
 	 *
-	 * @param activityManager
 	 * @return
 	 */
-	public static StaticProfile profile(final ActivityManager activityManager) {
-		long mem = getMemorySize(activityManager);
-		int cores = getNumCores();
-		long bench = benchmark();
-		return new StaticProfile(mem, cores, bench);
+	public StaticProfile profile() {
+		return new StaticProfile(
+						getDeviecID(),
+						getModel(),
+						getMemorySize(),
+						getNumCores(),
+						benchmark());
 	}
 
 	public static long benchmark() {
@@ -69,7 +71,7 @@ public class StaticProfiler {
 //		handler.post(new Runnable() {
 //			public void run() {
 //				KillProcessesDialogFragment kpdf = new KillProcessesDialogFragment();
-//				kpdf.show(activity.getFragmentManager(), TAG);
+//				kpdf.show(mActivity.getFragmentManager(), TAG);
 //			}
 //		});
 //
@@ -94,7 +96,7 @@ public class StaticProfiler {
 	/**
 	 * Kills all background processes.
 	 *
-	 * @param activityManager
+	 * @param mActivityManager
 	 */
 	private static void killBackgroundProcesses(final ActivityManager activityManager) {
 		int nr_of_killed_processes = 0;
@@ -113,9 +115,13 @@ public class StaticProfiler {
 		Log.i(TAG, "Killed processes: " + nr_of_killed_processes);
 	}
 
-	private static long getMemorySize(final ActivityManager activityManager) {
+	/**
+	 *
+	 * @return
+	 */
+	public long getMemorySize() {
 		MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-		activityManager.getMemoryInfo(memoryInfo);
+		// mActivityManager.getMemoryInfo();
 		Log.i(TAG, "Memory: " + memoryInfo.availMem);
 
 		return memoryInfo.availMem;
@@ -163,7 +169,7 @@ public class StaticProfiler {
 	 *
 	 * @return The number of cores, or 1 if failed to get result
 	 */
-	public static int getNumCores() {
+	public int getNumCores() {
 		//Private Class to display only CPU devices in the directory listing
 		class CpuFilter implements FileFilter {
 
@@ -188,6 +194,30 @@ public class StaticProfiler {
 			//Default to return 1 core
 			return 1;
 		}
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public String getDeviecID() {
+		TelephonyManager tm = (TelephonyManager) mActivity.getSystemService(Context.TELEPHONY_SERVICE);
+		// get IMEI
+		String imei = tm.getDeviceId();
+		Log.v(TAG, "IMEI: " + imei);
+		String phone = tm.getLine1Number();
+		Log.v(TAG, "phone: " + phone);
+		return imei;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public String getModel() {
+		String model = android.os.Build.MODEL;
+		Log.v(TAG, "Model: " + model);
+		return model;
 	}
 
 	public static StaticProfile readProfile(File f) {

@@ -186,7 +186,7 @@ public class Droid {
 		protected StaticProfile doInBackground(Void... params) {
 			StaticProfile profile;
 			if (do_generate) {
-				profile = StaticProfiler.profile((ActivityManager) act.getSystemService(Activity.ACTIVITY_SERVICE));
+				profile = new StaticProfiler(act, null).profile();
 				StaticProfiler.writeProfile(pfile, profile);
 			} else {
 				profile = StaticProfiler.readProfile(pfile);

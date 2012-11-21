@@ -9,6 +9,8 @@ import java.io.Serializable;
  */
 public class StaticProfile implements Serializable {
 
+	public final String id;
+	public final String model;
 	public final long memoryMB;
 	public final int processors;
 	public final long benchmark;
@@ -16,17 +18,26 @@ public class StaticProfile implements Serializable {
 	/**
 	 * Creates a new system profile from provided Data.
 	 *
+	 * @param id ID of the device (e.g.: IMEI)
+	 * @param model Device model
 	 * @param mem Total device memory
 	 * @param proc Total number of processors
 	 * @param bench Benchmark result
 	 */
-	public StaticProfile(final long mem, final int proc, final long bench) {
+	public StaticProfile(
+					final String id,
+					final String model,
+					final long mem,
+					final int proc,
+					final long bench) {
+		this.id = id;
+		this.model = model;
 		this.memoryMB = mem;
 		this.processors = proc;
 		this.benchmark = bench;
 	}
 
 	public StaticProfile() {
-		this(0, 0, 0);
+		this("not_set", "not_set", 0, 0, 0);
 	}
 }
