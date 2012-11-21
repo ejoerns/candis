@@ -9,7 +9,7 @@ import candis.distributed.droid.StaticProfile;
  *
  * - Static profile
  */
-class DroidData {
+public class DroidData {
 
 	private boolean blacklist;
 	private StaticProfile profile;

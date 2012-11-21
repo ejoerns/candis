@@ -6,7 +6,10 @@ import candis.distributed.droid.StaticProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
@@ -25,12 +28,24 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public final class DroidManager {
 
+	private static final String TAG = "DroidManager";
+	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Singleton-Instance
 	private static DroidManager instance = new DroidManager();
 	/**
-	 * List of known droids true means whitelisted, false means blacklisted.
+	 * Map of known droids true means whitelisted, false means blacklisted.
+	 * 'Static' list that will be saved to file.
 	 */
 	private Map<String, DroidData> knownDroids = null;
+	/**
+	 * Map of connected droids with bool flag for further use. Dynamic list that
+	 * will be generated at runtime.
+	 */
+	private Map<String, AtomicBoolean> connectedDroids = new HashMap<String, AtomicBoolean>();
+	/**
+	 * Lis of connected droids.
+	 */
+	private List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
 
 	/**
 	 * Hidden to match Singleton requirements.
@@ -153,6 +168,43 @@ public final class DroidManager {
 	}
 
 	/**
+	 * Connects droid to droid manager.
+	 *
+	 * @param rid
+	 */
+	public void connectDroid(final String rid) {
+		LOGGER.log(Level.SEVERE, "connectDroid called with ID: " + rid);
+		synchronized (connectedDroids) {
+			connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
+		}
+		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
+		LOGGER.log(Level.WARNING, "connectDroid finished.");
+	}
+
+	public void connectDroid(final RandomID rid) {
+		connectDroid(Utilities.toSHA1String(rid.getBytes()));
+	}
+
+	/**
+	 * Disconnects droid from droid manager.
+	 *
+	 * @param rid ID of droid that is disconnected
+	 */
+	public void disconnectDroid(final String rid) {
+		connectedDroids.remove(rid);
+		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED);
+	}
+
+	/**
+	 * Disconnects droid from droid manager.
+	 *
+	 * @param rid ID of droid that is disconnected
+	 */
+	public void disconnectDroid(final RandomID rid) {
+		disconnectDroid(Utilities.toSHA1String(rid.getBytes()));
+	}
+
+	/**
 	 * Loads droid database form xml file.
 	 *
 	 * @param file XML file to load from
@@ -223,11 +275,37 @@ public final class DroidManager {
 
 			// output pretty printed
 			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-			// write to stdout
-			jaxbMarshaller.marshal(new DroidHashMapType(droidmap), file);
 			// write to file
+			jaxbMarshaller.marshal(new DroidHashMapType(droidmap), file);
 		} catch (JAXBException ex) {
 			Logger.getLogger(DroidManager.class.getName()).log(Level.SEVERE, null, ex);
 		}
+	}
+
+	/**
+	 * Called to notify all registered listeners.
+	 *
+	 * @param event Event that should be passed to listeners
+	 */
+	private void notifyListeners(final DroidManagerEvent event) {
+		for (DroidManagerListener d : listeners) {
+			d.handle(event, knownDroids, connectedDroids);
+		}
+	}
+
+	private void notifyListeners() {
+		notifyListeners(DroidManagerEvent.UPDATE);
+	}
+
+	/**
+	 * Adds a listener that is notifified if anything changes.
+	 *
+	 * @param listener
+	 */
+	public void addListener(DroidManagerListener listener) {
+		if (listener == null) {
+			return;
+		}
+		listeners.add(listener);
 	}
 }

@@ -4,6 +4,8 @@
  */
 package candis.server.gui;
 
+import candis.server.DroidManager;
+import candis.server.Server;
 import java.awt.Color;
 import javax.swing.Icon;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -12,13 +14,16 @@ import javax.swing.table.DefaultTableCellRenderer;
  *
  * @author Enrico Joerns
  */
-public class NewJFrame extends javax.swing.JFrame {
+public class CandisMasterFrame extends javax.swing.JFrame {
+
+	private DroidlistTableModel mDroidlistTableModel;
 
 	/**
-	 * Creates new form NewJFrame
+	 * Creates new form CandisMasterFrame
 	 */
-	public NewJFrame() {
-		initComponents();
+	public CandisMasterFrame(DroidlistTableModel droidlisttablemodel) {
+		mDroidlistTableModel = droidlisttablemodel;
+//		initComponents();
 	}
 
 	/**
@@ -39,7 +44,7 @@ public class NewJFrame extends javax.swing.JFrame {
     jPanel1 = new javax.swing.JPanel();
     jToggleButton1 = new javax.swing.JToggleButton();
     jButton1 = new javax.swing.JButton();
-    jScrollPane3 = new javax.swing.JScrollPane();
+    tableScrollPane = new javax.swing.JScrollPane();
     jTable1 = new javax.swing.JTable();
     jButton2 = new javax.swing.JButton();
     jButton4 = new javax.swing.JButton();
@@ -50,6 +55,7 @@ public class NewJFrame extends javax.swing.JFrame {
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
+    jTextPane1.setEditable(false);
     jScrollPane1.setViewportView(jTextPane1);
 
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -106,28 +112,19 @@ public class NewJFrame extends javax.swing.JFrame {
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 1, 5);
     getContentPane().add(jButton1, gridBagConstraints);
 
-    jTable1.setModel(new MyTableModel());
-    jTable1.setDefaultRenderer(Color.class, new ColorRenderer(false));
-    DefaultTableCellRenderer r = new DefaultTableCellRenderer() {
-      public void setValue(Object value) {
-        if (value instanceof Icon) {
-          setIcon((Icon) value);
-          setText("");
-        } else {
-          setIcon(null);
-          super.setValue(value);
-        }
-      }
-    }; // der Stichpunkt ist notwendig!
-    jTable1.setDefaultRenderer(Object.class, r);
+    jTable1.setModel(mDroidlistTableModel);
+    jTable1.getColumnModel().getColumn(0).setMinWidth(25);
+    jTable1.getColumnModel().getColumn(0).setMaxWidth(25);
+    jTable1.setColumnSelectionAllowed(true);
     jTable1.setFillsViewportHeight(true);
-    jScrollPane3.setViewportView(jTable1);
+    tableScrollPane.setViewportView(jTable1);
+    jTable1.getColumnModel().getSelectionModel().setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
 
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 0;
     gridBagConstraints.gridheight = 2;
-    getContentPane().add(jScrollPane3, gridBagConstraints);
+    getContentPane().add(tableScrollPane, gridBagConstraints);
 
     jButton2.setText("jButton2");
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -156,7 +153,7 @@ public class NewJFrame extends javax.swing.JFrame {
   }// </editor-fold>//GEN-END:initComponents
 
   private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-    // TODO add your handling code here:
+		// TODO add your handling code here:
   }//GEN-LAST:event_jButton1ActionPerformed
 
 	/**
@@ -176,22 +173,29 @@ public class NewJFrame extends javax.swing.JFrame {
 				}
 			}
 		} catch (ClassNotFoundException ex) {
-			java.util.logging.Logger.getLogger(NewJFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
 		} catch (InstantiationException ex) {
-			java.util.logging.Logger.getLogger(NewJFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
 		} catch (IllegalAccessException ex) {
-			java.util.logging.Logger.getLogger(NewJFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
 		} catch (javax.swing.UnsupportedLookAndFeelException ex) {
-			java.util.logging.Logger.getLogger(NewJFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
 		}
 		//</editor-fold>
 
+		DroidManager droidmanager = DroidManager.getInstance();
+		DroidlistTableModel dltm = new DroidlistTableModel();
+		final CandisMasterFrame cmf = new CandisMasterFrame(dltm);
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				new NewJFrame().setVisible(true);
+				cmf.initComponents();
+				cmf.setVisible(true);
 			}
 		});
+		droidmanager.addListener(dltm);
+		new Server(droidmanager);
+
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JButton jButton1;
@@ -202,10 +206,10 @@ public class NewJFrame extends javax.swing.JFrame {
   private javax.swing.JPanel jPanel1;
   private javax.swing.JScrollPane jScrollPane1;
   private javax.swing.JScrollPane jScrollPane2;
-  private javax.swing.JScrollPane jScrollPane3;
   private javax.swing.JTable jTable1;
   private javax.swing.JTextArea jTextArea1;
   private javax.swing.JTextPane jTextPane1;
   private javax.swing.JToggleButton jToggleButton1;
+  private javax.swing.JScrollPane tableScrollPane;
   // End of variables declaration//GEN-END:variables
 }
