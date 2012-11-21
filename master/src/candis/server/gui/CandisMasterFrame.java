@@ -6,6 +6,8 @@ package candis.server.gui;
 
 import candis.server.DroidManager;
 import candis.server.Server;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileFilter;
 
 /**
  *
@@ -137,7 +139,12 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 5);
     getContentPane().add(mOptionButton, gridBagConstraints);
 
-    mUploadButton.setText("Upload");
+    mUploadButton.setText("Open");
+    mUploadButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mUploadButtonActionPerformed(evt);
+      }
+    });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
     gridBagConstraints.gridy = 3;
@@ -197,6 +204,15 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     // TODO add your handling code here:
 		mOptionDialog.setVisible(true);
   }//GEN-LAST:event_mOptionButtonActionPerformed
+
+  private void mUploadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mUploadButtonActionPerformed
+    // TODO add your handling code here:
+		JFileChooser fileChooser = new JFileChooser();
+		FileFilter filter = new ExtensionFilter(".jar file", ".jar");
+		fileChooser.addChoosableFileFilter(filter);
+		fileChooser.setFileFilter(filter);
+		fileChooser.showOpenDialog(this);
+  }//GEN-LAST:event_mUploadButtonActionPerformed
 
 	/**
 	 * @param args the command line arguments
