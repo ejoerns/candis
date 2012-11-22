@@ -12,12 +12,14 @@ import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.droid.StaticProfile;
+import candis.server.gui.CheckCodeShowDialog;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -128,7 +130,7 @@ public class ServerStateMachine extends FSM {
 			if (mCurrentlyConnectingID == null) {
 				trans = ServerTrans.CLIENT_INVALID;
 				instr = Instruction.ERROR;
-				// check droid in db
+				// check if droid is known in db
 			} else if (mDroidManager.isDroidKnown(mCurrentlyConnectingID)) {
 				if (mDroidManager.isDroidBlacklisted(mCurrentlyConnectingID)) {
 					trans = ServerTrans.CLIENT_BLACKLISTED;
@@ -138,6 +140,7 @@ public class ServerStateMachine extends FSM {
 					instr = Instruction.ACCEPT_CONNECTION;
 				}
 			} else {
+				// check if option 'check code auth' is active
 				if (Settings.getBoolean("pincode_auth")) {
 					trans = ServerTrans.CLIENT_NEW_CHECK;
 					instr = Instruction.REQUEST_CHECKCODE;
@@ -147,6 +150,7 @@ public class ServerStateMachine extends FSM {
 				}
 			}
 			try {
+				LOGGER.log(Level.INFO, String.format("Server reply: %s", instr));
 				mOutStream.writeObject(new Message(instr));
 				process(trans);
 			} catch (StateMachineException ex) {
@@ -174,6 +178,7 @@ public class ServerStateMachine extends FSM {
 				mDroidManager.addDroid(mCurrentlyConnectingID, (StaticProfile) obj);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
 				mDroidManager.connectDroid(mCurrentlyConnectingID);
+				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
 				mOutStream.writeObject(new Message(Instruction.ACCEPT_CONNECTION));
 				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentlyConnectingID));
 			} catch (IOException ex) {
@@ -190,15 +195,21 @@ public class ServerStateMachine extends FSM {
 		}
 	}
 
-	private static class CheckCodeRequestedHandler implements ActionHandler {
+	private class CheckCodeRequestedHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
+			// generate 6digit string
 			final SecureRandom random = new SecureRandom();
-			final byte[] byteCode = new byte[6];
+			final byte[] byteCode = new byte[3];
 			random.nextBytes(byteCode);
-			String code = Utilities.toHexString(byteCode);
-			System.out.println("Your Code is: " + code);
+
+			StringBuffer buf = new StringBuffer();
+			int len = byteCode.length;
+			for (int i = 0; i < len; i++) {
+				Utilities.byte2hex(byteCode[i], buf);
+			}
+			mDroidManager.showCheckCode(buf.toString());
 		}
 	}
 }

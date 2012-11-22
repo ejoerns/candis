@@ -1,6 +1,8 @@
 package candis.common.fsm;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -14,7 +16,11 @@ public class State {
 
 	private final StateEnum name;
 	private final Map<Transition, StateEnum> mTransitionMap = new HashMap<Transition, StateEnum>();
-	private final Map<Transition, ActionHandler> mHandlerMap = new HashMap<Transition, ActionHandler>();
+//	private final Map<Transition, ActionHandler> mHandlerMap = new HashMap<Transition, ActionHandler>();
+	/**
+	 * Map of Transitions wiht List of listeners for registered transition.
+	 */
+	Map<Transition, List<ActionHandler>> mListeners = new HashMap<Transition, List<ActionHandler>>();
 
 	public State(final StateEnum s) {
 		name = s;
@@ -25,8 +31,17 @@ public class State {
 					final StateEnum dest,
 					final ActionHandler act) {
 		mTransitionMap.put(trans, dest);
-		mHandlerMap.put(trans, act);
+//		mHandlerMap.put(trans, act);
+		if (act != null) {
+			addActionHandler(trans, act);
+		}
 		return this;
+	}
+
+	public State addTransition(
+					final Transition trans,
+					final StateEnum dest) {
+		return addTransition(trans, dest, null);
 	}
 
 	/**
@@ -45,10 +60,9 @@ public class State {
 	 * @param trans Transition
 	 * @return ActionHandler
 	 */
-	public ActionHandler getActionHandler(final Transition trans) {
-		return mHandlerMap.get(trans);
-	}
-
+//	public ActionHandler getActionHandler(final Transition trans) {
+//		return mHandlerMap.get(trans);
+//	}
 	/**
 	 * Processes transition.
 	 *
@@ -80,9 +94,36 @@ public class State {
 		Logger.getLogger("FSM").log(Level.FINE, String.format(
 						"FSM: New State: %s", mCurrentState.get()));
 
-		if ((mHandlerMap.containsKey(trans)) && (mHandlerMap.get(trans) != null)) {
-			mHandlerMap.get(trans).handle(obj);
-		}
+//		if ((mHandlerMap.containsKey(trans)) && (mHandlerMap.get(trans) != null)) {
+//			mHandlerMap.get(trans).handle(obj);
+//	}
+		notifyListeners(trans, obj);
 //		return mCurrentState = process(trans, obj);
+	}
+
+	/**
+	 * Adds a listener to the specified transition.
+	 *
+	 * @param trans
+	 * @param listener
+	 */
+	public void addActionHandler(Transition trans, ActionHandler listener) {
+		if (!mListeners.containsKey(trans)) {
+			mListeners.put(trans, new LinkedList<ActionHandler>());
+		}
+		mListeners.get(trans).add(listener);
+	}// TODO: concept
+
+	/**
+	 * Notifies all listeners for specified transition.
+	 *
+	 * @param trans Transition to notify for
+	 */
+	private void notifyListeners(Transition trans, Object obj) {
+		if (mListeners.containsKey(trans)) {
+			for (ActionHandler l : mListeners.get(trans)) {
+				l.handle(obj);// TODO
+			}
+		}
 	}
 }

@@ -5,7 +5,6 @@ import candis.common.Utilities;
 import candis.distributed.droid.StaticProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +46,8 @@ public final class DroidManager {
 	 * List of registered listeners.
 	 */
 	private final List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
+	/// stores check code for extended client authorization
+	private String mCheckCode;
 
 	/**
 	 * Hidden to match Singleton requirements.
@@ -89,6 +90,7 @@ public final class DroidManager {
 	 */
 	public void addDroid(final String rid, StaticProfile profile) {
 		if (!knownDroids.containsKey(rid)) {
+			LOGGER.log(Level.INFO, String.format("Client %s connected", rid));
 			knownDroids.put(rid, new DroidData(true, profile));
 			notifyListeners(DroidManagerEvent.DROID_ADDED);
 		}
@@ -115,6 +117,7 @@ public final class DroidManager {
 			notifyListeners(DroidManagerEvent.DROID_DELETED);
 		}
 		if (connectedDroids.containsKey(rid)) {
+			LOGGER.log(Level.INFO, String.format("Client %s deleted", rid));
 			connectedDroids.remove(rid);
 			// TODO: close connection
 		}
@@ -149,7 +152,7 @@ public final class DroidManager {
 	 * @param rid Droid to blacklist
 	 */
 	public void blacklistDroid(final RandomID rid) {
-		blacklistDroid(new String(rid.getBytes()));
+		blacklistDroid(Utilities.toSHA1String(rid.getBytes()));
 	}
 
 	/**
@@ -167,7 +170,7 @@ public final class DroidManager {
 	}
 
 	public void whitelistDroid(final RandomID rid) {
-		blacklistDroid(new String(rid.getBytes()));
+		blacklistDroid(Utilities.toSHA1String(rid.getBytes()));
 	}
 
 	/**
@@ -187,7 +190,7 @@ public final class DroidManager {
 	 * @return true if Droid is known, otherwise false
 	 */
 	public boolean isDroidKnown(final RandomID rid) {
-		return isDroidKnown(new String(rid.getBytes()));
+		return isDroidKnown(Utilities.toSHA1String(rid.getBytes()));
 	}
 
 	/**
@@ -247,7 +250,7 @@ public final class DroidManager {
 	 * @param rid
 	 */
 	public void connectDroid(final String rid) {
-		LOGGER.log(Level.SEVERE, "Connecting Droid: " + rid);
+		LOGGER.log(Level.INFO, String.format("Connecting Droid: %s", rid));
 		connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 	}
@@ -374,10 +377,31 @@ public final class DroidManager {
 	 *
 	 * @param listener
 	 */
-	public void addListener(DroidManagerListener listener) {
+	public void addListener(final DroidManagerListener listener) {
 		if (listener == null) {
 			return;
 		}
 		listeners.add(listener);
+	}
+
+	/**
+	 * Called to show check code.
+	 *
+	 * Notifies registered listeners with CHECK_CODE event.
+	 *
+	 * @param code Code do show for theck
+	 */
+	void showCheckCode(final String code) {
+		mCheckCode = code;
+		notifyListeners(DroidManagerEvent.CHECK_CODE);
+	}
+
+	/**
+	 * Returns check code.
+	 *
+	 * @return Check code
+	 */
+	public String getCheckCode() {
+		return mCheckCode;
 	}
 }

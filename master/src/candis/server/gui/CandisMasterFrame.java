@@ -21,6 +21,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private DroidInfoTableModel mDroidInfoTableModel;
 	private DroidManager mDroidManager;
 	private OptionsDialog mOptionDialog;
+	private CheckCodeShowDialog mCheckCodeShowDialog;
 
 	/**
 	 * Creates new form CandisMasterFrame.
@@ -30,6 +31,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		mDroidlistTableModel = droidlisttablemodel;
 		mDroidInfoTableModel = new DroidInfoTableModel();
 		mOptionDialog = new OptionsDialog(this, false);
+		mCheckCodeShowDialog = new CheckCodeShowDialog(this, false);
+		droidmanager.addListener(mCheckCodeShowDialog);
 //		initComponents();
 	}
 
@@ -266,7 +269,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   }//GEN-LAST:event_mBlacklistButtonActionPerformed
 
   private void mDeleteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mDeleteButtonActionPerformed
-    // TODO add your handling code here:
+		// TODO add your handling code here:
 		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
 		mDroidManager.deleteDroid(id);
 		new SwingWorker<Void, Object>() {
