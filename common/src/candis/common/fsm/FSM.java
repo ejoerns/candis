@@ -2,6 +2,8 @@ package candis.common.fsm;
 
 import android.util.Log;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,7 +27,7 @@ public class FSM {
 
 	public FSM() {
 		System.setProperty("candis.client.logging", "FINEST");
-		System.setProperty( "java.util.logging.config.file", "logging.properties" );
+		System.setProperty("java.util.logging.config.file", "logging.properties");
 	}
 
 	/**
