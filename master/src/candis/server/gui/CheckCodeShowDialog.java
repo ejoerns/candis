@@ -4,11 +4,15 @@
  */
 package candis.server.gui;
 
+import candis.server.DroidManager;
+import candis.server.DroidManagerEvent;
+import candis.server.DroidManagerListener;
+
 /**
  *
  * @author Enrico Joerns
  */
-public class CheckCodeShowDialog extends javax.swing.JDialog {
+public class CheckCodeShowDialog extends javax.swing.JDialog implements DroidManagerListener {
 
 	/**
 	 * Creates new form CheckCodeShowDialog.
@@ -16,10 +20,7 @@ public class CheckCodeShowDialog extends javax.swing.JDialog {
 	public CheckCodeShowDialog(java.awt.Frame parent, boolean modal) {
 		super(parent, modal);
 		initComponents();
-	}
-
-	public void setCheckCode(String code) {
-		mCheckCodeField.setText(code);
+		setLocationRelativeTo(parent);
 	}
 
 	/**
@@ -42,8 +43,10 @@ public class CheckCodeShowDialog extends javax.swing.JDialog {
     mHeadLabel.setText("Check code");
     getContentPane().add(mHeadLabel, new java.awt.GridBagConstraints());
 
+    mCheckCodeField.setColumns(6);
     mCheckCodeField.setEditable(false);
     mCheckCodeField.setFont(new java.awt.Font("Dialog", 1, 36)); // NOI18N
+    mCheckCodeField.setHorizontalAlignment(javax.swing.JTextField.CENTER);
     mCheckCodeField.setText("000000");
     mCheckCodeField.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -57,6 +60,11 @@ public class CheckCodeShowDialog extends javax.swing.JDialog {
     getContentPane().add(mCheckCodeField, gridBagConstraints);
 
     mCloseButton.setText("Close");
+    mCloseButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mCloseButtonActionPerformed(evt);
+      }
+    });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 2;
@@ -69,9 +77,21 @@ public class CheckCodeShowDialog extends javax.swing.JDialog {
 		// TODO add your handling code here:
   }//GEN-LAST:event_mCheckCodeFieldActionPerformed
 
+  private void mCloseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mCloseButtonActionPerformed
+		// TODO add your handling code here:
+		setVisible(false);
+  }//GEN-LAST:event_mCloseButtonActionPerformed
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JTextField mCheckCodeField;
   private javax.swing.JButton mCloseButton;
   private javax.swing.JLabel mHeadLabel;
   // End of variables declaration//GEN-END:variables
+
+	@Override
+	public void handle(DroidManagerEvent event, DroidManager manager) {
+		if (event == DroidManagerEvent.CHECK_CODE) {
+			mCheckCodeField.setText(manager.getCheckCode());
+			setVisible(true);
+		}
+	}
 }
