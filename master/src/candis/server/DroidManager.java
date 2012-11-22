@@ -72,6 +72,7 @@ public final class DroidManager {
 		if (!knownDroids.containsKey(rid)) {
 			synchronized (knownDroids) {
 				knownDroids.put(rid, new DroidData(true, profile));
+				notifyListeners(DroidManagerEvent.DROID_ADDED);
 			}
 		}
 	}
@@ -95,7 +96,10 @@ public final class DroidManager {
 		if (knownDroids.containsKey(rid)) {
 			synchronized (knownDroids) {
 				knownDroids.get(rid).setBlacklist(true);
+				notifyListeners(DroidManagerEvent.DROID_BLACKLISTED);
 			}
+		} else {
+			LOGGER.log(Level.WARNING, String.format("Client %s could not be blacklisted", rid));
 		}
 	}
 
@@ -105,6 +109,21 @@ public final class DroidManager {
 	 * @param rid Droid to blacklist
 	 */
 	public void blacklistDroid(final RandomID rid) {
+		blacklistDroid(new String(rid.getBytes()));
+	}
+
+	public void whitelistDroid(final String rid) {
+		if (knownDroids.containsKey(rid)) {
+			synchronized (knownDroids) {
+				knownDroids.get(rid).setBlacklist(false);
+				notifyListeners(DroidManagerEvent.DROID_WHITELISTED);
+			}
+		} else {
+			LOGGER.log(Level.WARNING, String.format("Client %s could not be whitelisted", rid));
+		}
+	}
+
+	public void whitelistDroid(final RandomID rid) {
 		blacklistDroid(new String(rid.getBytes()));
 	}
 
@@ -304,7 +323,7 @@ public final class DroidManager {
 	 */
 	private void notifyListeners(final DroidManagerEvent event) {
 		for (DroidManagerListener d : listeners) {
-			d.handle(event, knownDroids, connectedDroids);
+			d.handle(event, this);
 		}
 	}
 

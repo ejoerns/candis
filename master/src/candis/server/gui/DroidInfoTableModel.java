@@ -73,6 +73,9 @@ class DroidInfoTableModel extends AbstractTableModel {
 
 	public void update(DroidManager droidmanager, String id) {
 		DroidData ddata = (DroidData) droidmanager.getKnownDroids().get(id);
+		if (ddata == null) {
+			return;
+		}
 		synchronized (data) { // might be called from different threads
 			data[POS_ID][1] = id;
 			data[POS_DEV_ID][1] = ddata.getProfile().id;

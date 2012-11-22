@@ -1,12 +1,16 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server.gui;
 
+import candis.common.Settings;
+import candis.server.DroidData;
 import candis.server.DroidManager;
 import candis.server.Server;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFileChooser;
+import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
 /**
@@ -21,7 +25,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private OptionsDialog mOptionDialog;
 
 	/**
-	 * Creates new form CandisMasterFrame
+	 * Creates new form CandisMasterFrame.
 	 */
 	public CandisMasterFrame(DroidManager droidmanager, DroidlistTableModel droidlisttablemodel) {
 		mDroidManager = droidmanager;
@@ -89,6 +93,11 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     getContentPane().add(jPanel1, gridBagConstraints);
 
     mBlacklistButton.setText("Blacklist");
+    mBlacklistButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mBlacklistButtonActionPerformed(evt);
+      }
+    });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
     gridBagConstraints.gridy = 0;
@@ -198,21 +207,50 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		// TODO add your handling code here:
 		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
 		mDroidInfoTableModel.update(mDroidManager, id);
+		mBlacklistButton.getModel().setSelected(
+						mDroidManager.getKnownDroids().get(id).getBlacklist());
   }//GEN-LAST:event_mDroidlistTableMouseClicked
 
   private void mOptionButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOptionButtonActionPerformed
-    // TODO add your handling code here:
+		// TODO add your handling code here:
 		mOptionDialog.setVisible(true);
   }//GEN-LAST:event_mOptionButtonActionPerformed
 
   private void mUploadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mUploadButtonActionPerformed
-    // TODO add your handling code here:
+		// TODO add your handling code here:
 		JFileChooser fileChooser = new JFileChooser();
 		FileFilter filter = new ExtensionFilter(".jar file", ".jar");
 		fileChooser.addChoosableFileFilter(filter);
 		fileChooser.setFileFilter(filter);
 		fileChooser.showOpenDialog(this);
   }//GEN-LAST:event_mUploadButtonActionPerformed
+
+  private void mBlacklistButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mBlacklistButtonActionPerformed
+		// TODO add your handling code here:
+		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
+		System.out.println("isPressed() : " + mBlacklistButton.getModel().isPressed());
+		System.out.println("isSelected(): " + mBlacklistButton.getModel().isSelected());
+		if (mBlacklistButton.getModel().isSelected()) {
+			mDroidManager.blacklistDroid(id);
+		} else {
+			mDroidManager.whitelistDroid(id);
+		}
+		new SwingWorker<Void, Object>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				try {
+					System.out.println("Writing to file...");
+					for (Map.Entry<String, DroidData> e : mDroidManager.getKnownDroids().entrySet()) {
+						System.out.println("Blacklist: " + e.getValue().getBlacklist());
+					}
+					mDroidManager.store(new File(Settings.getString("droiddb.file")));
+				} catch (FileNotFoundException ex) {
+					Logger.getLogger(CandisMasterFrame.class.getName()).log(Level.SEVERE, null, ex);
+				}
+				return null;
+			}
+		}.execute();
+  }//GEN-LAST:event_mBlacklistButtonActionPerformed
 
 	/**
 	 * @param args the command line arguments
