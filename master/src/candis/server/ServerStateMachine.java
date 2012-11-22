@@ -4,6 +4,7 @@ import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.RandomID;
 import candis.common.Settings;
+import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
@@ -14,6 +15,7 @@ import candis.distributed.droid.StaticProfile;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,6 +36,7 @@ public class ServerStateMachine extends FSM {
 		UNCONNECTED,
 		CHECK,
 		PROFILE_REQUESTED,
+		CHECKCODE_REQUESTED,
 		CONNECTED,
 		JOB_SENT;
 	}
@@ -42,6 +45,7 @@ public class ServerStateMachine extends FSM {
 
 		CLIENT_BLACKLISTED,
 		CLIENT_NEW,
+		CLIENT_NEW_CHECK,
 		CLIENT_ACCEPTED,
 		POST_JOB,
 		CLIENT_INVALID;
@@ -75,6 +79,10 @@ public class ServerStateMachine extends FSM {
 						ServerTrans.CLIENT_NEW,
 						ServerStates.PROFILE_REQUESTED,
 						null)
+						.addTransition(
+						ServerTrans.CLIENT_NEW_CHECK,
+						ServerStates.CHECKCODE_REQUESTED,
+						new CheckCodeRequestedHandler())
 						.addTransition(
 						ServerTrans.CLIENT_ACCEPTED,
 						ServerStates.CONNECTED,
@@ -130,8 +138,13 @@ public class ServerStateMachine extends FSM {
 					instr = Instruction.ACCEPT_CONNECTION;
 				}
 			} else {
-				trans = ServerTrans.CLIENT_NEW;
-				instr = Instruction.REQUEST_PROFILE;
+				if (Settings.getBoolean("pincode_auth")) {
+					trans = ServerTrans.CLIENT_NEW_CHECK;
+					instr = Instruction.REQUEST_CHECKCODE;
+				} else {
+					trans = ServerTrans.CLIENT_NEW;
+					instr = Instruction.REQUEST_PROFILE;
+				}
 			}
 			try {
 				mOutStream.writeObject(new Message(instr));
@@ -174,6 +187,18 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object o) {
 			mDroidManager.connectDroid(mCurrentlyConnectingID);
+		}
+	}
+
+	private static class CheckCodeRequestedHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			final SecureRandom random = new SecureRandom();
+			final byte[] byteCode = new byte[6];
+			random.nextBytes(byteCode);
+			String code = Utilities.toHexString(byteCode);
+			System.out.println("Your Code is: " + code);
 		}
 	}
 }

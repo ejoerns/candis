@@ -230,6 +230,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
   private void mOptionButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOptionButtonActionPerformed
 		// TODO add your handling code here:
+		mOptionDialog.updateOptions();
 		mOptionDialog.setVisible(true);
   }//GEN-LAST:event_mOptionButtonActionPerformed
 
