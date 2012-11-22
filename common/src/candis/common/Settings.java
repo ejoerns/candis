@@ -1,6 +1,8 @@
 package candis.common;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,12 +13,25 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Settings management.
+ *
+ * Recommended usage:
+ *
+ * Provide (read only) default properties file "defaultproperties" and do:
+ * @code
+ * try {
+ * Settings.load(new File("settings.properties"));
+ * } catch (FileNotFoundException ex) {
+ * Settings.init(MainActivity.class.getResourceAsStream("defaultsettings.properties"));
+ * }
+ *
+ * @endcode
  *
  * @author Enrico Joerns
  */
 public class Settings {
 
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	private static final String TAG = "Settings";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	// Holds all key-value pairs
@@ -31,8 +46,18 @@ public class Settings {
 	 * @param c Context
 	 * @param id Inputstream to load from
 	 */
-	public static void load(final InputStream is) {
+	public static void load(final File file) throws FileNotFoundException {
+		load(new FileInputStream(file));
+	}
 
+	/**
+	 * Intended to be called with stream returned getRessourceAsStream().
+	 *
+	 * Sets default values.
+	 *
+	 * @param is (ressource) InputStream to read from
+	 */
+	public static void load(final InputStream is) {
 		mKeyMap = new Properties();
 		try {
 			mKeyMap.load(is);
@@ -47,6 +72,11 @@ public class Settings {
 		}
 	}
 
+	/**
+	 * Stores properties to given file.
+	 *
+	 * @param file
+	 */
 	public static void store(final File file) {
 		try {
 			OutputStream out = new FileOutputStream(file);
@@ -58,8 +88,7 @@ public class Settings {
 
 	private static void checkKey(final String key) {
 		if (mKeyMap == null) {
-			throw new NullPointerException(
-							"Empty properties set. Call load() to load properties from file");
+			LOGGER.log(Level.WARNING, "Properties file not found, loading default");
 		}
 		if (key == null) {
 			throw new NullPointerException("Key is null");
@@ -78,7 +107,7 @@ public class Settings {
 
 	public static boolean getBoolean(final String key) {
 		checkKey(key);
-		return Boolean.getBoolean(mKeyMap.getProperty(key));
+		return Boolean.parseBoolean(mKeyMap.getProperty(key));
 	}
 
 	public static void setInt(final String key, final int value) {
