@@ -1,8 +1,7 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server.gui;
+
+import candis.common.Settings;
+import java.io.File;
 
 /**
  *
@@ -11,12 +10,17 @@ package candis.server.gui;
 public class OptionsDialog extends javax.swing.JDialog {
 
 	/**
-	 * Creates new form OptionsDialog
+	 * Creates new form OptionsDialog.
 	 */
 	public OptionsDialog(java.awt.Frame parent, boolean modal) {
 		super(parent, modal);
 		initComponents();
 		setLocationRelativeTo(parent);
+	}
+
+	public void updateOptions() {
+		mCheckCodeCB.getModel().setSelected(Settings.getBoolean("pincode_auth"));
+		mAddConfirmCB.getModel().setSelected(Settings.getBoolean("manual_accept"));
 	}
 
 	/**
@@ -29,90 +33,50 @@ public class OptionsDialog extends javax.swing.JDialog {
   private void initComponents() {
     java.awt.GridBagConstraints gridBagConstraints;
 
-    jCheckBox1 = new javax.swing.JCheckBox();
-    jCheckBox2 = new javax.swing.JCheckBox();
-    jButton1 = new javax.swing.JButton();
+    mCheckCodeCB = new javax.swing.JCheckBox();
+    mAddConfirmCB = new javax.swing.JCheckBox();
+    mSaveButton = new javax.swing.JButton();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
-    jCheckBox1.setText("Client needs pin authorization");
+    mCheckCodeCB.setText("Client needs pin authorization");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    getContentPane().add(jCheckBox1, gridBagConstraints);
+    getContentPane().add(mCheckCodeCB, gridBagConstraints);
 
-    jCheckBox2.setText("Server add client needs confirm");
+    mAddConfirmCB.setText("Server add client needs confirm");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 1;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    getContentPane().add(jCheckBox2, gridBagConstraints);
+    getContentPane().add(mAddConfirmCB, gridBagConstraints);
 
-    jButton1.setText("Save");
-    jButton1.addActionListener(new java.awt.event.ActionListener() {
+    mSaveButton.setText("Save");
+    mSaveButton.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        jButton1ActionPerformed(evt);
+        mSaveButtonActionPerformed(evt);
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 2;
-    getContentPane().add(jButton1, gridBagConstraints);
+    getContentPane().add(mSaveButton, gridBagConstraints);
 
     pack();
   }// </editor-fold>//GEN-END:initComponents
 
-  private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-		// TODO add your handling code here:
+  private void mSaveButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mSaveButtonActionPerformed
+		Settings.setBoolean("pincode_auth", mCheckCodeCB.isSelected());
+		Settings.setBoolean("manual_accept", mAddConfirmCB.isSelected());
+		// TODO: worker thread?
+		Settings.store(new File("settings.properties"));
 		setVisible(false);
-		throw new UnsupportedOperationException("Programmer will implement this if you provide him a coffee");
-  }//GEN-LAST:event_jButton1ActionPerformed
-
-	/**
-	 * @param args the command line arguments
-	 */
-	public static void main(String args[]) {
-		/* Set the Nimbus look and feel */
-		//<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-		 * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-		 */
-		try {
-			for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-				if ("Nimbus".equals(info.getName())) {
-					javax.swing.UIManager.setLookAndFeel(info.getClassName());
-					break;
-				}
-			}
-		} catch (ClassNotFoundException ex) {
-			java.util.logging.Logger.getLogger(OptionsDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-		} catch (InstantiationException ex) {
-			java.util.logging.Logger.getLogger(OptionsDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-		} catch (IllegalAccessException ex) {
-			java.util.logging.Logger.getLogger(OptionsDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-		} catch (javax.swing.UnsupportedLookAndFeelException ex) {
-			java.util.logging.Logger.getLogger(OptionsDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-		}
-		//</editor-fold>
-
-		/* Create and display the dialog */
-		java.awt.EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				OptionsDialog dialog = new OptionsDialog(new javax.swing.JFrame(), true);
-				dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-					@Override
-					public void windowClosing(java.awt.event.WindowEvent e) {
-						System.exit(0);
-					}
-				});
-				dialog.setVisible(true);
-			}
-		});
-	}
+  }//GEN-LAST:event_mSaveButtonActionPerformed
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JButton jButton1;
-  private javax.swing.JCheckBox jCheckBox1;
-  private javax.swing.JCheckBox jCheckBox2;
+  private javax.swing.JCheckBox mAddConfirmCB;
+  private javax.swing.JCheckBox mCheckCodeCB;
+  private javax.swing.JButton mSaveButton;
   // End of variables declaration//GEN-END:variables
 }

@@ -17,9 +17,11 @@ import javax.swing.table.AbstractTableModel;
  */
 class DroidlistTableModel extends AbstractTableModel implements DroidManagerListener {
 
-	private boolean DEBUG = true;
 	private String[] columnNames = {"", "Device ID", "Model"};
-	private List<TableData> mTableDataList = new LinkedList();
+	private final List<TableData> mTableDataList = new LinkedList();
+	private static final ImageIcon ICON_CONNECTED = new ImageIcon("res/connected.png", "connected");
+	private static final ImageIcon ICON_BLACKLISTED = new ImageIcon("res/blacklisted.png", "blacklisted");
+	private static final ImageIcon ICON_KNOWN = new ImageIcon("res/known.png", "a pretty but meaningless splat");
 
 	private class TableData {
 
@@ -80,8 +82,8 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 
 	@Override
 	public void handle(
-					DroidManagerEvent event,
-					DroidManager manager) {
+					final DroidManagerEvent event,
+					final DroidManager manager) {
 		System.out.println("Droid handler in TableModel called with event: " + event);
 		synchronized (mTableDataList) {
 			mTableDataList.clear();
@@ -89,13 +91,14 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 		for (Map.Entry<String, DroidData> entry : manager.getKnownDroids().entrySet()) {
 			StaticProfile profile;
 			ImageIcon icon;
-			if (manager.getConnectedDroids().containsKey(entry.getKey())) {
-				icon = new ImageIcon("res/connected.png", "a pretty but meaningless splat");
+			// determin correct icon
+			if (manager.isDroidConnected(entry.getKey())) {
+				icon = ICON_CONNECTED;
 			} else {
 				if (entry.getValue().getBlacklist()) {
-					icon = new ImageIcon("res/blacklisted.png", "a pretty but meaningless splat");
+					icon = ICON_BLACKLISTED;
 				} else {
-					icon = new ImageIcon("res/known.png", "a pretty but meaningless splat");
+					icon = ICON_KNOWN;
 				}
 			}
 			profile = manager.getKnownDroids().get(entry.getKey()).getProfile();

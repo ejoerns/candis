@@ -1,12 +1,10 @@
 package candis.server.gui;
 
 import candis.common.Settings;
-import candis.server.DroidData;
 import candis.server.DroidManager;
 import candis.server.Server;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -58,10 +56,12 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     mStopButton = new javax.swing.JButton();
     jScrollPane3 = new javax.swing.JScrollPane();
     mDroidInfoTable = new javax.swing.JTable();
+    mDeleteButton = new javax.swing.JButton();
 
     jButton3.setText("jButton3");
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+    setTitle("Candis Master");
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
     jTextArea1.setColumns(20);
@@ -69,7 +69,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     jScrollPane2.setViewportView(jTextArea1);
 
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridx = 3;
     gridBagConstraints.gridy = 1;
     gridBagConstraints.gridwidth = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
@@ -88,7 +88,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     );
 
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridx = 3;
     gridBagConstraints.gridy = 1;
     getContentPane().add(jPanel1, gridBagConstraints);
 
@@ -99,9 +99,9 @@ public class CandisMasterFrame extends javax.swing.JFrame {
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 0;
-    gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 5);
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 2;
+    gridBagConstraints.insets = new java.awt.Insets(5, 0, 5, 5);
     getContentPane().add(mBlacklistButton, gridBagConstraints);
 
     mExecuteButton.setText("Execute");
@@ -111,7 +111,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 2;
+    gridBagConstraints.gridx = 4;
     gridBagConstraints.gridy = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
@@ -133,6 +133,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 0;
+    gridBagConstraints.gridwidth = 3;
     gridBagConstraints.gridheight = 2;
     getContentPane().add(mDroidlistScrollPane, gridBagConstraints);
 
@@ -143,7 +144,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 3;
+    gridBagConstraints.gridx = 5;
     gridBagConstraints.gridy = 0;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 5);
     getContentPane().add(mOptionButton, gridBagConstraints);
@@ -155,7 +156,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridx = 3;
     gridBagConstraints.gridy = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.weighty = 0.1;
@@ -164,7 +165,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
     mStopButton.setText("Stop");
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 3;
+    gridBagConstraints.gridx = 5;
     gridBagConstraints.gridy = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
@@ -187,10 +188,24 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 2;
+    gridBagConstraints.gridy = 3;
+    gridBagConstraints.gridwidth = 3;
     gridBagConstraints.gridheight = 2;
     gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
     getContentPane().add(jScrollPane3, gridBagConstraints);
+
+    mDeleteButton.setText("Delete");
+    mDeleteButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mDeleteButtonActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridy = 2;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+    gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+    getContentPane().add(mDeleteButton, gridBagConstraints);
 
     pack();
   }// </editor-fold>//GEN-END:initComponents
@@ -215,6 +230,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
   private void mOptionButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOptionButtonActionPerformed
 		// TODO add your handling code here:
+		mOptionDialog.updateOptions();
 		mOptionDialog.setVisible(true);
   }//GEN-LAST:event_mOptionButtonActionPerformed
 
@@ -230,8 +246,6 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private void mBlacklistButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mBlacklistButtonActionPerformed
 		// TODO add your handling code here:
 		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
-		System.out.println("isPressed() : " + mBlacklistButton.getModel().isPressed());
-		System.out.println("isSelected(): " + mBlacklistButton.getModel().isSelected());
 		if (mBlacklistButton.getModel().isSelected()) {
 			mDroidManager.blacklistDroid(id);
 		} else {
@@ -241,10 +255,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 			@Override
 			protected Void doInBackground() throws Exception {
 				try {
-					System.out.println("Writing to file...");
-					for (Map.Entry<String, DroidData> e : mDroidManager.getKnownDroids().entrySet()) {
-						System.out.println("Blacklist: " + e.getValue().getBlacklist());
-					}
+					Logger.getLogger("CMF").log(Level.INFO, "Saving database...");
 					mDroidManager.store(new File(Settings.getString("droiddb.file")));
 				} catch (FileNotFoundException ex) {
 					Logger.getLogger(CandisMasterFrame.class.getName()).log(Level.SEVERE, null, ex);
@@ -253,6 +264,24 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 			}
 		}.execute();
   }//GEN-LAST:event_mBlacklistButtonActionPerformed
+
+  private void mDeleteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mDeleteButtonActionPerformed
+    // TODO add your handling code here:
+		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
+		mDroidManager.deleteDroid(id);
+		new SwingWorker<Void, Object>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				try {
+					Logger.getLogger("CMF").log(Level.INFO, "Saving database...");
+					mDroidManager.store(new File(Settings.getString("droiddb.file")));
+				} catch (FileNotFoundException ex) {
+					Logger.getLogger(CandisMasterFrame.class.getName()).log(Level.SEVERE, null, ex);
+				}
+				return null;
+			}
+		}.execute();
+  }//GEN-LAST:event_mDeleteButtonActionPerformed
 
 	/**
 	 * @param args the command line arguments
@@ -281,8 +310,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		}
 		//</editor-fold>
 
-		DroidManager droidmanager = DroidManager.getInstance();
-		DroidlistTableModel dltm = new DroidlistTableModel();
+		final DroidManager droidmanager = DroidManager.getInstance();
+		final DroidlistTableModel dltm = new DroidlistTableModel();
 		final CandisMasterFrame cmf = new CandisMasterFrame(droidmanager, dltm);
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
@@ -302,6 +331,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private javax.swing.JScrollPane jScrollPane3;
   private javax.swing.JTextArea jTextArea1;
   private javax.swing.JToggleButton mBlacklistButton;
+  private javax.swing.JButton mDeleteButton;
   private javax.swing.JTable mDroidInfoTable;
   private javax.swing.JScrollPane mDroidlistScrollPane;
   private javax.swing.JTable mDroidlistTable;
