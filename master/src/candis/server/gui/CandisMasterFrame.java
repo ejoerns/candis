@@ -207,8 +207,10 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		// TODO add your handling code here:
 		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
 		mDroidInfoTableModel.update(mDroidManager, id);
-		mBlacklistButton.getModel().setSelected(
-						mDroidManager.getKnownDroids().get(id).getBlacklist());
+		if (mDroidManager.getKnownDroids().containsKey(id)) {
+			mBlacklistButton.getModel().setSelected(
+							mDroidManager.getKnownDroids().get(id).getBlacklist());
+		}
   }//GEN-LAST:event_mDroidlistTableMouseClicked
 
   private void mOptionButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOptionButtonActionPerformed
