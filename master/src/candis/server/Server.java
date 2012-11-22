@@ -115,7 +115,7 @@ public class Server implements Runnable {
 
 		} catch (BindException e) {
 			LOGGER.log(Level.SEVERE, String.format(
-							"Binding port %s failed, Address already in use", ssocket.getLocalPort()));
+							"Binding port failed, Address already in use"));
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, null, e);
 		}

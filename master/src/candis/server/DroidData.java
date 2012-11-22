@@ -18,16 +18,20 @@ public class DroidData {
 		this.blacklist = blacklist;
 		this.profile = profile;
 	}
+	
+	public DroidData(StaticProfile profile) {
+		this(false, profile);
+	}
 
-	public void setBlacklist(boolean white) {
-		this.blacklist = white;
+	public void setBlacklist(boolean black) {
+		this.blacklist = black;
 	}
 
 	public boolean getBlacklist() {
 		return this.blacklist;
 	}
 
-	public void setProfile(StaticProfile profile) {
+	public void setProfile(final StaticProfile profile) {
 		this.profile = profile;
 	}
 
