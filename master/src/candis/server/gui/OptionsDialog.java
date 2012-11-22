@@ -1,5 +1,8 @@
 package candis.server.gui;
 
+import candis.common.Settings;
+import java.io.File;
+
 /**
  *
  * @author Enrico Joerns
@@ -15,6 +18,11 @@ public class OptionsDialog extends javax.swing.JDialog {
 		setLocationRelativeTo(parent);
 	}
 
+	public void updateOptions() {
+		mCheckCodeCB.getModel().setSelected(Settings.getBoolean("pincode_auth"));
+		mAddConfirmCB.getModel().setSelected(Settings.getBoolean("manual_accept"));
+	}
+
 	/**
 	 * This method is called from within the constructor to initialize the form.
 	 * WARNING: Do NOT modify this code. The content of this method is always
@@ -25,49 +33,50 @@ public class OptionsDialog extends javax.swing.JDialog {
   private void initComponents() {
     java.awt.GridBagConstraints gridBagConstraints;
 
-    jCheckBox1 = new javax.swing.JCheckBox();
-    jCheckBox2 = new javax.swing.JCheckBox();
-    jButton1 = new javax.swing.JButton();
+    mCheckCodeCB = new javax.swing.JCheckBox();
+    mAddConfirmCB = new javax.swing.JCheckBox();
+    mSaveButton = new javax.swing.JButton();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
-    jCheckBox1.setText("Client needs pin authorization");
+    mCheckCodeCB.setText("Client needs pin authorization");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    getContentPane().add(jCheckBox1, gridBagConstraints);
+    getContentPane().add(mCheckCodeCB, gridBagConstraints);
 
-    jCheckBox2.setText("Server add client needs confirm");
+    mAddConfirmCB.setText("Server add client needs confirm");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 1;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    getContentPane().add(jCheckBox2, gridBagConstraints);
+    getContentPane().add(mAddConfirmCB, gridBagConstraints);
 
-    jButton1.setText("Save");
-    jButton1.addActionListener(new java.awt.event.ActionListener() {
+    mSaveButton.setText("Save");
+    mSaveButton.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        jButton1ActionPerformed(evt);
+        mSaveButtonActionPerformed(evt);
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 2;
-    getContentPane().add(jButton1, gridBagConstraints);
+    getContentPane().add(mSaveButton, gridBagConstraints);
 
     pack();
   }// </editor-fold>//GEN-END:initComponents
 
-  private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-		// TODO add your handling code here:
+  private void mSaveButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mSaveButtonActionPerformed
+		Settings.setBoolean("pincode_auth", mCheckCodeCB.isSelected());
+		Settings.setBoolean("manual_accept", mAddConfirmCB.isSelected());
+		// TODO: worker thread?
+		Settings.store(new File("settings.properties"));
 		setVisible(false);
-		
-		throw new UnsupportedOperationException("Programmer will implement this if you provide him a coffee");
-  }//GEN-LAST:event_jButton1ActionPerformed
+  }//GEN-LAST:event_mSaveButtonActionPerformed
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JButton jButton1;
-  private javax.swing.JCheckBox jCheckBox1;
-  private javax.swing.JCheckBox jCheckBox2;
+  private javax.swing.JCheckBox mAddConfirmCB;
+  private javax.swing.JCheckBox mCheckCodeCB;
+  private javax.swing.JButton mSaveButton;
   // End of variables declaration//GEN-END:variables
 }
