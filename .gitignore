@@ -25,3 +25,4 @@ dist/
 local.properties
 private.properties
 private/
+/distributed/nbandroid/
