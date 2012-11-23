@@ -1,6 +1,7 @@
 package candis.server.gui;
 
 import candis.distributed.droid.StaticProfile;
+import candis.server.Connection;
 import candis.server.DroidData;
 import candis.server.DroidManagerEvent;
 import candis.server.DroidManagerListener;
@@ -131,7 +132,7 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 	public void handle(
 					DroidManagerEvent event,
 					Map<String, DroidData> knownDroids,
-					Map<String, AtomicBoolean> connectedDroids) {
+					Map<String, Connection> connectedDroids) {
 		System.out.println("Droid handler in TableModel called with event: " + event);
 		synchronized (mTableDataList) {
 			mTableDataList.clear();

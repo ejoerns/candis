@@ -1,5 +1,6 @@
 package candis.distributed;
 
+
 import candis.distributed.droid.Droid;
 import java.util.HashMap;
 import java.util.Map;

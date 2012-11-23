@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
@@ -32,18 +31,21 @@ public final class DroidManager {
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Singleton-Instance
 	private static DroidManager instance = new DroidManager();
+
 	/**
 	 * Map of known droids true means whitelisted, false means blacklisted.
 	 * 'Static' list that will be saved to file.
 	 */
 	private Map<String, DroidData> knownDroids = null;
+
 	/**
 	 * Map of connected droids with bool flag for further use. Dynamic list that
 	 * will be generated at runtime.
 	 */
-	private Map<String, AtomicBoolean> connectedDroids = new HashMap<String, AtomicBoolean>();
+	private Map<String, Connection> connectedDroids = new HashMap<String, Connection>();
+
 	/**
-	 * Lis of connected droids.
+	 * List of connected Listeners expecting changes of DroidStates.
 	 */
 	private List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
 
@@ -136,7 +138,7 @@ public final class DroidManager {
 	 *
 	 * @return Map of connected Droids.
 	 */
-	public Map<String, AtomicBoolean> getConnectedDroids() {
+	public Map<String, Connection> getConnectedDroids() {
 		return connectedDroids;
 	}
 
@@ -186,17 +188,17 @@ public final class DroidManager {
 	 *
 	 * @param rid
 	 */
-	public void connectDroid(final String rid) {
+	public void connectDroid(final String rid, Connection con) {
 		LOGGER.log(Level.SEVERE, "connectDroid called with ID: " + rid);
 		synchronized (connectedDroids) {
-			connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
+			connectedDroids.put(rid, con);//TODO...
 		}
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 		LOGGER.log(Level.WARNING, "connectDroid finished.");
 	}
 
-	public void connectDroid(final RandomID rid) {
-		connectDroid(Utilities.toSHA1String(rid.getBytes()));
+	public void connectDroid(final RandomID rid, Connection con) {
+		connectDroid(Utilities.toSHA1String(rid.getBytes()), con);
 	}
 
 	/**

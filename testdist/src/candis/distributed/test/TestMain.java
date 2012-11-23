@@ -3,6 +3,7 @@ package candis.distributed.test;
 import candis.distributed.DistributedControl;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
+import candis.server.DroidManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,11 +18,13 @@ public class TestMain implements DistributedControl{
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
+		
+		//manager.
 
 		DistributedControl t = new TestMain();
 
 		Scheduler s = t.initScheduler();
-		TestCommunicationIO comio = new TestCommunicationIO<TestTask>(new TestTaskFactory());
+		TestCommunicationIO comio = new TestCommunicationIO<TestTask>(new TestTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
 		comio.setScheduler(s);
 		s.start();
