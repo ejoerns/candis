@@ -28,8 +28,10 @@ public enum Instruction implements Transition {
 	SEND_INFO(20),
 	/// Droid requests connection to master
 	REQUEST_CONNECTION(40),
-	// Master requests ID - unused
-	//	REQUEST_ID(50),
+	/// Master requests check code
+	REQUEST_CHECKCODE(50),
+	/// Droid sends check code
+	SEND_CHECKCODE(55),
 	/// Master requests profile data from droid
 	REQUEST_PROFILE(60),
 	/// Droid sends profile data

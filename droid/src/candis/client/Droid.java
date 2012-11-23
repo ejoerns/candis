@@ -187,7 +187,7 @@ public class Droid {
 		protected StaticProfile doInBackground(Void... params) {
 			StaticProfile profile;
 			if (do_generate) {
-				profile = new StaticProfiler(act, null).profile();
+				profile = new StaticProfiler(act).profile();
 				StaticProfiler.writeProfile(pfile, profile);
 			} else {
 				profile = StaticProfiler.readProfile(pfile);

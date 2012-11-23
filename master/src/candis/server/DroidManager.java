@@ -5,10 +5,10 @@ import candis.common.Utilities;
 import candis.distributed.droid.StaticProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,11 +41,13 @@ public final class DroidManager {
 	 * Map of connected droids with bool flag for further use. Dynamic list that
 	 * will be generated at runtime.
 	 */
-	private Map<String, AtomicBoolean> connectedDroids = new HashMap<String, AtomicBoolean>();
+	private final Map<String, AtomicBoolean> connectedDroids = new ConcurrentHashMap<String, AtomicBoolean>(8, 0.9f, 1);
 	/**
-	 * Lis of connected droids.
+	 * List of registered listeners.
 	 */
-	private List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
+	private final List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
+	/// stores check code for extended client authorization
+	private String mCheckCode;
 
 	/**
 	 * Hidden to match Singleton requirements.
@@ -60,66 +62,6 @@ public final class DroidManager {
 	 */
 	public static DroidManager getInstance() {
 		return instance;
-	}
-
-	/**
-	 * Adds a Droid to the list of (whitelisted) known Droids.
-	 *
-	 * @param rid ID of Droid to add
-	 * @param profile
-	 */
-	public void addDroid(final String rid, StaticProfile profile) {
-		if (!knownDroids.containsKey(rid)) {
-			synchronized (knownDroids) {
-				knownDroids.put(rid, new DroidData(true, profile));
-			}
-		}
-	}
-
-	/**
-	 * Adds a Droid to the list of (whitelisted) known Droids.
-	 *
-	 * @param rid ID of Droid to add
-	 * @param profile
-	 */
-	public void addDroid(final RandomID rid, final StaticProfile profile) {
-		addDroid(Utilities.toSHA1String(rid.getBytes()), profile);
-	}
-
-	/**
-	 * Blacklists a known Droid.
-	 *
-	 * @param rid Droid to blacklist
-	 */
-	public void blacklistDroid(final String rid) {
-		if (knownDroids.containsKey(rid)) {
-			synchronized (knownDroids) {
-				knownDroids.get(rid).setBlacklist(true);
-			}
-		}
-	}
-
-	/**
-	 * Blacklists a known Droid.
-	 *
-	 * @param rid Droid to blacklist
-	 */
-	public void blacklistDroid(final RandomID rid) {
-		blacklistDroid(new String(rid.getBytes()));
-	}
-
-	/**
-	 * Check if Droid is known (either black- or whitelisted).
-	 *
-	 * @param rid ID of Droid to check
-	 * @return true if Droid is knonw, otherwise false
-	 */
-	public boolean isDroidKnown(final String rid) {
-		if (knownDroids.containsKey(rid)) {
-			return true;
-		} else {
-			return false;
-		}
 	}
 
 	/**
@@ -141,13 +83,134 @@ public final class DroidManager {
 	}
 
 	/**
+	 * Adds a Droid to the list of (whitelisted) known Droids.
+	 *
+	 * @param rid ID of Droid to add
+	 * @param profile
+	 */
+	public void addDroid(final String rid, StaticProfile profile) {
+		if (!knownDroids.containsKey(rid)) {
+			LOGGER.log(Level.INFO, String.format("Client %s connected", rid));
+			knownDroids.put(rid, new DroidData(true, profile));
+			notifyListeners(DroidManagerEvent.DROID_ADDED);
+		}
+	}
+
+	/**
+	 * Adds a Droid to the list of (whitelisted) known Droids.
+	 *
+	 * @param rid ID of Droid to add
+	 * @param profile
+	 */
+	public void addDroid(final RandomID rid, final StaticProfile profile) {
+		addDroid(Utilities.toSHA1String(rid.getBytes()), profile);
+	}
+
+	/**
+	 * Removes a Droid from the list of known Droids.
+	 *
+	 * @param rid ID of Droid to remove
+	 */
+	public void deleteDroid(final String rid) {
+		if (knownDroids.containsKey(rid)) {
+			knownDroids.remove(rid);
+			notifyListeners(DroidManagerEvent.DROID_DELETED);
+		}
+		if (connectedDroids.containsKey(rid)) {
+			LOGGER.log(Level.INFO, String.format("Client %s deleted", rid));
+			connectedDroids.remove(rid);
+			// TODO: close connection
+		}
+	}
+
+	/**
+	 * Removes a Droid from the list of known Droids.
+	 *
+	 * @param rid ID of Droid to remove
+	 */
+	public void deleteDroid(final RandomID rid) {
+		deleteDroid(Utilities.toSHA1String(rid.getBytes()));
+	}
+
+	/**
+	 * Blacklists a known Droid.
+	 *
+	 * @param rid Droid to blacklist
+	 */
+	public void blacklistDroid(final String rid) {
+		if (knownDroids.containsKey(rid)) {
+			knownDroids.get(rid).setBlacklist(true);
+			notifyListeners(DroidManagerEvent.DROID_BLACKLISTED);
+		} else {
+			LOGGER.log(Level.WARNING, String.format("Client %s could not be blacklisted", rid));
+		}
+	}
+
+	/**
+	 * Blacklists a known Droid.
+	 *
+	 * @param rid Droid to blacklist
+	 */
+	public void blacklistDroid(final RandomID rid) {
+		blacklistDroid(Utilities.toSHA1String(rid.getBytes()));
+	}
+
+	/**
+	 * Whitelists a known Droid.
+	 *
+	 * @param rid Droid to whitelist
+	 */
+	public void whitelistDroid(final String rid) {
+		if (knownDroids.containsKey(rid)) {
+			knownDroids.get(rid).setBlacklist(false);
+			notifyListeners(DroidManagerEvent.DROID_WHITELISTED);
+		} else {
+			LOGGER.log(Level.WARNING, String.format("Client %s could not be whitelisted", rid));
+		}
+	}
+
+	public void whitelistDroid(final RandomID rid) {
+		blacklistDroid(Utilities.toSHA1String(rid.getBytes()));
+	}
+
+	/**
 	 * Check if Droid is known (either black- or whitelisted).
 	 *
 	 * @param rid ID of Droid to check
 	 * @return true if Droid is knonw, otherwise false
 	 */
+	public boolean isDroidKnown(final String rid) {
+		return knownDroids.containsKey(rid);
+	}
+
+	/**
+	 * Check if Droid is known (either black- or whitelisted).
+	 *
+	 * @param rid ID of Droid to check
+	 * @return true if Droid is known, otherwise false
+	 */
 	public boolean isDroidKnown(final RandomID rid) {
-		return isDroidKnown(new String(rid.getBytes()));
+		return isDroidKnown(Utilities.toSHA1String(rid.getBytes()));
+	}
+
+	/**
+	 * Returns if droid is connected.
+	 *
+	 * @param rid ID of Droid to check
+	 * @return true if Droid is connected, otherwise false
+	 */
+	public boolean isDroidConnected(final String rid) {
+		return connectedDroids.containsKey(rid);
+	}
+
+	/**
+	 * Returns if droid is connected.
+	 *
+	 * @param rid ID of Droid to check
+	 * @return true if Droid is connected, otherwise false
+	 */
+	public boolean isDroidConnected(final RandomID rid) {
+		return isDroidConnected(Utilities.toSHA1String(rid.getBytes()));
 	}
 
 	/**
@@ -187,12 +250,9 @@ public final class DroidManager {
 	 * @param rid
 	 */
 	public void connectDroid(final String rid) {
-		LOGGER.log(Level.SEVERE, "connectDroid called with ID: " + rid);
-		synchronized (connectedDroids) {
-			connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
-		}
+		LOGGER.log(Level.INFO, String.format("Connecting Droid: %s", rid));
+		connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
-		LOGGER.log(Level.WARNING, "connectDroid finished.");
 	}
 
 	public void connectDroid(final RandomID rid) {
@@ -243,7 +303,7 @@ public final class DroidManager {
 	 * Initialize droid manager database.
 	 */
 	public void init() {
-		knownDroids = new HashMap<String, DroidData>();
+		knownDroids = new ConcurrentHashMap<String, DroidData>(8, 0.9f, 1);
 	}
 
 	/**
@@ -304,7 +364,7 @@ public final class DroidManager {
 	 */
 	private void notifyListeners(final DroidManagerEvent event) {
 		for (DroidManagerListener d : listeners) {
-			d.handle(event, knownDroids, connectedDroids);
+			d.handle(event, this);
 		}
 	}
 
@@ -317,10 +377,31 @@ public final class DroidManager {
 	 *
 	 * @param listener
 	 */
-	public void addListener(DroidManagerListener listener) {
+	public void addListener(final DroidManagerListener listener) {
 		if (listener == null) {
 			return;
 		}
 		listeners.add(listener);
+	}
+
+	/**
+	 * Called to show check code.
+	 *
+	 * Notifies registered listeners with CHECK_CODE event.
+	 *
+	 * @param code Code do show for theck
+	 */
+	void showCheckCode(final String code) {
+		mCheckCode = code;
+		notifyListeners(DroidManagerEvent.CHECK_CODE);
+	}
+
+	/**
+	 * Returns check code.
+	 *
+	 * @return Check code
+	 */
+	public String getCheckCode() {
+		return mCheckCode;
 	}
 }

@@ -41,7 +41,13 @@ public class Server implements Runnable {
 	}
 
 	public Server(DroidManager droidmanager) {
-		Settings.load(Server.class.getResourceAsStream("settings.properties"));
+		// load properties if available or load default properties
+		try {
+			Settings.load(new File("settings.properties"));
+		} catch (FileNotFoundException ex) {
+			LOGGER.log(Level.WARNING, "settings.properties not found, loading default values");
+			Settings.load(Server.class.getResourceAsStream("defaultsettings.properties"));
+		}
 		mDroidManager = droidmanager;
 		// try to load drodmanager
 		try {
@@ -115,7 +121,7 @@ public class Server implements Runnable {
 
 		} catch (BindException e) {
 			LOGGER.log(Level.SEVERE, String.format(
-							"Binding port %s failed, Address already in use", ssocket.getLocalPort()));
+							"Binding port failed, Address already in use"));
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, null, e);
 		}

@@ -4,6 +4,7 @@ import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.RandomID;
 import candis.common.Settings;
+import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
@@ -11,11 +12,14 @@ import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.droid.StaticProfile;
+import candis.server.gui.CheckCodeShowDialog;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -34,6 +38,7 @@ public class ServerStateMachine extends FSM {
 		UNCONNECTED,
 		CHECK,
 		PROFILE_REQUESTED,
+		CHECKCODE_REQUESTED,
 		CONNECTED,
 		JOB_SENT;
 	}
@@ -42,6 +47,7 @@ public class ServerStateMachine extends FSM {
 
 		CLIENT_BLACKLISTED,
 		CLIENT_NEW,
+		CLIENT_NEW_CHECK,
 		CLIENT_ACCEPTED,
 		POST_JOB,
 		CLIENT_INVALID;
@@ -75,6 +81,10 @@ public class ServerStateMachine extends FSM {
 						ServerTrans.CLIENT_NEW,
 						ServerStates.PROFILE_REQUESTED,
 						null)
+						.addTransition(
+						ServerTrans.CLIENT_NEW_CHECK,
+						ServerStates.CHECKCODE_REQUESTED,
+						new CheckCodeRequestedHandler())
 						.addTransition(
 						ServerTrans.CLIENT_ACCEPTED,
 						ServerStates.CONNECTED,
@@ -120,7 +130,7 @@ public class ServerStateMachine extends FSM {
 			if (mCurrentlyConnectingID == null) {
 				trans = ServerTrans.CLIENT_INVALID;
 				instr = Instruction.ERROR;
-				// check droid in db
+				// check if droid is known in db
 			} else if (mDroidManager.isDroidKnown(mCurrentlyConnectingID)) {
 				if (mDroidManager.isDroidBlacklisted(mCurrentlyConnectingID)) {
 					trans = ServerTrans.CLIENT_BLACKLISTED;
@@ -130,10 +140,17 @@ public class ServerStateMachine extends FSM {
 					instr = Instruction.ACCEPT_CONNECTION;
 				}
 			} else {
-				trans = ServerTrans.CLIENT_NEW;
-				instr = Instruction.REQUEST_PROFILE;
+				// check if option 'check code auth' is active
+				if (Settings.getBoolean("pincode_auth")) {
+					trans = ServerTrans.CLIENT_NEW_CHECK;
+					instr = Instruction.REQUEST_CHECKCODE;
+				} else {
+					trans = ServerTrans.CLIENT_NEW;
+					instr = Instruction.REQUEST_PROFILE;
+				}
 			}
 			try {
+				LOGGER.log(Level.INFO, String.format("Server reply: %s", instr));
 				mOutStream.writeObject(new Message(instr));
 				process(trans);
 			} catch (StateMachineException ex) {
@@ -161,6 +178,7 @@ public class ServerStateMachine extends FSM {
 				mDroidManager.addDroid(mCurrentlyConnectingID, (StaticProfile) obj);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
 				mDroidManager.connectDroid(mCurrentlyConnectingID);
+				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
 				mOutStream.writeObject(new Message(Instruction.ACCEPT_CONNECTION));
 				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentlyConnectingID));
 			} catch (IOException ex) {
@@ -174,6 +192,24 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object o) {
 			mDroidManager.connectDroid(mCurrentlyConnectingID);
+		}
+	}
+
+	private class CheckCodeRequestedHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			// generate 6digit string
+			final SecureRandom random = new SecureRandom();
+			final byte[] byteCode = new byte[3];
+			random.nextBytes(byteCode);
+
+			StringBuffer buf = new StringBuffer();
+			int len = byteCode.length;
+			for (int i = 0; i < len; i++) {
+				Utilities.byte2hex(byteCode[i], buf);
+			}
+			mDroidManager.showCheckCode(buf.toString());
 		}
 	}
 }

@@ -2,15 +2,13 @@ package candis.server.gui;
 
 import candis.distributed.droid.StaticProfile;
 import candis.server.DroidData;
+import candis.server.DroidManager;
 import candis.server.DroidManagerEvent;
 import candis.server.DroidManagerListener;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
 /**
@@ -19,9 +17,11 @@ import javax.swing.table.AbstractTableModel;
  */
 class DroidlistTableModel extends AbstractTableModel implements DroidManagerListener {
 
-	private boolean DEBUG = true;
 	private String[] columnNames = {"", "Device ID", "Model"};
-	private List<TableData> mTableDataList = new LinkedList();
+	private final List<TableData> mTableDataList = new LinkedList();
+	private static final ImageIcon ICON_CONNECTED = new ImageIcon("res/connected.png", "connected");
+	private static final ImageIcon ICON_BLACKLISTED = new ImageIcon("res/blacklisted.png", "blacklisted");
+	private static final ImageIcon ICON_KNOWN = new ImageIcon("res/known.png", "a pretty but meaningless splat");
 
 	private class TableData {
 
@@ -54,6 +54,9 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 
 	@Override
 	public Object getValueAt(int row, int col) {
+		if ((row > mTableDataList.size()) || (row < 0)) {
+			return "";
+		}
 		TableData td = (TableData) mTableDataList.get(row);
 		switch (col) {
 			case 0:
@@ -77,78 +80,28 @@ class DroidlistTableModel extends AbstractTableModel implements DroidManagerList
 		return getValueAt(0, c).getClass();
 	}
 
-	/*
-	 * Don't need to implement this method unless your table's editable.
-	 */
-	@Override
-	public boolean isCellEditable(int row, int col) {
-		//Note that the data/cell address is constant,
-		//no matter where the cell appears onscreen.
-		if (col < 2) {
-			return false;
-		} else {
-			return true;
-		}
-	}
-
-	/*
-	 * Don't need to implement this method unless your table's data can
-	 * change.
-	 */
-	@Override
-	public void setValueAt(Object value, int row, int col) {
-		if (DEBUG) {
-			System.out.println("Setting value at " + row + "," + col
-							+ " to " + value + " (an instance of "
-							+ value.getClass() + ")");
-		}
-
-//		data[row][col] = value;
-		fireTableCellUpdated(row, col);
-		fireTableDataChanged();// DEBUG
-
-//		if (DEBUG) {
-		System.out.println("New value of data:");
-		printDebugData();
-//		}
-	}
-
-	private void printDebugData() {
-		int numRows = getRowCount();
-		int numCols = getColumnCount();
-
-		for (int i = 0; i < numRows; i++) {
-			System.out.print("    row " + i + ":");
-			for (int j = 0; j < numCols; j++) {
-				System.out.print("  " + mTableDataList.get(i));
-			}
-			System.out.println();
-		}
-		System.out.println("--------------------------");
-	}
-
 	@Override
 	public void handle(
-					DroidManagerEvent event,
-					Map<String, DroidData> knownDroids,
-					Map<String, AtomicBoolean> connectedDroids) {
+					final DroidManagerEvent event,
+					final DroidManager manager) {
 		System.out.println("Droid handler in TableModel called with event: " + event);
 		synchronized (mTableDataList) {
 			mTableDataList.clear();
 		}
-		for (Map.Entry<String, DroidData> entry : knownDroids.entrySet()) {
+		for (Map.Entry<String, DroidData> entry : manager.getKnownDroids().entrySet()) {
 			StaticProfile profile;
 			ImageIcon icon;
-			if (connectedDroids.containsKey(entry.getKey())) {
-				icon = new ImageIcon("res/connected.png", "a pretty but meaningless splat");
+			// determin correct icon
+			if (manager.isDroidConnected(entry.getKey())) {
+				icon = ICON_CONNECTED;
 			} else {
 				if (entry.getValue().getBlacklist()) {
-					icon = new ImageIcon("res/known.png", "a pretty but meaningless splat");
+					icon = ICON_BLACKLISTED;
 				} else {
-					icon = new ImageIcon("res/blacklisted.png", "a pretty but meaningless splat");
+					icon = ICON_KNOWN;
 				}
 			}
-			profile = knownDroids.get(entry.getKey()).getProfile();
+			profile = manager.getKnownDroids().get(entry.getKey()).getProfile();
 			synchronized (mTableDataList) {
 				mTableDataList.add(new TableData(
 								entry.getKey(),
