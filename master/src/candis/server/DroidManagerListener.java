@@ -1,7 +1,7 @@
 package candis.server;
 
+import candis.distributed.DroidData;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  *

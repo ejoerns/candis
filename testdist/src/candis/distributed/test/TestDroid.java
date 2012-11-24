@@ -9,7 +9,6 @@ import candis.common.Message;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
 import candis.distributed.DistributedTask;
-import candis.distributed.droid.Droid;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
@@ -23,30 +22,24 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestDroid implements Runnable{
+public class TestDroid implements Runnable {
 
-	private final Droid droid;
-	public ObjectInputStream ois;
-	public ObjectOutputStream oos;
-
+	private final String mID;
+	private ObjectInputStream ois;
+	private ObjectOutputStream oos;
 	private ObjectOutputStream internalOos;
 	private ObjectInputStream internalOis;
-
 	private static final Logger LOGGER = Logger.getLogger(TestDroid.class.getName());
 	private final DistributedTask task;
 
-	public int getId() {
-		return droid.id;
-	}
-
-	public Droid getDroid() {
-		return droid;
+	public String getId() {
+		return mID;
 	}
 
 	public TestDroid(int id, DistributedTask task) {
 		LOGGER.log(Level.INFO, String.format("New Droid %d", id));
 		this.task = task;
-		droid = new Droid(id);
+		mID = Integer.toString(id);
 		try {
 			PipedInputStream incomming = new PipedInputStream();
 			PipedInputStream outgoing = new PipedInputStream();
@@ -54,8 +47,7 @@ public class TestDroid implements Runnable{
 			ois = new ObjectInputStream(incomming);
 			oos = new ObjectOutputStream(new PipedOutputStream(outgoing));
 			internalOis = new ObjectInputStream(outgoing);
-		}
-		catch (IOException ex) {
+		} catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
@@ -64,57 +56,48 @@ public class TestDroid implements Runnable{
 	public void sendMessage(Message msg) {
 		try {
 			this.oos.writeObject(msg);
-		}
-		catch (IOException ex) {
+		} catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
 
 	@Override
 	public void run() {
-		LOGGER.log(Level.INFO, String.format("TestDroid %d: start", droid.id));
+		LOGGER.log(Level.INFO, String.format("TestDroid %s: start", mID));
 
 		try {
 
+			while (true) {
+				try {
+					Message m_in = (Message) internalOis.readObject();
+					LOGGER.log(Level.SEVERE, String.format("Droid received message: %s", m_in.getRequest()));
+					if (m_in != null) {
+						// Handle job
+						switch (m_in.getRequest()) {
+							case SEND_JOB:
+								DistributedParameter parameters = (DistributedParameter) m_in.getData();
+								DistributedResult result = runTask(parameters);
+								Message m_result = new Message(Instruction.SEND_RESULT, result);
+								internalOos.writeObject(m_result);
+								break;
+						};
 
-				while(true) {
-					try {
-						Message m_in = (Message) internalOis.readObject();
-						if(m_in != null)
-						{
-							// Handle job
-							switch(m_in.getRequest())
-							{
-								case SEND_JOB:
-									DistributedParameter parameters = (DistributedParameter)m_in.getData();
-									DistributedResult result = runTask(parameters);
-									Message m_result = new Message(Instruction.SEND_RESULT, result);
-									internalOos.writeObject(m_result);
-									break;
-							};
-
-
-						}
 					}
-					catch (ClassNotFoundException ex) {
-						LOGGER.log(Level.SEVERE, null, ex);
-					}
-						Thread.sleep(10);
+				} catch (ClassNotFoundException ex) {
+					LOGGER.log(Level.SEVERE, null, ex);
 				}
+				Thread.sleep(10);
+			}
 
 
-		}
-		catch (InterruptedException iex) {
-			LOGGER.log(Level.INFO, String.format("TestDroid %d: interrupted => stop", droid.id));
-		}
-		catch (InterruptedIOException iex) {
-			LOGGER.log(Level.INFO, String.format("TestDroid %d: interrupted => stop", droid.id));
-		}
-		catch (IOException ex) {
+		} catch (InterruptedException iex) {
+			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
+		} catch (InterruptedIOException iex) {
+			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
+		} catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
-		}
-		finally {
-			LOGGER.log(Level.INFO, String.format("TestDroid %d: stop", droid.id));
+		} finally {
+			LOGGER.log(Level.INFO, String.format("TestDroid %s: stop", mID));
 		}
 
 	}
@@ -123,4 +106,11 @@ public class TestDroid implements Runnable{
 		return task.run(param);
 	}
 
+	public ObjectInputStream getInputStream() {
+		return ois;
+	}
+
+	public ObjectOutputStream getOutputStream() {
+		return oos;
+	}
 }

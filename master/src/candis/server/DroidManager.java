@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.distributed.DroidData;
 import candis.common.RandomID;
 import candis.common.Utilities;
 import candis.distributed.droid.StaticProfile;
@@ -9,7 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
@@ -41,9 +41,9 @@ public final class DroidManager {
 	 * Map of connected droids with bool flag for further use. Dynamic list that
 	 * will be generated at runtime.
 	 */
-	private final Map<String, AtomicBoolean> connectedDroids = new ConcurrentHashMap<String, AtomicBoolean>(8, 0.9f, 1);
+	private Map<String, Connection> connectedDroids = new ConcurrentHashMap<String, Connection>();
 	/**
-	 * List of registered listeners.
+	 * List of connected Listeners expecting changes of DroidStates.
 	 */
 	private final List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
 	/// stores check code for extended client authorization
@@ -78,7 +78,7 @@ public final class DroidManager {
 	 *
 	 * @return Map of connected Droids.
 	 */
-	public Map<String, AtomicBoolean> getConnectedDroids() {
+	public Map<String, Connection> getConnectedDroids() {
 		return connectedDroids;
 	}
 
@@ -249,14 +249,14 @@ public final class DroidManager {
 	 *
 	 * @param rid
 	 */
-	public void connectDroid(final String rid) {
-		LOGGER.log(Level.INFO, String.format("Connecting Droid: %s", rid));
-		connectedDroids.put(rid, new AtomicBoolean(true));//TODO...
+	public void connectDroid(final String rid, Connection con) {
+		LOGGER.log(Level.FINE, String.format("connectDroid called with ID: %s", rid));
+			connectedDroids.put(rid, con);//TODO...
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 	}
 
-	public void connectDroid(final RandomID rid) {
-		connectDroid(Utilities.toSHA1String(rid.getBytes()));
+	public void connectDroid(final RandomID rid, Connection con) {
+		connectDroid(Utilities.toSHA1String(rid.getBytes()), con);
 	}
 
 	/**

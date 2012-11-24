@@ -1,6 +1,6 @@
 package candis.server.gui;
 
-import candis.server.DroidData;
+import candis.distributed.DroidData;
 import candis.server.DroidManager;
 import javax.swing.ImageIcon;
 import javax.swing.table.AbstractTableModel;

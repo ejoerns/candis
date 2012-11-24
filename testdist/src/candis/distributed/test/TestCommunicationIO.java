@@ -2,45 +2,58 @@ package candis.distributed.test;
 
 import candis.common.Instruction;
 import candis.common.Message;
-import candis.distributed.CommunicationIO;
+import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
 import candis.distributed.DistributedTask;
-import candis.distributed.droid.Droid;
+import candis.server.Connection;
+import candis.server.DroidManager;
+import candis.server.ServerCommunicationIO;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLContext;
 
 /**
  *
  * @author Sebastian Willenborg
  */
-public class TestCommunicationIO<T extends DistributedTask> extends CommunicationIO {
+public class TestCommunicationIO<T extends DistributedTask> extends ServerCommunicationIO {
 
 	private LinkedList<TestDroid> droids;
+	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	private final TaskFactory<T> factory;
-	public TestCommunicationIO(TaskFactory<T> fact) {
+	/// Default number of droids generated if not specified otherwise
+	private static final int DEFAULT_DROIDAMOUNT = 4;
+
+	public TestCommunicationIO(TaskFactory<T> fact, DroidManager manager) {
+		super(manager);
 		factory = fact;
-	}
-	public void initDroids()
-	{
-		initDroids(4);
+
 	}
 
+	public void initDroids() {
+		initDroids(DEFAULT_DROIDAMOUNT);
+	}
+
+	/**
+	 * Creates list of 'number' generated TestDroids.
+	 *
+	 * @param number Number of TestDroids to generate
+	 */
 	public void initDroids(int number) {
 		droids = new LinkedList<TestDroid>();
-		for(int i=0; i<number; i++)
-		{
+		for (int i = 0; i < number; i++) {
 			initDroid(i);
 		}
 	}
 
 	/**
-	 * Initializes a new TestDroid and appends it to the internal TestDroid management list.
+	 * Initializes a new TestDroid and appends it to the internal TestDroid
+	 * management list.
+	 *
+	 * Both Droid and Connection threads are started immediately.
+	 *
 	 * @param id Id of the generated Droid
 	 * @return The new TestDroid
 	 */
@@ -48,52 +61,49 @@ public class TestCommunicationIO<T extends DistributedTask> extends Communicatio
 
 		TestDroid d = new TestDroid(id, factory.createTask());
 		droids.add(d);
-		addDroid(d.getDroid());
+		//addDroid(d.getDroid());
 		Thread t = new Thread(d);
-		Thread l = new Thread(new DroidListener(d));
+		Thread l = new Thread(new TestConnection(d, mDroidManager));
 		droidThreads.add(t);
 		droidThreads.add(l);
 		t.start();
 		l.start();
 		return d;
-
 	}
 
-	private class DroidListener implements Runnable {
-		TestDroid droid;
+	/**
+	 * Simulates Connection local streams and a security-simplified FSM.
+	 */
+	private class TestConnection extends Connection {
+
+		private TestDroid droid;
 		private final Logger logger = Logger.getLogger(TestDroid.class.getName());
-		public DroidListener(TestDroid droid) {
+
+		public TestConnection(TestDroid droid, DroidManager manager) {
+			super(null, manager);
 			this.droid = droid;
 		}
 
 		@Override
-		public void run() {
-			while(true) {
-					Message m = null;
-					try {
-						m = (Message) droid.ois.readObject();
-
-						if(m != null) {
-							//TODO: switch thread
-							scheduler.onTaskDone(droid.getDroid(), (DistributedResult) m.getData());
-						}
-					}
-					catch (InterruptedIOException ex) {
-
-						return;
-					}
-					catch (IOException ex) {
-						logger.log(Level.SEVERE, null, ex);
-					}
-					catch (ClassNotFoundException ex) {
-						logger.log(Level.SEVERE, null, ex);
-					}
-					if(m == null) {
-						logger.log(Level.SEVERE, "message null");
-					}
+		protected void initConnection() {
+			oos = droid.getOutputStream();
+			ois = droid.getInputStream();
+			fsm = new TestServerStateMachine(this, mDroidManager);
+			try {
+				fsm.process(TestServerStateMachine.TestServerTrans.CLIENT_CONNECTED, droid.getId());
+			} catch (StateMachineException ex) {
+				logger.log(Level.SEVERE, null, ex);
 			}
 		}
 
+		@Override
+		protected boolean isSocketClosed() {
+			return false;
+		}
+
+		@Override
+		protected void closeSocket() throws IOException {
+		}
 	}
 
 	/**
@@ -107,9 +117,9 @@ public class TestCommunicationIO<T extends DistributedTask> extends Communicatio
 		}
 	}
 
-	private TestDroid getTestDroid(Droid droid) {
+	private TestDroid getTestDroid(String droidID) {
 		for (TestDroid tdroid : droids) {
-			if (tdroid.getDroid().equals(droid)) {
+			if (tdroid.getId().equals(droidID)) {
 				return tdroid;
 			}
 		}
@@ -117,14 +127,15 @@ public class TestCommunicationIO<T extends DistributedTask> extends Communicatio
 	}
 
 	@Override
-	public void startTask(Droid droid, DistributedParameter p) {
-		TestDroid d = getTestDroid(droid);
+	public void startTask(String id, DistributedParameter p) {
+		System.out.println("startTask()");
+		TestDroid d = getTestDroid(id);
 		Message m = new Message(Instruction.NO_MSG, p);
 		d.sendMessage(new Message(Instruction.SEND_JOB, p));
 	}
 
 	@Override
-	public void stopTask(Droid droid) {
-
+	public void stopTask(String id) {
+		throw new UnsupportedOperationException();
 	}
 }

@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;

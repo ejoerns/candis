@@ -11,11 +11,11 @@ import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
+import candis.distributed.CommunicationIO;
 import candis.distributed.droid.StaticProfile;
 import candis.server.gui.CheckCodeShowDialog;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,9 +29,11 @@ public class ServerStateMachine extends FSM {
 
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
-	private final ObjectOutputStream mOutStream;
-	private final DroidManager mDroidManager;
+	private final Connection mConnection;
+	protected final DroidManager mDroidManager;
+	protected final CommunicationIO mCommunicationIO;
 	RandomID mCurrentlyConnectingID;
+
 
 	private enum ServerStates implements StateEnum {
 
@@ -58,15 +60,16 @@ public class ServerStateMachine extends FSM {
 		MY_ID;
 	}
 
-	ServerStateMachine(final ObjectOutputStream outstream, final DroidManager droidManager) {
+	public ServerStateMachine(final Connection connection, final DroidManager droidManager, final CommunicationIO comIO) {
 		super();
-		this.mOutStream = outstream;
+		mConnection = connection;
 		mDroidManager = droidManager;
+		mCommunicationIO = comIO;
 		init();
 	}
 
 	private void init() {
-		// TODO: add default transition?
+		// TODO: add default transition? "else Transition"?
 		addState(ServerStates.UNCONNECTED)
 						.addTransition(
 						Instruction.REQUEST_CONNECTION,
@@ -151,12 +154,11 @@ public class ServerStateMachine extends FSM {
 			}
 			try {
 				LOGGER.log(Level.INFO, String.format("Server reply: %s", instr));
-				mOutStream.writeObject(new Message(instr));
 				process(trans);
 			} catch (StateMachineException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-			} catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
+//			} catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
 	}
@@ -177,9 +179,8 @@ public class ServerStateMachine extends FSM {
 				}
 				mDroidManager.addDroid(mCurrentlyConnectingID, (StaticProfile) obj);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
-				mDroidManager.connectDroid(mCurrentlyConnectingID);
+				mDroidManager.connectDroid(mCurrentlyConnectingID, mConnection);
 				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
-				mOutStream.writeObject(new Message(Instruction.ACCEPT_CONNECTION));
 				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentlyConnectingID));
 			} catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -191,7 +192,7 @@ public class ServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object o) {
-			mDroidManager.connectDroid(mCurrentlyConnectingID);
+			mDroidManager.connectDroid(mCurrentlyConnectingID, mConnection);
 		}
 	}
 
