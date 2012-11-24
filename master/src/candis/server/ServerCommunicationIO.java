@@ -1,17 +1,16 @@
 package candis.server;
 
-
+import candis.distributed.DroidData;
 import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedParameter;
 import candis.distributed.Scheduler;
-import candis.distributed.droid.Droid;
 
 /**
  *
  * @author Sebastian Willenborg
  */
 public class ServerCommunicationIO implements CommunicationIO {
-	//private final LinkedList<Droid> knownDroids;
+
 	protected Scheduler scheduler;
 	protected final DroidManager mDroidManager;
 
@@ -25,12 +24,12 @@ public class ServerCommunicationIO implements CommunicationIO {
 		s.setCommunicationIO(this);
 	}
 
-	public void startTask(Droid droid, DistributedParameter p) {
+	public void startTask(String id, DistributedParameter p) {
+		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
-	public void stopTask(Droid droid)
-	{
-
+	public void stopTask(String id) {
+		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
 	@Override
@@ -38,8 +37,19 @@ public class ServerCommunicationIO implements CommunicationIO {
 		return mDroidManager.getConnectedDroids().size();
 	}
 
+//	@Override
+//	public Droid getDroid(int i) {
+////		throw new UnsupportedOperationException("Not supported yet.");
+//		return new Droid(i);// TODO: test
+//	}
 	@Override
-	public Droid getDroid(int i) {
-		throw new UnsupportedOperationException("Not supported yet.");
+	public DroidData getDroidData(String droidID) {
+		return mDroidManager.getKnownDroids().get(droidID);
 	}
+
+//	@Override
+//	public Map<String, Connection> getConnectedDroids() {
+//		return mDroidManager.getConnectedDroids();
+//	}
+
 }

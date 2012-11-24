@@ -1,7 +1,7 @@
 package candis.server.gui;
 
 import candis.distributed.droid.StaticProfile;
-import candis.server.DroidData;
+import candis.distributed.DroidData;
 import candis.server.DroidManager;
 import candis.server.DroidManagerEvent;
 import candis.server.DroidManagerListener;

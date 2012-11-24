@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.distributed.DroidData;
 import java.util.Map;
 
 /**

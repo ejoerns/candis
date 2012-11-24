@@ -1,4 +1,4 @@
-package candis.server;
+package candis.distributed;
 
 import candis.distributed.droid.StaticProfile;
 

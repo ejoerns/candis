@@ -2,7 +2,7 @@ package candis.server.gui;
 
 import candis.distributed.droid.StaticProfile;
 import candis.server.Connection;
-import candis.server.DroidData;
+import candis.distributed.DroidData;
 import candis.server.DroidManagerEvent;
 import candis.server.DroidManagerListener;
 import java.util.LinkedList;

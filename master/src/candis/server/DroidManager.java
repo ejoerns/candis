@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.distributed.DroidData;
 import candis.common.RandomID;
 import candis.common.Utilities;
 import candis.distributed.droid.StaticProfile;
@@ -31,19 +32,16 @@ public final class DroidManager {
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Singleton-Instance
 	private static DroidManager instance = new DroidManager();
-
 	/**
 	 * Map of known droids true means whitelisted, false means blacklisted.
 	 * 'Static' list that will be saved to file.
 	 */
 	private Map<String, DroidData> knownDroids = null;
-
 	/**
 	 * Map of connected droids with bool flag for further use. Dynamic list that
 	 * will be generated at runtime.
 	 */
 	private Map<String, Connection> connectedDroids = new HashMap<String, Connection>();
-
 	/**
 	 * List of connected Listeners expecting changes of DroidStates.
 	 */
@@ -189,12 +187,11 @@ public final class DroidManager {
 	 * @param rid
 	 */
 	public void connectDroid(final String rid, Connection con) {
-		LOGGER.log(Level.SEVERE, "connectDroid called with ID: " + rid);
+		LOGGER.log(Level.FINE, String.format("connectDroid called with ID: %s", rid));
 		synchronized (connectedDroids) {
 			connectedDroids.put(rid, con);//TODO...
 		}
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
-		LOGGER.log(Level.WARNING, "connectDroid finished.");
 	}
 
 	public void connectDroid(final RandomID rid, Connection con) {

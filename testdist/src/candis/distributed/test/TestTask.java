@@ -10,7 +10,6 @@ import candis.distributed.DistributedTask;
  */
 public class TestTask extends DistributedTask {
 
-
 	public static DistributedTask newInstance() {
 		return new TestTask();
 	}
@@ -20,14 +19,10 @@ public class TestTask extends DistributedTask {
 		//throw new UnsupportedOperationException("Not supported yet.");
 	}
 
-
-
 	@Override
 	public DistributedResult run(DistributedParameter parameter) {
-		TestParameter p = (TestParameter)parameter;
+		System.out.println("TestTask: run()");
+		TestParameter p = (TestParameter) parameter;
 		return new TestResult(p.number * p.number);
 	}
-
-
-
 }

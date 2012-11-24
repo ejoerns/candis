@@ -11,14 +11,15 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestMain implements DistributedControl{
+public class TestMain implements DistributedControl {
+
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
 
 	/**
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
-		
+
 		//manager.
 
 		DistributedControl t = new TestMain();
@@ -29,13 +30,12 @@ public class TestMain implements DistributedControl{
 		comio.setScheduler(s);
 		s.start();
 		try {
-			for(int i=0; i < 10; i++) {
+			for (int i = 0; i < 10; i++) {
 
 				System.out.println(i);
 				Thread.sleep(1000);
 			}
-		}
-		catch (InterruptedException ex) {
+		} catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		comio.stopDroids();
@@ -51,12 +51,9 @@ public class TestMain implements DistributedControl{
 	public Scheduler initScheduler() {
 
 		Scheduler sch = new SimpleScheduler();
-		for(int i=0; i< 10; i++)
-		{
+		for (int i = 0; i < 10; i++) {
 			sch.addParameter(new TestParameter(i));
 		}
-
-
 		return sch;
 	}
 }
