@@ -1,6 +1,7 @@
 package candis.server;
 
 import candis.common.Settings;
+import candis.distributed.CommunicationIO;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -30,6 +31,7 @@ public class Server implements Runnable {
 	private ServerSocket ssocket;
 	private boolean doStop = false;
 	final DroidManager mDroidManager;
+	final CommunicationIO mCommunicationIO;
 
 	/**
 	 * @param args the command line arguments
@@ -41,6 +43,7 @@ public class Server implements Runnable {
 	}
 
 	public Server(DroidManager droidmanager) {
+
 		// load properties if available or load default properties
 		try {
 			Settings.load(new File("settings.properties"));
@@ -49,6 +52,7 @@ public class Server implements Runnable {
 			Settings.load(Server.class.getResourceAsStream("defaultsettings.properties"));
 		}
 		mDroidManager = droidmanager;
+		mCommunicationIO = new ServerCommunicationIO(droidmanager);
 		// try to load drodmanager
 		try {
 			mDroidManager.load(new File(Settings.getString("droiddb.file")));
@@ -114,7 +118,7 @@ public class Server implements Runnable {
 								"Waiting for connection on port %d", ssocket.getLocalPort()));
 
 				socket = ssocket.accept();
-				tpool.execute(new Connection(socket, mDroidManager));
+				tpool.execute(new Connection(socket, mDroidManager, mCommunicationIO));
 			}
 			LOGGER.log(Level.INFO, "Server terminated");
 			ssocket.close();

@@ -3,6 +3,7 @@ package candis.distributed.test;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.StateMachineException;
+import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedTask;
 import candis.server.Connection;
@@ -17,9 +18,8 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestCommunicationIO<T extends DistributedTask> extends ServerCommunicationIO {
+public class TestCommunicationIO<T extends DistributedTask> extends ServerCommunicationIO{
 
-	private LinkedList<TestDroid> droids;
 	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	private final TaskFactory<T> factory;
@@ -42,7 +42,6 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	 * @param number Number of TestDroids to generate
 	 */
 	public void initDroids(int number) {
-		droids = new LinkedList<TestDroid>();
 		for (int i = 0; i < number; i++) {
 			initDroid(i);
 		}
@@ -60,10 +59,10 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	private TestDroid initDroid(int id) {
 
 		TestDroid d = new TestDroid(id, factory.createTask());
-		droids.add(d);
-		//addDroid(d.getDroid());
+		mDroidManager.addDroid((new Integer(id)).toString(), d);
+
 		Thread t = new Thread(d);
-		Thread l = new Thread(new TestConnection(d, mDroidManager));
+		Thread l = new Thread(new TestConnection(d, mDroidManager, this));
 		droidThreads.add(t);
 		droidThreads.add(l);
 		t.start();
@@ -79,8 +78,8 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		private TestDroid droid;
 		private final Logger logger = Logger.getLogger(TestDroid.class.getName());
 
-		public TestConnection(TestDroid droid, DroidManager manager) {
-			super(null, manager);
+		public TestConnection(TestDroid droid, final DroidManager manager, final CommunicationIO comIO) {
+			super(null, manager, comIO);
 			this.droid = droid;
 		}
 
@@ -88,7 +87,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		protected void initConnection() {
 			oos = droid.getOutputStream();
 			ois = droid.getInputStream();
-			fsm = new TestServerStateMachine(this, mDroidManager);
+			fsm = new TestServerStateMachine(this, mDroidManager, mCommunicationIO);
 			try {
 				fsm.process(TestServerStateMachine.TestServerTrans.CLIENT_CONNECTED, droid.getId());
 			} catch (StateMachineException ex) {
@@ -104,6 +103,11 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		@Override
 		protected void closeSocket() throws IOException {
 		}
+
+		@Override
+		public String getDroidID() {
+			return this.droid.getId();
+		}
 	}
 
 	/**
@@ -115,27 +119,5 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 				t.interrupt();
 			}
 		}
-	}
-
-	private TestDroid getTestDroid(String droidID) {
-		for (TestDroid tdroid : droids) {
-			if (tdroid.getId().equals(droidID)) {
-				return tdroid;
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public void startTask(String id, DistributedParameter p) {
-		System.out.println("startTask()");
-		TestDroid d = getTestDroid(id);
-		Message m = new Message(Instruction.NO_MSG, p);
-		d.sendMessage(new Message(Instruction.SEND_JOB, p));
-	}
-
-	@Override
-	public void stopTask(String id) {
-		throw new UnsupportedOperationException();
 	}
 }

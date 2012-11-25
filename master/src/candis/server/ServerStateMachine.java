@@ -103,7 +103,7 @@ public class ServerStateMachine extends FSM {
 						new ReceivedProfileHandler());
 		addState(ServerStates.CONNECTED)
 						.addTransition(
-						ServerTrans.POST_JOB,
+						Instruction.SEND_JOB,
 						ServerStates.JOB_SENT,
 						null);
 		addState(ServerStates.JOB_SENT)

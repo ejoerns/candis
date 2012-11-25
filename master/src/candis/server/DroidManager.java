@@ -36,7 +36,7 @@ public final class DroidManager {
 	 * Map of known droids true means whitelisted, false means blacklisted.
 	 * 'Static' list that will be saved to file.
 	 */
-	private Map<String, DroidData> knownDroids = null;
+	private Map<String, DroidData> knownDroids = new ConcurrentHashMap<String, DroidData>();
 	/**
 	 * Map of connected droids with bool flag for further use. Dynamic list that
 	 * will be generated at runtime.
@@ -89,9 +89,13 @@ public final class DroidManager {
 	 * @param profile
 	 */
 	public void addDroid(final String rid, StaticProfile profile) {
+		addDroid(rid, new DroidData(true, profile));
+	}
+
+	public void addDroid(final String rid, DroidData droid) {
 		if (!knownDroids.containsKey(rid)) {
 			LOGGER.log(Level.INFO, String.format("Client %s connected", rid));
-			knownDroids.put(rid, new DroidData(true, profile));
+			knownDroids.put(rid, droid);
 			notifyListeners(DroidManagerEvent.DROID_ADDED);
 		}
 	}

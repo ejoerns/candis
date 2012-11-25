@@ -9,6 +9,8 @@ import candis.common.Message;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
 import candis.distributed.DistributedTask;
+import candis.distributed.DroidData;
+import candis.distributed.droid.StaticProfile;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
@@ -22,7 +24,7 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestDroid implements Runnable {
+public class TestDroid extends DroidData implements Runnable {
 
 	private final String mID;
 	private ObjectInputStream ois;
@@ -37,6 +39,7 @@ public class TestDroid implements Runnable {
 	}
 
 	public TestDroid(int id, DistributedTask task) {
+		super(false, new StaticProfile());
 		LOGGER.log(Level.INFO, String.format("New Droid %d", id));
 		this.task = task;
 		mID = Integer.toString(id);
@@ -53,13 +56,6 @@ public class TestDroid implements Runnable {
 
 	}
 
-	public void sendMessage(Message msg) {
-		try {
-			this.oos.writeObject(msg);
-		} catch (IOException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
-	}
 
 	@Override
 	public void run() {

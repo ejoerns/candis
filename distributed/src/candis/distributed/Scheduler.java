@@ -18,7 +18,7 @@ public interface Scheduler {
 
 	public void onNewDroid(String id);
 
-	public void onTaskDone(String id, DistributedResult result);
+	public void onJobDone(String id, DistributedResult result);
 
 	public void onDroidError(String id, DistributedError error);
 }

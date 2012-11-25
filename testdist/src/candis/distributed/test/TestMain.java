@@ -24,12 +24,14 @@ public class TestMain implements DistributedControl {
 
 		DistributedControl t = new TestMain();
 
-		Scheduler s = t.initScheduler();
+		//Scheduler s = t.initScheduler();
 		TestCommunicationIO comio = new TestCommunicationIO<TestTask>(new TestTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
-		comio.setScheduler(s);
-		s.start();
+		comio.setScheduler(t.initScheduler());
+
+		//s.start();
 		try {
+			comio.startScheduler();
 			for (int i = 0; i < 10; i++) {
 
 				System.out.println(i);

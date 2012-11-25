@@ -19,7 +19,7 @@ public class SimpleScheduler implements Scheduler {
 	private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
 	private CommunicationIO comIO;
 	private Stack<DistributedParameter> params = new Stack<DistributedParameter>();
-	/// Key: ID, Value: DistributetParameter
+
 	private final Map<String, DistributedParameter> running = new HashMap<String, DistributedParameter>();
 	private final Map<DistributedParameter, DistributedResult> done = new HashMap<DistributedParameter, DistributedResult>();
 
@@ -37,38 +37,38 @@ public class SimpleScheduler implements Scheduler {
 
 	private void assignTasks() {
 		LOGGER.log(Level.INFO, "Assigning to {0} possible Droids", comIO.getDroidCount());
-		for (int i = comIO.getDroidCount() - 1; i >= 0; i--) {
-			String id = Integer.toString(i);
-			if (!running.containsKey(id)) {
-				if (!assignTask(id)) {
+		for(String droidID: comIO.getConnectedDroids())
+		{
+			if (!running.containsKey(droidID)) {
+				if (!assignTask(droidID)) {
 					return;
 				}
 			}
 		}
 	}
 
-	private boolean assignTask(String id) {
+	private boolean assignTask(String droidID) {
 		if (params.isEmpty()) {
 			return false;
 		}
 		DistributedParameter param = params.pop();
-		comIO.startTask(id, param);
-		running.put(id, param);
+		comIO.startJob(droidID, param);
+		running.put(droidID, param);
 		return true;
 	}
 
 	public void abort() {
-		for (String id : running.keySet()) {
-			comIO.stopTask(id);
+		for (String droidID : running.keySet()) {
+			comIO.stopJob(droidID);
 		}
 	}
 
-	public void onNewDroid(String id) {
+	public void onNewDroid(String droidID) {
 		LOGGER.log(Level.INFO, "Got new Droid");
-		assignTask(id);
+		assignTask(droidID);
 	}
 
-	public void onTaskDone(String id, DistributedResult result) {
+	public void onJobDone(String id, DistributedResult result) {
 		if (running.containsKey(id)) {
 			DistributedParameter p = running.get(id);
 			done.put(p, result);

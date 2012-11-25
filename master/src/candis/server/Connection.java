@@ -1,9 +1,11 @@
 package candis.server;
 
+import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import candis.distributed.CommunicationIO;
+import candis.distributed.DistributedParameter;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -32,14 +34,23 @@ public class Connection implements Runnable {
 	protected ObjectInputStream ois = null;
 
 
-	public Connection(final Socket socket, final DroidManager droidmanager){
+	public Connection(final Socket socket, final DroidManager droidmanager, final CommunicationIO comIO){
 		this.socket = socket;
 		mDroidManager = droidmanager;
-		mCommunicationIO = null;
+		mCommunicationIO = comIO;
 	}
 
 	public void sendMessage(final Message msg) throws IOException {
 		oos.writeObject(msg);
+	}
+
+	public void sendJob(final DistributedParameter param) throws IOException{
+		try {
+			fsm.process(Instruction.SEND_JOB);
+			sendMessage(new Message(Instruction.SEND_JOB, param));
+		} catch (StateMachineException ex) {
+			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 
 	protected void initConnection() {
@@ -62,6 +73,10 @@ public class Connection implements Runnable {
 
 	protected void closeSocket() throws IOException {
 		socket.close();
+	}
+
+	public String getDroidID() {
+		return null;
 	}
 
 	@Override
