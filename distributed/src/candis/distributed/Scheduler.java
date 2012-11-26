@@ -21,4 +21,6 @@ public interface Scheduler {
 	public void onJobDone(String id, DistributedResult result);
 
 	public void onDroidError(String id, DistributedError error);
+
+	public boolean isDone();
 }

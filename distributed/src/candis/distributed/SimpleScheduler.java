@@ -97,4 +97,9 @@ public class SimpleScheduler implements Scheduler {
 			this.params.push(p);
 		}
 	}
+
+	public boolean isDone() {
+		//Todo
+		return false;
+	}
 }

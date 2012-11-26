@@ -6,6 +6,8 @@ import candis.distributed.DistributedResult;
 import candis.distributed.DroidData;
 import candis.distributed.Scheduler;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,14 +20,22 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	protected Scheduler scheduler;
 	protected final DroidManager mDroidManager;
+	private Thread queueThread;
 
 	public ServerCommunicationIO(final DroidManager manager) {
 		mDroidManager = manager;
 	}
 
 	public void setScheduler(Scheduler s) {
-		scheduler = s;
-		s.setCommunicationIO(this);
+		if(scheduler == null || scheduler.isDone())
+		{
+			scheduler = s;
+			s.setCommunicationIO(this);
+			queueThread = new Thread(this);
+			queueThread.start();
+		}
+
+
 	}
 
 	protected Connection getDroidConnection(String droidID) {
@@ -58,10 +68,28 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	public DroidData getDroidData(final String droidID) {
 		return mDroidManager.getKnownDroids().get(droidID);
 	}
+	private final List<Runnable> comIOQueue = new LinkedList<Runnable>();
 
 	@Override
 	public void run() {
-		throw new UnsupportedOperationException("Not supported yet.");
+		while(!comIOQueue.isEmpty() || !scheduler.isDone()) {
+			try {
+				while(!comIOQueue.isEmpty())
+				{
+					Runnable task;
+					synchronized(comIOQueue) {
+						task = comIOQueue.remove(0);
+
+					}
+					task.run();
+				}
+				synchronized(comIOQueue) {
+					comIOQueue.wait();
+				}
+			} catch (InterruptedException ex) {
+				Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
 	}
 
 	@Override
@@ -69,13 +97,32 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		return mDroidManager.getConnectedDroids().keySet();
 	}
 
+	protected void addToQueue(Runnable task) {
+		synchronized(comIOQueue) {
+			comIOQueue.add(task);
+			comIOQueue.notify();
+		}
+	}
+
 	public void startScheduler() {
-		scheduler.start();
+		addToQueue(new Runnable() {
+			@Override
+			public void run() {
+				scheduler.start();
+			}
+		});
+
 	}
 
 	@Override
 	public void onJobDone(final String droidID, final DistributedResult result) {
-		scheduler.onJobDone(droidID, result);
+		addToQueue(new Runnable() {
+			@Override
+			public void run() {
+				scheduler.onJobDone(droidID, result);
+			}
+		});
+
 	}
 
 }
