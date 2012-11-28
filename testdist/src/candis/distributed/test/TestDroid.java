@@ -66,7 +66,7 @@ public class TestDroid extends DroidData implements Runnable {
 			while (true) {
 				try {
 					Message m_in = (Message) internalOis.readObject();
-					LOGGER.log(Level.SEVERE, String.format("Droid received message: %s", m_in.getRequest()));
+					LOGGER.log(Level.FINEST, String.format("Droid received message: %s", m_in.getRequest()));
 					if (m_in != null) {
 						// Handle job
 						switch (m_in.getRequest()) {

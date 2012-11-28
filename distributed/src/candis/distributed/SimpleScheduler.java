@@ -68,13 +68,13 @@ public class SimpleScheduler implements Scheduler {
 		assignTask(droidID);
 	}
 
-	public void onJobDone(String id, DistributedResult result) {
-		if (running.containsKey(id)) {
-			DistributedParameter p = running.get(id);
+	public void onJobDone(String droidID, DistributedResult result) {
+		if (running.containsKey(droidID)) {
+			DistributedParameter p = running.remove(droidID);
 			done.put(p, result);
-			LOGGER.log(Level.INFO, "Param {0} on {1} done with {2}", new Object[]{p, id, result});
+			LOGGER.log(Level.INFO, "Param {0} on {1} done with {2}", new Object[]{p, droidID, result});
 		}
-		assignTask(id);
+		assignTask(droidID);
 	}
 
 	public void onDroidError(String id, DistributedError error) {
@@ -99,7 +99,7 @@ public class SimpleScheduler implements Scheduler {
 	}
 
 	public boolean isDone() {
-		//Todo
-		return false;
+		LOGGER.log(Level.INFO, "running {0}, params {1}", new Object[] {running.size(), params.size()});
+		return (running.size() + params.size()) == 0;
 	}
 }

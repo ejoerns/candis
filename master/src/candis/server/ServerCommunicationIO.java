@@ -21,6 +21,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	protected Scheduler scheduler;
 	protected final DroidManager mDroidManager;
 	private Thread queueThread;
+	private static final Logger LOGGER = Logger.getLogger(ServerCommunicationIO.class.getName());
 
 	public ServerCommunicationIO(final DroidManager manager) {
 		mDroidManager = manager;
@@ -49,7 +50,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		try {
 			d.sendJob(p);
 		} catch (IOException ex) {
-			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
 	}
@@ -83,13 +84,18 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 					}
 					task.run();
 				}
-				synchronized(comIOQueue) {
-					comIOQueue.wait();
+				if(!scheduler.isDone()) {
+					synchronized(comIOQueue) {
+						comIOQueue.wait();
+					}
 				}
 			} catch (InterruptedException ex) {
-				Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
+				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
+		LOGGER.log(Level.INFO, "CommunicationIO done");
+
+
 	}
 
 	@Override

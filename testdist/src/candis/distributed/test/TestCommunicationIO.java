@@ -24,7 +24,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	private final TaskFactory<T> factory;
 	/// Default number of droids generated if not specified otherwise
-	private static final int DEFAULT_DROIDAMOUNT = 4;
+	private static final int DEFAULT_DROIDAMOUNT = 1;
 
 	public TestCommunicationIO(TaskFactory<T> fact, DroidManager manager) {
 		super(manager);
@@ -95,13 +95,16 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 			}
 		}
 
+		private boolean isClosed = false;
+
 		@Override
 		protected boolean isSocketClosed() {
-			return false;
+			return isClosed;
 		}
 
 		@Override
 		protected void closeSocket() throws IOException {
+			isClosed = true;
 		}
 
 		@Override

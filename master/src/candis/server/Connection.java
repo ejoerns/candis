@@ -87,6 +87,7 @@ public class Connection implements Runnable {
 		while ((!isStopped) && (!isSocketClosed())) {
 			try {
 
+
 				Message rec_msg = (Message) ois.readObject();
 				LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 				try {
@@ -95,12 +96,12 @@ public class Connection implements Runnable {
 					LOGGER.log(Level.SEVERE, null, ex);
 				}
 
-				try {
+				/*try {
 					Thread.sleep(10);// todo: improve
 					//
 				} catch (InterruptedException ex) {
 					LOGGER.log(Level.SEVERE, null, ex);
-				}
+				}*/
 			} catch (EOFException ex) {
 				LOGGER.log(Level.SEVERE, "EOF detected, closing socket ...");
 				// TODO: add handler?
