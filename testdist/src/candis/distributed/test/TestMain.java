@@ -28,14 +28,14 @@ public class TestMain implements DistributedControl {
 		TestCommunicationIO comio = new TestCommunicationIO<TestTask>(new TestTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
 		comio.setScheduler(t.initScheduler());
-		
+
 		try {
 			//Thread.sleep(1000);
 			comio.startScheduler();
-			for (int i = 0; i < 10; i++) {
+			for (int i = 0; i < 3; i++) {
 
 				System.out.println(i);
-				Thread.sleep(4000);
+				Thread.sleep(1000);
 			}
 		} catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);

@@ -12,6 +12,7 @@ import candis.distributed.DistributedTask;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -44,12 +45,15 @@ public class TestDroid extends DroidData implements Runnable {
 		this.task = task;
 		mID = Integer.toString(id);
 		try {
-			PipedInputStream incomming = new PipedInputStream();
-			PipedInputStream outgoing = new PipedInputStream();
-			internalOos = new ObjectOutputStream(new PipedOutputStream(incomming));
-			ois = new ObjectInputStream(incomming);
-			oos = new ObjectOutputStream(new PipedOutputStream(outgoing));
-			internalOis = new ObjectInputStream(outgoing);
+			// Direction: Droid is reading
+			InOutStreams incomming = new InOutStreams();
+			internalOos = incomming.getOutputStream();
+			ois = incomming.getInputStream();
+
+			// Direction: Droid is writing
+			InOutStreams outgoing = new InOutStreams();
+			oos = outgoing.getOutputStream();
+			internalOis = outgoing.getInputStream();
 		}
 		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
