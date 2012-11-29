@@ -19,9 +19,9 @@ public class SimpleScheduler implements Scheduler {
 	private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
 	private CommunicationIO comIO;
 	private Stack<DistributedParameter> params = new Stack<DistributedParameter>();
-
 	private final Map<String, DistributedParameter> running = new HashMap<String, DistributedParameter>();
 	private final Map<DistributedParameter, DistributedResult> done = new HashMap<DistributedParameter, DistributedResult>();
+	private boolean started = false;
 
 	public SimpleScheduler() {
 	}
@@ -31,14 +31,13 @@ public class SimpleScheduler implements Scheduler {
 	}
 
 	public void start() {
-
+		started = true;
 		assignTasks();
 	}
 
 	private void assignTasks() {
 		LOGGER.log(Level.INFO, "Assigning to {0} possible Droids", comIO.getDroidCount());
-		for(String droidID: comIO.getConnectedDroids())
-		{
+		for (String droidID : comIO.getConnectedDroids()) {
 			if (!running.containsKey(droidID)) {
 				if (!assignTask(droidID)) {
 					return;
@@ -64,7 +63,10 @@ public class SimpleScheduler implements Scheduler {
 	}
 
 	public void onNewDroid(String droidID) {
-		LOGGER.log(Level.INFO, "Got new Droid");
+		if (!started) {
+			return;
+		}
+		LOGGER.log(Level.INFO, "Got new Droid {0}", droidID);
 		assignTask(droidID);
 	}
 
@@ -79,6 +81,7 @@ public class SimpleScheduler implements Scheduler {
 
 	public void onDroidError(String id, DistributedError error) {
 		LOGGER.log(Level.SEVERE, "Droid {0}, Error {1}", new Object[]{id, error});
+
 		// removed Droids won't stay in the id List
 		// therefore it is not neccesary to check, for DROID_LOST in error
 		if (running.containsKey(id)) {
@@ -99,7 +102,7 @@ public class SimpleScheduler implements Scheduler {
 	}
 
 	public boolean isDone() {
-		LOGGER.log(Level.INFO, "running {0}, params {1}", new Object[] {running.size(), params.size()});
+		LOGGER.log(Level.FINE, "running {0}, params {1}, available Droids {2}", new Object[]{running.size(), params.size(), comIO.getDroidCount()});
 		return (running.size() + params.size()) == 0;
 	}
 }

@@ -16,11 +16,23 @@ public interface Scheduler {
 
 	public void abort();
 
-	public void onNewDroid(String id);
+	public void onNewDroid(String droidID);
 
-	public void onJobDone(String id, DistributedResult result);
+	/**
+	 * Is called when a job is done.
+	 *
+	 * @param droidID
+	 * @param result
+	 */
+	public void onJobDone(String droidID, DistributedResult result);
 
-	public void onDroidError(String id, DistributedError error);
+	/**
+	 * Is called when an error occurred during computation.
+	 *
+	 * @param droidID
+	 * @param error
+	 */
+	public void onDroidError(String droidID, DistributedError error);
 
 	public boolean isDone();
 }
