@@ -7,8 +7,10 @@ import java.io.Serializable;
  *
  * @author Sebastian Willenborg
  */
-public class TestResult extends DistributedResult implements Serializable{
+public class TestResult extends DistributedResult implements Serializable {
+
 	public final int value;
+
 	public TestResult(int n) {
 		value = n;
 	}

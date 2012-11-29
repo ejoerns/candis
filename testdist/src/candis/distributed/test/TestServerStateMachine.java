@@ -9,6 +9,9 @@ import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedResult;
 import candis.server.Connection;
 import candis.server.DroidManager;
+import candis.server.ServerCommunicationIO;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -18,7 +21,8 @@ public class TestServerStateMachine extends FSM {
 
 	private final Connection mConnection;
 	private final DroidManager mDroidManager;
-	private final CommunicationIO mCommunicationIO;
+	private final ServerCommunicationIO mCommunicationIO;
+	private static final Logger LOGGER = Logger.getLogger(TestServerStateMachine.class.getName());
 
 	private enum TestServerStates implements StateEnum {
 
@@ -34,7 +38,7 @@ public class TestServerStateMachine extends FSM {
 		GOT_RESULT;
 	}
 
-	public TestServerStateMachine(final Connection connection, final DroidManager droidManager, final CommunicationIO comIO) {
+	public TestServerStateMachine(final Connection connection, final DroidManager droidManager, final ServerCommunicationIO comIO) {
 		super();
 		mConnection = connection;
 		mDroidManager = droidManager;
@@ -71,7 +75,9 @@ public class TestServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object o) {
-			mDroidManager.connectDroid((String) o, mConnection);
+			//LOGGER.log(Level.INFO, "hilfe!");
+			//mDroidManager.connectDroid((String) o, mConnection);
+			mCommunicationIO.onDroidConnected((String) o, mConnection);
 		}
 	}
 

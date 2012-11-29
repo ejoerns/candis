@@ -22,14 +22,14 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	protected final DroidManager mDroidManager;
 	private Thread queueThread;
 	private static final Logger LOGGER = Logger.getLogger(ServerCommunicationIO.class.getName());
+	private final List<Runnable> comIOQueue = new LinkedList<Runnable>();
 
 	public ServerCommunicationIO(final DroidManager manager) {
 		mDroidManager = manager;
 	}
 
 	public void setScheduler(Scheduler s) {
-		if(scheduler == null || scheduler.isDone())
-		{
+		if (scheduler == null || scheduler.isDone()) {
 			scheduler = s;
 			s.setCommunicationIO(this);
 			queueThread = new Thread(this);
@@ -45,11 +45,12 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	@Override
 	public void startJob(String id, DistributedParameter p) {
-		System.out.println("startTask()");
+		//System.out.println("startTask()");
 		Connection d = getDroidConnection(id);
 		try {
 			d.sendJob(p);
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
@@ -69,29 +70,30 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	public DroidData getDroidData(final String droidID) {
 		return mDroidManager.getKnownDroids().get(droidID);
 	}
-	private final List<Runnable> comIOQueue = new LinkedList<Runnable>();
 
 	@Override
 	public void run() {
-		while(!comIOQueue.isEmpty() || !scheduler.isDone()) {
-			try {
-				while(!comIOQueue.isEmpty())
-				{
+		try {
+			while (!comIOQueue.isEmpty() || !scheduler.isDone()) {
+
+				while (!comIOQueue.isEmpty()) {
 					Runnable task;
-					synchronized(comIOQueue) {
+					synchronized (comIOQueue) {
 						task = comIOQueue.remove(0);
 
 					}
 					task.run();
 				}
-				if(!scheduler.isDone()) {
-					synchronized(comIOQueue) {
+				if (!scheduler.isDone()) {
+					synchronized (comIOQueue) {
 						comIOQueue.wait();
 					}
 				}
-			} catch (InterruptedException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
+
 			}
+		}
+		catch (InterruptedException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		LOGGER.log(Level.INFO, "CommunicationIO done");
 
@@ -104,7 +106,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	}
 
 	protected void addToQueue(Runnable task) {
-		synchronized(comIOQueue) {
+		synchronized (comIOQueue) {
 			comIOQueue.add(task);
 			comIOQueue.notify();
 		}
@@ -120,7 +122,6 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	}
 
-	@Override
 	public void onJobDone(final String droidID, final DistributedResult result) {
 		addToQueue(new Runnable() {
 			@Override
@@ -131,4 +132,13 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	}
 
+	public void onDroidConnected(final String droidID, final Connection connection) {
+		mDroidManager.connectDroid(droidID, connection);
+		addToQueue(new Runnable() {
+			@Override
+			public void run() {
+				scheduler.onNewDroid(droidID);
+			}
+		});
+	}
 }

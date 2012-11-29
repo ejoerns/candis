@@ -94,7 +94,7 @@ public final class DroidManager {
 
 	public void addDroid(final String rid, DroidData droid) {
 		if (!knownDroids.containsKey(rid)) {
-			LOGGER.log(Level.INFO, String.format("Client %s connected", rid));
+			LOGGER.log(Level.INFO, String.format("Droid %s added", rid));
 			knownDroids.put(rid, droid);
 			notifyListeners(DroidManagerEvent.DROID_ADDED);
 		}
@@ -121,7 +121,7 @@ public final class DroidManager {
 			notifyListeners(DroidManagerEvent.DROID_DELETED);
 		}
 		if (connectedDroids.containsKey(rid)) {
-			LOGGER.log(Level.INFO, String.format("Client %s deleted", rid));
+			LOGGER.log(Level.INFO, String.format("Droid %s deleted", rid));
 			connectedDroids.remove(rid);
 			// TODO: close connection
 		}
@@ -145,7 +145,8 @@ public final class DroidManager {
 		if (knownDroids.containsKey(rid)) {
 			knownDroids.get(rid).setBlacklist(true);
 			notifyListeners(DroidManagerEvent.DROID_BLACKLISTED);
-		} else {
+		}
+		else {
 			LOGGER.log(Level.WARNING, String.format("Client %s could not be blacklisted", rid));
 		}
 	}
@@ -168,7 +169,8 @@ public final class DroidManager {
 		if (knownDroids.containsKey(rid)) {
 			knownDroids.get(rid).setBlacklist(false);
 			notifyListeners(DroidManagerEvent.DROID_WHITELISTED);
-		} else {
+		}
+		else {
 			LOGGER.log(Level.WARNING, String.format("Client %s could not be whitelisted", rid));
 		}
 	}
@@ -254,8 +256,8 @@ public final class DroidManager {
 	 * @param rid
 	 */
 	public void connectDroid(final String rid, Connection con) {
-		LOGGER.log(Level.FINE, String.format("connectDroid called with ID: %s", rid));
-			connectedDroids.put(rid, con);//TODO...
+		LOGGER.log(Level.FINE, "Droid {0} connected", rid);
+		connectedDroids.put(rid, con);//TODO...
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 	}
 
@@ -329,7 +331,8 @@ public final class DroidManager {
 
 			map = (DroidHashMapType) jaxbUnmarshaller.unmarshal(file);
 
-		} catch (JAXBException ex) {
+		}
+		catch (JAXBException ex) {
 			Logger.getLogger(DroidManager.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		return map.getHashMap();
@@ -356,7 +359,8 @@ public final class DroidManager {
 			jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 			// write to file
 			jaxbMarshaller.marshal(new DroidHashMapType(droidmap), file);
-		} catch (JAXBException ex) {
+		}
+		catch (JAXBException ex) {
 			Logger.getLogger(DroidManager.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}

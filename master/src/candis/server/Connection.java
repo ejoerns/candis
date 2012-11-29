@@ -33,8 +33,7 @@ public class Connection implements Runnable {
 	protected ObjectOutputStream oos = null;
 	protected ObjectInputStream ois = null;
 
-
-	public Connection(final Socket socket, final DroidManager droidmanager, final CommunicationIO comIO){
+	public Connection(final Socket socket, final DroidManager droidmanager, final CommunicationIO comIO) {
 		this.socket = socket;
 		mDroidManager = droidmanager;
 		mCommunicationIO = comIO;
@@ -44,11 +43,12 @@ public class Connection implements Runnable {
 		oos.writeObject(msg);
 	}
 
-	public void sendJob(final DistributedParameter param) throws IOException{
+	public void sendJob(final DistributedParameter param) throws IOException {
 		try {
 			fsm.process(Instruction.SEND_JOB);
 			sendMessage(new Message(Instruction.SEND_JOB, param));
-		} catch (StateMachineException ex) {
+		}
+		catch (StateMachineException ex) {
 			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
@@ -62,7 +62,8 @@ public class Connection implements Runnable {
 			if (ois == null) {
 				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream!");
 			}
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
@@ -84,53 +85,56 @@ public class Connection implements Runnable {
 		initConnection();
 
 		// Handle incoming client requests
-		while ((!isStopped) && (!isSocketClosed())) {
-			try {
+		try {
+			while ((!isStopped) && (!isSocketClosed())) {
+				try {
 
 
-				Message rec_msg = (Message) ois.readObject();
-				LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
-				try {
-					fsm.process(rec_msg.getRequest(), rec_msg.getData());
-				} catch (StateMachineException ex) {
-					LOGGER.log(Level.SEVERE, null, ex);
+					Message rec_msg = (Message) ois.readObject();
+					LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
+					try {
+						fsm.process(rec_msg.getRequest(), rec_msg.getData());
+					}
+					catch (StateMachineException ex) {
+						LOGGER.log(Level.SEVERE, null, ex);
+					}
+				}
+				catch (EOFException ex) {
+					LOGGER.log(Level.SEVERE, "EOF detected, closing socket ...");
+					// TODO: add handler?
+					// terminate connection to client
+					isStopped = true;
+					try {
+						closeSocket();
+					}
+					catch (IOException e) {
+						LOGGER.log(Level.SEVERE, null, ex);
+					}
+				}
+				catch (InterruptedIOException ex) {
+					isStopped = true;
+					try {
+						closeSocket();
+					}
+					catch (IOException e) {
+						LOGGER.log(Level.SEVERE, null, ex);
+					}
 				}
 
-				/*try {
-					Thread.sleep(10);// todo: improve
-					//
-				} catch (InterruptedException ex) {
-					LOGGER.log(Level.SEVERE, null, ex);
-				}*/
-			} catch (EOFException ex) {
-				LOGGER.log(Level.SEVERE, "EOF detected, closing socket ...");
-				// TODO: add handler?
-				// terminate connection to client
-				isStopped = true;
-				try {
-					closeSocket();
-				} catch (IOException e) {
-					LOGGER.log(Level.SEVERE, null, ex);
-				}
-			} catch (InterruptedIOException ex) {
-				isStopped = true;
-				try {
-					closeSocket();
-				} catch (IOException e) {
-					LOGGER.log(Level.SEVERE, null, ex);
-				}
-			} catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			} catch (ClassNotFoundException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			} finally {
 			}
+		}
+		catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		catch (ClassNotFoundException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		try {
 			LOGGER.log(Level.INFO, "Connection terminated, closing streams");
 			oos.close();
 			ois.close();
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}

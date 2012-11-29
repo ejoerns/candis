@@ -1,10 +1,7 @@
 package candis.distributed.test;
 
-import candis.common.Instruction;
-import candis.common.Message;
 import candis.common.fsm.StateMachineException;
 import candis.distributed.CommunicationIO;
-import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedTask;
 import candis.server.Connection;
 import candis.server.DroidManager;
@@ -18,13 +15,14 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestCommunicationIO<T extends DistributedTask> extends ServerCommunicationIO{
+public class TestCommunicationIO<T extends DistributedTask> extends ServerCommunicationIO {
 
 	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	private final TaskFactory<T> factory;
 	/// Default number of droids generated if not specified otherwise
 	private static final int DEFAULT_DROIDAMOUNT = 1;
+	private boolean isClosed = false;
 
 	public TestCommunicationIO(TaskFactory<T> fact, DroidManager manager) {
 		super(manager);
@@ -87,15 +85,14 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		protected void initConnection() {
 			oos = droid.getOutputStream();
 			ois = droid.getInputStream();
-			fsm = new TestServerStateMachine(this, mDroidManager, mCommunicationIO);
+			fsm = new TestServerStateMachine(this, mDroidManager, (ServerCommunicationIO) mCommunicationIO);
 			try {
 				fsm.process(TestServerStateMachine.TestServerTrans.CLIENT_CONNECTED, droid.getId());
-			} catch (StateMachineException ex) {
+			}
+			catch (StateMachineException ex) {
 				logger.log(Level.SEVERE, null, ex);
 			}
 		}
-
-		private boolean isClosed = false;
 
 		@Override
 		protected boolean isSocketClosed() {

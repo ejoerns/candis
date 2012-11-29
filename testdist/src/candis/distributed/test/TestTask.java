@@ -21,7 +21,7 @@ public class TestTask extends DistributedTask {
 
 	@Override
 	public DistributedResult run(DistributedParameter parameter) {
-		System.out.println("TestTask: run()");
+		//System.out.println("TestTask: run()");
 		TestParameter p = (TestParameter) parameter;
 		return new TestResult(p.number * p.number);
 	}

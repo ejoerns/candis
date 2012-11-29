@@ -26,3 +26,6 @@ local.properties
 private.properties
 private/
 /distributed/nbandroid/
+/common/nbandroid/
+proguard-project.txt
+settings.properties

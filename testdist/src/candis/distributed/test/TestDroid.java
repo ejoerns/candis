@@ -50,23 +50,24 @@ public class TestDroid extends DroidData implements Runnable {
 			ois = new ObjectInputStream(incomming);
 			oos = new ObjectOutputStream(new PipedOutputStream(outgoing));
 			internalOis = new ObjectInputStream(outgoing);
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
 	}
 
-
 	@Override
 	public void run() {
-		LOGGER.log(Level.INFO, String.format("TestDroid %s: start", mID));
+		LOGGER.log(Level.FINE, String.format("TestDroid %s: start", mID));
 
 		try {
 
 			while (true) {
 				try {
+					LOGGER.log(Level.INFO, "Waiting for a new Message");
 					Message m_in = (Message) internalOis.readObject();
-					LOGGER.log(Level.FINEST, String.format("Droid received message: %s", m_in.getRequest()));
+					LOGGER.log(Level.INFO, "Droid received message: {0}", m_in.getRequest());
 					if (m_in != null) {
 						// Handle job
 						switch (m_in.getRequest()) {
@@ -79,22 +80,29 @@ public class TestDroid extends DroidData implements Runnable {
 						};
 
 					}
-				} catch (ClassNotFoundException ex) {
+				}
+				catch (ClassNotFoundException ex) {
 					LOGGER.log(Level.SEVERE, null, ex);
 				}
-				Thread.sleep(10);
+				//Thread.sleep(10);
 			}
 
 
-		} catch (InterruptedException iex) {
+		}/* catch (InterruptedException iex) {
+		 LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
+		 } */
+
+		catch (InterruptedIOException iex) {
 			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
-		} catch (InterruptedIOException iex) {
-			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
+			System.out.println("weil Dieser Droid ist am Ende!");
 			LOGGER.log(Level.SEVERE, null, ex);
-		} finally {
+		}
+		finally {
 			LOGGER.log(Level.INFO, String.format("TestDroid %s: stop", mID));
 		}
+		System.out.println("Dieser Droid ist am Ende!");
 
 	}
 
