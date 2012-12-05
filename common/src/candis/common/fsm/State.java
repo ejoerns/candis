@@ -27,9 +27,9 @@ public class State {
 	}
 
 	public State addTransition(
-					final Transition trans,
-					final StateEnum dest,
-					final ActionHandler act) {
+			final Transition trans,
+			final StateEnum dest,
+			final ActionHandler act) {
 		mTransitionMap.put(trans, dest);
 //		mHandlerMap.put(trans, act);
 		if (act != null) {
@@ -39,9 +39,13 @@ public class State {
 	}
 
 	public State addTransition(
-					final Transition trans,
-					final StateEnum dest) {
+			final Transition trans,
+			final StateEnum dest) {
 		return addTransition(trans, dest, null);
+	}
+
+	public boolean containsTransition(final Transition trans) {
+		return mTransitionMap.containsKey(trans);
 	}
 
 	/**
@@ -82,23 +86,22 @@ public class State {
 //		}
 //		return mTransitionMap.get(trans);
 //	}
-	void process(Transition trans, Object obj, AtomicReference<StateEnum> mCurrentState) {
+	void process(Transition trans, Object obj, AtomicReference<StateEnum> mCurrentState) throws StateMachineException {
+
+		//String nametrans = trans.toString();
 		Logger.getLogger("FSM").log(Level.FINE, String.format(
-						"FSM: State: %s, Transition: %s, Object: %s", mCurrentState.get(), trans, obj));
+				"FSM: State: %s, Transition: %s, Object: %s", mCurrentState.get(), trans, obj));
 
 		if (!mTransitionMap.containsKey(trans)) {
-			mCurrentState.set(null);
-		} else {
+			throw new StateMachineException(name, trans);
+		}
+		else {
 			mCurrentState.set(mTransitionMap.get(trans));
 		}
 		Logger.getLogger("FSM").log(Level.FINE, String.format(
-						"FSM: New State: %s", mCurrentState.get()));
+				"FSM: New State: %s", mCurrentState.get()));
 
-//		if ((mHandlerMap.containsKey(trans)) && (mHandlerMap.get(trans) != null)) {
-//			mHandlerMap.get(trans).handle(obj);
-//	}
 		notifyListeners(trans, obj);
-//		return mCurrentState = process(trans, obj);
 	}
 
 	/**
