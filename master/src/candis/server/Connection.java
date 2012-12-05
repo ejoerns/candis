@@ -75,9 +75,9 @@ public class Connection implements Runnable {
 		mSocket.close();
 	}
 
-//	public String getDroidID() {
-//		return null;
-//	}
+	public String getDroidID() {
+		return null;
+	}
 
 	@Override
 	public void run() {

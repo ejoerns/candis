@@ -85,9 +85,9 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		protected void initConnection() {
 			oos = droid.getOutputStream();
 			ois = droid.getInputStream();
-			fsm = new TestServerStateMachine(this, mDroidManager, (ServerCommunicationIO) mCommunicationIO);
+			mStateMachine = new TestServerStateMachine(this, mDroidManager, (ServerCommunicationIO) mCommunicationIO);
 			try {
-				fsm.process(TestServerStateMachine.TestServerTrans.CLIENT_CONNECTED, droid.getId());
+				mStateMachine.process(TestServerStateMachine.TestServerTrans.CLIENT_CONNECTED, droid.getId());
 			}
 			catch (StateMachineException ex) {
 				logger.log(Level.SEVERE, null, ex);
