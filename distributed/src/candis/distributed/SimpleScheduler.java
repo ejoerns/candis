@@ -38,11 +38,7 @@ public class SimpleScheduler implements Scheduler {
 	private void assignTasks() {
 		LOGGER.log(Level.INFO, "Assigning to {0} possible Droids", comIO.getDroidCount());
 		for (String droidID : comIO.getConnectedDroids()) {
-			if (!running.containsKey(droidID)) {
-				if (!assignTask(droidID)) {
-					return;
-				}
-			}
+			assignTask(droidID);
 		}
 	}
 
@@ -50,6 +46,10 @@ public class SimpleScheduler implements Scheduler {
 		if (params.isEmpty()) {
 			return false;
 		}
+		if (running.containsKey(droidID)) {
+			return false;
+		}
+
 		DistributedParameter param = params.pop();
 		comIO.startJob(droidID, param);
 		running.put(droidID, param);

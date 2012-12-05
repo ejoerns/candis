@@ -45,7 +45,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	@Override
 	public void startJob(String id, DistributedParameter p) {
-		//System.out.println("startTask()");
+
 		Connection d = getDroidConnection(id);
 		try {
 			d.sendJob(p);
@@ -96,8 +96,10 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		LOGGER.log(Level.INFO, "CommunicationIO done");
+	}
 
-
+	public void join() throws InterruptedException {
+		queueThread.join();
 	}
 
 	@Override

@@ -65,8 +65,6 @@ public class TestServerStateMachine extends FSM {
 						TestServerStates.CONNECTED,
 						new ClientJobDonedHandler());
 
-
-
 		setState(TestServerStates.UNCONNECTED);
 
 	}

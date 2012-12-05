@@ -1,6 +1,5 @@
 package candis.distributed;
 
-
 import java.util.Set;
 
 /**
@@ -23,4 +22,6 @@ public interface CommunicationIO {
 	 * @return Set of all currently connected droids
 	 */
 	Set<String> getConnectedDroids();
+
+	void join() throws InterruptedException;
 }

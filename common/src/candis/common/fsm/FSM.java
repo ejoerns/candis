@@ -26,8 +26,6 @@ public class FSM {
 	private final Map<StateEnum, State> mStateMap = new HashMap<StateEnum, State>();
 
 	public FSM() {
-		System.setProperty("candis.client.logging", "FINEST");
-		System.setProperty("java.util.logging.config.file", "logging.properties");
 	}
 
 	/**
@@ -67,19 +65,23 @@ public class FSM {
 	 */
 	public final void process(final Transition trans, Object obj) throws StateMachineException {
 		LOGGER.log(Level.FINE, String.format(
-						"process() Trans: %s, Obj: %s", trans, obj));
+				"process() Trans: %s, Obj: %s", trans, obj));
+		// Check if transition is empty
 		if (trans == null) {
-			LOGGER.log(Level.FINER, "Empty Transition");
+			LOGGER.log(Level.FINER, "Empty transition");
 			return;
 		}
-		if (!mStateMap.containsKey(mCurrentState.get())) {
-			throw new StateMachineException(); // State undefined
+		// Check, if the FSM is in an undefined state
+		if (mCurrentState.get() == null) {
+			throw new NullPointerException("No state set");
 		}
-//		final StateEnum newState = mStateMap.get(mCurrentState).process(trans, obj);
+
+		if (!mStateMap.containsKey(mCurrentState.get()) && mStateMap.get(mCurrentState.get()).containsTransition(trans)) {
+			// Transition not defined for current State
+			throw new StateMachineException(mCurrentState.get(), trans);
+		}
+
 		mStateMap.get(mCurrentState.get()).process(trans, obj, mCurrentState);
-//		if (newState != null) {
-//			mCurrentState = newState;
-//		}
 	}
 
 	public final void process(final Transition trans) throws StateMachineException {

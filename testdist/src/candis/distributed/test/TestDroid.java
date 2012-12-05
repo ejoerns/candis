@@ -100,13 +100,12 @@ public class TestDroid extends DroidData implements Runnable {
 			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
 		}
 		catch (IOException ex) {
-			System.out.println("weil Dieser Droid ist am Ende!");
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		finally {
 			LOGGER.log(Level.INFO, String.format("TestDroid %s: stop", mID));
 		}
-		System.out.println("Dieser Droid ist am Ende!");
+
 
 	}
 

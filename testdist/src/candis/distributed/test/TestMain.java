@@ -30,14 +30,13 @@ public class TestMain implements DistributedControl {
 		comio.setScheduler(t.initScheduler());
 
 		try {
-			//Thread.sleep(1000);
+			Thread.sleep(1);
 			comio.startScheduler();
-			for (int i = 0; i < 3; i++) {
 
-				System.out.println(i);
-				Thread.sleep(1000);
-			}
-		} catch (InterruptedException ex) {
+			Thread.sleep(100);
+			comio.join();
+		}
+		catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		comio.stopDroids();

@@ -16,13 +16,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Designed to run in seperate thread for every connected client.
+ * Designed to run in separate thread for every connected client.
  *
  * @author enrico
  */
 public class Connection implements Runnable {
 
-	private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(Connection.class.getName());
 	private final Socket socket;
 //	private ObjectOutputStream oos;
 	private boolean isStopped;
@@ -84,6 +84,7 @@ public class Connection implements Runnable {
 	public void run() {
 		initConnection();
 
+
 		// Handle incoming client requests
 		try {
 			while ((!isStopped) && (!isSocketClosed())) {
@@ -91,6 +92,7 @@ public class Connection implements Runnable {
 
 
 					Message rec_msg = (Message) ois.readObject();
+
 					LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 					try {
 						fsm.process(rec_msg.getRequest(), rec_msg.getData());
