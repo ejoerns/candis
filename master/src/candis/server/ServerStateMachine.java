@@ -32,8 +32,7 @@ public class ServerStateMachine extends FSM {
 	private final Connection mConnection;
 	protected final DroidManager mDroidManager;
 	protected final CommunicationIO mCommunicationIO;
-	RandomID mCurrentlyConnectingID;
-
+	RandomID mCurrentID;
 
 	private enum ServerStates implements StateEnum {
 
@@ -41,8 +40,9 @@ public class ServerStateMachine extends FSM {
 		CHECK,
 		PROFILE_REQUESTED,
 		CHECKCODE_REQUESTED,
+		CHECKCODE_VALIDATE,
 		CONNECTED,
-		JOB_SENT;
+		JOB_SENT,;
 	}
 
 	public enum ServerTrans implements Transition {
@@ -51,8 +51,11 @@ public class ServerStateMachine extends FSM {
 		CLIENT_NEW,
 		CLIENT_NEW_CHECK,
 		CLIENT_ACCEPTED,
+		CHECKCODE_VALID,
+		CHECKCODE_INVALID,
 		POST_JOB,
-		CLIENT_INVALID;
+		CLIENT_INVALID,
+		CLIENT_DISCONNECTED;
 	}
 
 	private enum ClientHandlerID implements HandlerID {
@@ -96,6 +99,20 @@ public class ServerStateMachine extends FSM {
 						ServerTrans.CLIENT_INVALID,
 						ServerStates.UNCONNECTED,
 						null);
+		addState(ServerStates.CHECKCODE_REQUESTED)
+						.addTransition(
+						Instruction.SEND_CHECKCODE,
+						ServerStates.CHECKCODE_VALIDATE,
+						new ValidateCheckcodeHandler());
+		addState(ServerStates.CHECKCODE_VALIDATE)
+						.addTransition(
+						ServerTrans.CHECKCODE_VALID,
+						ServerStates.PROFILE_REQUESTED,
+						new ProfileRequestHandler())
+						.addTransition(
+						ServerTrans.CHECKCODE_INVALID,
+						ServerStates.UNCONNECTED,
+						null);
 		addState(ServerStates.PROFILE_REQUESTED)
 						.addTransition(
 						Instruction.SEND_PROFILE,
@@ -105,7 +122,11 @@ public class ServerStateMachine extends FSM {
 						.addTransition(
 						Instruction.SEND_JOB,
 						ServerStates.JOB_SENT,
-						null);
+						null)
+						.addTransition(
+						ServerTrans.CLIENT_DISCONNECTED,
+						ServerStates.UNCONNECTED,
+						new ClientDisconnectedHandler());
 		addState(ServerStates.JOB_SENT)
 						.addTransition(
 						Instruction.SEND_RESULT,
@@ -126,28 +147,32 @@ public class ServerStateMachine extends FSM {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
 			}
-			mCurrentlyConnectingID = ((RandomID) obj);
+			mCurrentID = ((RandomID) obj);
 			Transition trans;
 			Instruction instr;
 			// catch invalid messages
-			if (mCurrentlyConnectingID == null) {
+			if (mCurrentID == null) {
 				trans = ServerTrans.CLIENT_INVALID;
 				instr = Instruction.ERROR;
 				// check if droid is known in db
-			} else if (mDroidManager.isDroidKnown(mCurrentlyConnectingID)) {
-				if (mDroidManager.isDroidBlacklisted(mCurrentlyConnectingID)) {
+			}
+			else if (mDroidManager.isDroidKnown(mCurrentID)) {
+				if (mDroidManager.isDroidBlacklisted(mCurrentID)) {
 					trans = ServerTrans.CLIENT_BLACKLISTED;
 					instr = Instruction.REJECT_CONNECTION;
-				} else {
+				}
+				else {
 					trans = ServerTrans.CLIENT_ACCEPTED;
 					instr = Instruction.ACCEPT_CONNECTION;
 				}
-			} else {
+			}
+			else {
 				// check if option 'check code auth' is active
 				if (Settings.getBoolean("pincode_auth")) {
 					trans = ServerTrans.CLIENT_NEW_CHECK;
 					instr = Instruction.REQUEST_CHECKCODE;
-				} else {
+				}
+				else {
 					trans = ServerTrans.CLIENT_NEW;
 					instr = Instruction.REQUEST_PROFILE;
 				}
@@ -156,9 +181,11 @@ public class ServerStateMachine extends FSM {
 				mConnection.sendMessage(new Message(instr));
 				LOGGER.log(Level.INFO, String.format("Server reply: %s", instr));
 				process(trans);
-			} catch (StateMachineException ex) {
+			}
+			catch (StateMachineException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-			} catch (IOException ex) {
+			}
+			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
@@ -178,26 +205,84 @@ public class ServerStateMachine extends FSM {
 				if (!(obj instanceof StaticProfile)) {
 					LOGGER.log(Level.WARNING, "EMPTY PROFILE DATA!");
 				}
-				mDroidManager.addDroid(mCurrentlyConnectingID, (StaticProfile) obj);
+				mDroidManager.addDroid(mCurrentID, (StaticProfile) obj);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
-				mDroidManager.connectDroid(mCurrentlyConnectingID, mConnection);
-				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentlyConnectingID));
+				mDroidManager.connectDroid(mCurrentID, mConnection);
+				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentID));
 				mConnection.sendMessage(new Message(Instruction.ACCEPT_CONNECTION));
 				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
-			} catch (IOException ex) {
+			}
+			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
 	}
 
+	/**
+	 * Conncects droid to DroidManager.
+	 */
 	private class ClientConnectedHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
-			mDroidManager.connectDroid(mCurrentlyConnectingID, mConnection);
+			System.out.println("ClientConnectedHandler() called");
+			mDroidManager.connectDroid(mCurrentID, mConnection);
 		}
 	}
 
+	/**
+	 * Disconncects droid from DroidManager.
+	 */
+	private class ClientDisconnectedHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			System.out.println("ClientDisconnectedHandler() called");
+			mDroidManager.disconnectDroid(mCurrentID);
+		}
+	}
+
+	/**
+	 * Compares received check code from droid with server generated one.
+	 */
+	private class ValidateCheckcodeHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			System.out.println("ValidateCheckcodeHandler() called");
+			try {
+				if (mDroidManager.validateCheckCode((String) o)) {
+					process(ServerTrans.CHECKCODE_VALID);
+				}
+				else {
+					process(ServerTrans.CHECKCODE_INVALID);
+				}
+			}
+			catch (StateMachineException ex) {
+				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 * Requests profile without check.
+	 */
+	private class ProfileRequestHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			try {
+				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
+			}
+			catch (IOException ex) {
+				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 * Generates new check code (6 digits) and shows it via DroidManager.
+	 */
 	private class CheckCodeRequestedHandler implements ActionHandler {
 
 		@Override

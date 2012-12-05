@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
@@ -65,6 +66,15 @@ public final class DroidManager {
 	}
 
 	/**
+	 * Adds a logging handler.
+	 *
+	 * @param handler
+	 */
+	public void addLoggerHandler(final Handler handler) {
+		LOGGER.addHandler(handler);
+	}
+
+	/**
 	 * Returns the list of known Droids.
 	 *
 	 * @return Map of known Droids.
@@ -89,12 +99,12 @@ public final class DroidManager {
 	 * @param profile
 	 */
 	public void addDroid(final String rid, StaticProfile profile) {
-		addDroid(rid, new DroidData(true, profile));
+		addDroid(rid, new DroidData(false, profile));
 	}
 
 	public void addDroid(final String rid, DroidData droid) {
 		if (!knownDroids.containsKey(rid)) {
-			LOGGER.log(Level.INFO, String.format("Droid %s added", rid));
+			LOGGER.log(Level.INFO, "Droid {0} added", rid);
 			knownDroids.put(rid, droid);
 			notifyListeners(DroidManagerEvent.DROID_ADDED);
 		}
@@ -121,7 +131,7 @@ public final class DroidManager {
 			notifyListeners(DroidManagerEvent.DROID_DELETED);
 		}
 		if (connectedDroids.containsKey(rid)) {
-			LOGGER.log(Level.INFO, String.format("Droid %s deleted", rid));
+			LOGGER.log(Level.INFO, "Droid {0} deleted", rid);
 			connectedDroids.remove(rid);
 			// TODO: close connection
 		}
@@ -147,7 +157,7 @@ public final class DroidManager {
 			notifyListeners(DroidManagerEvent.DROID_BLACKLISTED);
 		}
 		else {
-			LOGGER.log(Level.WARNING, String.format("Client %s could not be blacklisted", rid));
+			LOGGER.log(Level.WARNING, "Droid {0} could not be blacklisted", rid);
 		}
 	}
 
@@ -171,7 +181,7 @@ public final class DroidManager {
 			notifyListeners(DroidManagerEvent.DROID_WHITELISTED);
 		}
 		else {
-			LOGGER.log(Level.WARNING, String.format("Client %s could not be whitelisted", rid));
+			LOGGER.log(Level.WARNING, "Droid {0} could not be whitelisted", rid);
 		}
 	}
 
@@ -256,7 +266,7 @@ public final class DroidManager {
 	 * @param rid
 	 */
 	public void connectDroid(final String rid, Connection con) {
-		LOGGER.log(Level.FINE, "Droid {0} connected", rid);
+		LOGGER.log(Level.INFO, "Droid {0} connected", rid);
 		connectedDroids.put(rid, con);//TODO...
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 	}
@@ -271,6 +281,7 @@ public final class DroidManager {
 	 * @param rid ID of droid that is disconnected
 	 */
 	public void disconnectDroid(final String rid) {
+		LOGGER.log(Level.INFO, "Droid {0} disconnected", rid);
 		connectedDroids.remove(rid);
 		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED);
 	}
@@ -402,6 +413,17 @@ public final class DroidManager {
 	void showCheckCode(final String code) {
 		mCheckCode = code;
 		notifyListeners(DroidManagerEvent.CHECK_CODE);
+	}
+
+	/**
+	 * Validates checkcode and notifies listener to unshow code.
+	 *
+	 * @param code
+	 * @return
+	 */
+	boolean validateCheckCode(final String code) {
+		notifyListeners(DroidManagerEvent.CHECK_CODE_DONE);
+		return mCheckCode.equals(code);
 	}
 
 	/**

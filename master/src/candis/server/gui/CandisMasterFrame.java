@@ -22,6 +22,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private DroidManager mDroidManager;
 	private OptionsDialog mOptionDialog;
 	private CheckCodeShowDialog mCheckCodeShowDialog;
+	private CandisLoggerHandler mLoggerHandler;
 
 	/**
 	 * Creates new form CandisMasterFrame.
@@ -32,7 +33,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		mDroidInfoTableModel = new DroidInfoTableModel();
 		mOptionDialog = new OptionsDialog(this, false);
 		mCheckCodeShowDialog = new CheckCodeShowDialog(this, false);
-		droidmanager.addListener(mCheckCodeShowDialog);
+		mDroidManager.addListener(mCheckCodeShowDialog);
 //		initComponents();
 	}
 
@@ -48,7 +49,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
     jButton3 = new javax.swing.JButton();
     jScrollPane2 = new javax.swing.JScrollPane();
-    jTextArea1 = new javax.swing.JTextArea();
+    mLogTextArea = new javax.swing.JTextArea();
     jPanel1 = new javax.swing.JPanel();
     mBlacklistButton = new javax.swing.JToggleButton();
     mExecuteButton = new javax.swing.JButton();
@@ -67,9 +68,11 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     setTitle("Candis Master");
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
-    jTextArea1.setColumns(20);
-    jTextArea1.setRows(5);
-    jScrollPane2.setViewportView(jTextArea1);
+    mLogTextArea.setColumns(20);
+    mLogTextArea.setRows(5);
+    jScrollPane2.setViewportView(mLogTextArea);
+    mLoggerHandler = new CandisLoggerHandler(mLogTextArea);
+    mDroidManager.addLoggerHandler(mLoggerHandler);
 
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 3;
@@ -332,13 +335,13 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private javax.swing.JPanel jPanel1;
   private javax.swing.JScrollPane jScrollPane2;
   private javax.swing.JScrollPane jScrollPane3;
-  private javax.swing.JTextArea jTextArea1;
   private javax.swing.JToggleButton mBlacklistButton;
   private javax.swing.JButton mDeleteButton;
   private javax.swing.JTable mDroidInfoTable;
   private javax.swing.JScrollPane mDroidlistScrollPane;
   private javax.swing.JTable mDroidlistTable;
   private javax.swing.JButton mExecuteButton;
+  private javax.swing.JTextArea mLogTextArea;
   private javax.swing.JButton mOptionButton;
   private javax.swing.JButton mStopButton;
   private javax.swing.JButton mUploadButton;

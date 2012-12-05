@@ -15,5 +15,6 @@ public enum DroidManagerEvent implements Serializable {
 	DROID_DISCONNECTED,
 	DROID_BLACKLISTED,
 	DROID_WHITELISTED,
-	CHECK_CODE;
+	CHECK_CODE,
+	CHECK_CODE_DONE;
 }

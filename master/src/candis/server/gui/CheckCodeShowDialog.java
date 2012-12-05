@@ -92,6 +92,8 @@ public class CheckCodeShowDialog extends javax.swing.JDialog implements DroidMan
 		if (event == DroidManagerEvent.CHECK_CODE) {
 			mCheckCodeField.setText(manager.getCheckCode());
 			setVisible(true);
+		} else if (event == DroidManagerEvent.CHECK_CODE_DONE) {
+			setVisible(false);
 		}
 	}
 }

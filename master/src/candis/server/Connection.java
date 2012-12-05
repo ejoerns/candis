@@ -23,18 +23,17 @@ import java.util.logging.Logger;
 public class Connection implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(Connection.class.getName());
-	private final Socket socket;
-//	private ObjectOutputStream oos;
+	private final Socket mSocket;
 	private boolean isStopped;
 	// each connection has its own state machine
-	protected FSM fsm = null;
+	protected FSM mStateMachine = null;
 	protected final DroidManager mDroidManager;
 	protected final CommunicationIO mCommunicationIO;
 	protected ObjectOutputStream oos = null;
 	protected ObjectInputStream ois = null;
 
 	public Connection(final Socket socket, final DroidManager droidmanager, final CommunicationIO comIO) {
-		this.socket = socket;
+		mSocket = socket;
 		mDroidManager = droidmanager;
 		mCommunicationIO = comIO;
 	}
@@ -45,7 +44,7 @@ public class Connection implements Runnable {
 
 	public void sendJob(final DistributedParameter param) throws IOException {
 		try {
-			fsm.process(Instruction.SEND_JOB);
+			mStateMachine.process(Instruction.SEND_JOB);
 			sendMessage(new Message(Instruction.SEND_JOB, param));
 		}
 		catch (StateMachineException ex) {
@@ -55,12 +54,12 @@ public class Connection implements Runnable {
 
 	protected void initConnection() {
 		try {
-			LOGGER.log(Level.INFO, "Client {0} connected...", socket.getInetAddress());
-			oos = new ObjectOutputStream(socket.getOutputStream());
-			ois = new ObjectInputStream(socket.getInputStream());
-			fsm = new ServerStateMachine(this, mDroidManager, mCommunicationIO);
+			LOGGER.log(Level.INFO, "Client {0} connected...", mSocket.getInetAddress());
+			oos = new ObjectOutputStream(mSocket.getOutputStream());
+			ois = new ObjectInputStream(mSocket.getInputStream());
+			mStateMachine = new ServerStateMachine(this, mDroidManager, mCommunicationIO);
 			if (ois == null) {
-				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream!");
+				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream! (null)");
 			}
 		}
 		catch (IOException ex) {
@@ -69,16 +68,16 @@ public class Connection implements Runnable {
 	}
 
 	protected boolean isSocketClosed() {
-		return socket.isClosed();
+		return mSocket.isClosed();
 	}
 
 	protected void closeSocket() throws IOException {
-		socket.close();
+		mSocket.close();
 	}
 
-	public String getDroidID() {
-		return null;
-	}
+//	public String getDroidID() {
+//		return null;
+//	}
 
 	@Override
 	public void run() {
@@ -95,7 +94,7 @@ public class Connection implements Runnable {
 
 					LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 					try {
-						fsm.process(rec_msg.getRequest(), rec_msg.getData());
+						mStateMachine.process(rec_msg.getRequest(), rec_msg.getData());
 					}
 					catch (StateMachineException ex) {
 						LOGGER.log(Level.SEVERE, null, ex);
@@ -103,7 +102,12 @@ public class Connection implements Runnable {
 				}
 				catch (EOFException ex) {
 					LOGGER.log(Level.SEVERE, "EOF detected, closing socket ...");
-					// TODO: add handler?
+					try {
+						mStateMachine.process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
+					}
+					catch (StateMachineException ex1) {
+						Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex1);
+					}
 					// terminate connection to client
 					isStopped = true;
 					try {
