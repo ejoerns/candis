@@ -15,6 +15,7 @@ import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
 import candis.distributed.droid.StaticProfile;
 import candist.client.gui.CheckcodeInputDialog;
+import candist.client.gui.ErrorMessageDialog;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
@@ -92,6 +93,10 @@ public final class ClientStateMachine extends FSM {
 						ClientStates.WAIT_FOR_JOB,
 						null)
 						.addTransition(
+						Instruction.REJECT_CONNECTION,
+						ClientStates.UNCONNECTED,
+						new ConnectionRejectedHandler())
+						.addTransition(
 						Instruction.REQUEST_CHECKCODE,
 						ClientStates.CHECKCODE_ENTER,
 						new CheckcodeInputHandler());
@@ -121,6 +126,23 @@ public final class ClientStateMachine extends FSM {
 						ClientStates.WAIT_FOR_JOB,
 						null);
 		setState(ClientStates.UNCONNECTED);
+	}
+
+	/**
+	 * Shows Error Dialog with short message.
+	 */
+	private class ConnectionRejectedHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object obj) {
+			System.out.println("ConnectionRejectedHandler() called");
+			mHandler.post(new Runnable() {
+				public void run() {
+					DialogFragment checkDialog = new ErrorMessageDialog("Connection refused!");
+					checkDialog.show(mFragManager, TAG);
+				}
+			});
+		}
 	}
 
 	/**
@@ -186,8 +208,9 @@ public final class ClientStateMachine extends FSM {
 			try {
 				if (o instanceof String) {
 					System.out.println("Checkcode seems to be: " + (String) o);
-				mOutStream.writeObject(new Message(Instruction.SEND_CHECKCODE, (String) o));
-				} else {
+					mOutStream.writeObject(new Message(Instruction.SEND_CHECKCODE, (String) o));
+				}
+				else {
 					throw new ClassCastException("Data failure, expected String, got Trash");
 				}
 			}
