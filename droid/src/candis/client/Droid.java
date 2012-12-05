@@ -69,7 +69,7 @@ public class Droid {
 			sc = ctask.get();
 			profile = ptask.get();
 			Log.i("Droid", "Starting CommRequestBroker");
-			fsm = new ClientStateMachine(sc, id, profile);
+			fsm = new ClientStateMachine(sc, id, profile, new Handler(), app.getFragmentManager());// TODO: check handler usage
 			comm = new CommRequestBroker(
 							new ObjectInputStream(sc.getInputStream()),
 							fsm);

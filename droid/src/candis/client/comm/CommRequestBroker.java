@@ -48,7 +48,8 @@ public class CommRequestBroker implements Runnable {
 			try {
 				Object o = readObject();
 				if (o instanceof Message) {
-					LOGGER.log(Level.INFO, "Read new Message");
+					LOGGER.log(Level.INFO, String.format(
+									"Read new Message: %s", ((Message) o).getRequest().toString()));
 					try {
 						fsm.process(((Message) o).getRequest());
 					} catch (StateMachineException ex) {

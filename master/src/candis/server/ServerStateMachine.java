@@ -153,12 +153,13 @@ public class ServerStateMachine extends FSM {
 				}
 			}
 			try {
+				mConnection.sendMessage(new Message(instr));
 				LOGGER.log(Level.INFO, String.format("Server reply: %s", instr));
 				process(trans);
 			} catch (StateMachineException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-//			} catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
+			} catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
 	}
@@ -180,8 +181,9 @@ public class ServerStateMachine extends FSM {
 				mDroidManager.addDroid(mCurrentlyConnectingID, (StaticProfile) obj);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
 				mDroidManager.connectDroid(mCurrentlyConnectingID, mConnection);
-				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
 				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentlyConnectingID));
+				mConnection.sendMessage(new Message(Instruction.ACCEPT_CONNECTION));
+				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
 			} catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
