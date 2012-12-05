@@ -17,7 +17,7 @@ import java.util.logging.Logger;
  *
  * @author Enrico Joerns
  */
-public class RandomID implements Serializable {
+public class RandomID implements Serializable {// TODO: rename: DroidID, split DroidIDFactory
 
 	/// Length of ID in bits
 	public static final int ID_LENGTH = 4096;
@@ -129,4 +129,14 @@ public class RandomID implements Serializable {
 	public final void setBytes(byte[] b) {
 		bytes = b;
 	}
+	
+	public String toSHA1() {
+		return Utilities.toSHA1String(bytes);
+	}
+	
+	@Override
+	public String toString() {
+		return toSHA1();
+	}
+	// TODO: toString() -> SHA-1 ?
 }
