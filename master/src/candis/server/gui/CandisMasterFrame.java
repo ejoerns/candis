@@ -47,7 +47,6 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private void initComponents() {
     java.awt.GridBagConstraints gridBagConstraints;
 
-    jButton3 = new javax.swing.JButton();
     jScrollPane2 = new javax.swing.JScrollPane();
     mLogTextArea = new javax.swing.JTextArea();
     jPanel1 = new javax.swing.JPanel();
@@ -61,23 +60,27 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     jScrollPane3 = new javax.swing.JScrollPane();
     mDroidInfoTable = new javax.swing.JTable();
     mDeleteButton = new javax.swing.JButton();
-
-    jButton3.setText("jButton3");
+    jButton1 = new javax.swing.JButton();
+    jLabel1 = new javax.swing.JLabel();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
     setTitle("Candis Master");
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
+    jScrollPane2.setPreferredSize(new java.awt.Dimension(440, 150));
+
+    mLogTextArea.setEditable(false);
     mLogTextArea.setColumns(20);
     mLogTextArea.setRows(5);
+    mLogTextArea.setPreferredSize(new java.awt.Dimension(435, 75));
     jScrollPane2.setViewportView(mLogTextArea);
     mLoggerHandler = new CandisLoggerHandler(mLogTextArea);
     mDroidManager.addLoggerHandler(mLoggerHandler);
 
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 3;
-    gridBagConstraints.gridy = 1;
-    gridBagConstraints.gridwidth = 3;
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 6;
+    gridBagConstraints.gridwidth = 6;
     gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 5);
     getContentPane().add(jScrollPane2, gridBagConstraints);
@@ -123,7 +126,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
     getContentPane().add(mExecuteButton, gridBagConstraints);
 
-    mDroidlistScrollPane.setPreferredSize(new java.awt.Dimension(453, 255));
+    mDroidlistScrollPane.setPreferredSize(new java.awt.Dimension(453, 200));
 
     mDroidlistTable.setModel(mDroidlistTableModel);
     mDroidlistTable.getColumnModel().getColumn(0).setMinWidth(25);
@@ -178,7 +181,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     getContentPane().add(mStopButton, gridBagConstraints);
 
     jScrollPane3.setMaximumSize(new java.awt.Dimension(32767, 1024));
-    jScrollPane3.setPreferredSize(new java.awt.Dimension(375, 175));
+    jScrollPane3.setPreferredSize(new java.awt.Dimension(300, 110));
 
     mDroidInfoTable.setModel(mDroidInfoTableModel);
     mDroidInfoTable.getColumnModel().getColumn(0).setPreferredWidth(100);
@@ -207,11 +210,24 @@ public class CandisMasterFrame extends javax.swing.JFrame {
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridx = 2;
     gridBagConstraints.gridy = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
     getContentPane().add(mDeleteButton, gridBagConstraints);
+
+    jButton1.setText("Disconnect");
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridy = 2;
+    gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+    getContentPane().add(jButton1, gridBagConstraints);
+
+    jLabel1.setText("Server Log:");
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 5;
+    getContentPane().add(jLabel1, gridBagConstraints);
 
     pack();
   }// </editor-fold>//GEN-END:initComponents
@@ -331,7 +347,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JButton jButton3;
+  private javax.swing.JButton jButton1;
+  private javax.swing.JLabel jLabel1;
   private javax.swing.JPanel jPanel1;
   private javax.swing.JScrollPane jScrollPane2;
   private javax.swing.JScrollPane jScrollPane3;
