@@ -3,6 +3,8 @@ package candis.distributed.test;
 import candis.distributed.DistributedControl;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
+import candis.example.mini.MiniTask;
+import candis.example.mini.miniControl;
 import candis.server.DroidManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -11,7 +13,7 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestMain implements DistributedControl {
+public class TestMain{
 
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
 
@@ -20,12 +22,9 @@ public class TestMain implements DistributedControl {
 	 */
 	public static void main(String[] args) {
 
-		//manager.
+		DistributedControl t = new miniControl();
 
-		DistributedControl t = new TestMain();
-
-		//Scheduler s = t.initScheduler();
-		TestCommunicationIO comio = new TestCommunicationIO<TestTask>(new TestTaskFactory(), DroidManager.getInstance());
+		TestCommunicationIO comio = new TestCommunicationIO<MiniTask>(new MiniTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
 		comio.setScheduler(t.initScheduler());
 
@@ -41,20 +40,5 @@ public class TestMain implements DistributedControl {
 		}
 		comio.stopDroids();
 
-	}
-
-	/**
-	 * Initializes the Scheduler with its Parameters.
-	 *
-	 * @return The intialized Scheduler
-	 */
-	@Override
-	public Scheduler initScheduler() {
-
-		Scheduler sch = new SimpleScheduler();
-		for (int i = 0; i < 10; i++) {
-			sch.addParameter(new TestParameter(i));
-		}
-		return sch;
 	}
 }

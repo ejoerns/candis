@@ -1,4 +1,4 @@
-package candis.distributed.test;
+package candis.example.mini;
 
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
@@ -8,10 +8,10 @@ import candis.distributed.DistributedTask;
  *
  * @author Sebastian Willenborg
  */
-public class TestTask extends DistributedTask {
+public class MiniTask extends DistributedTask {
 
 	public static DistributedTask newInstance() {
-		return new TestTask();
+		return new MiniTask();
 	}
 
 	@Override
@@ -21,8 +21,8 @@ public class TestTask extends DistributedTask {
 
 	@Override
 	public DistributedResult run(DistributedParameter parameter) {
-		//System.out.println("TestTask: run()");
-		TestParameter p = (TestParameter) parameter;
-		return new TestResult(p.number * p.number);
+		//System.out.println("MiniTask: run()");
+		MiniParameter p = (MiniParameter) parameter;
+		return new MiniResult(p.foo * p.bar);
 	}
 }

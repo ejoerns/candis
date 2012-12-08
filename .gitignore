@@ -29,3 +29,4 @@ private/
 /common/nbandroid/
 proguard-project.txt
 settings.properties
+/examples/mini/miniTask/nbandroid/
