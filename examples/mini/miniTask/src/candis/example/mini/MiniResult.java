@@ -4,14 +4,19 @@ import candis.distributed.DistributedResult;
 import java.io.Serializable;
 
 /**
- *
- * @author Sebastian Willenborg
+ * Serializable result for MiniTask.
  */
 public class MiniResult extends DistributedResult implements Serializable {
 
+	/// Some value
 	public final float foobar;
 
-	public MiniResult(float foobar) {
+	/**
+	 * Initalizes the Resultdata.
+	 *
+	 * @param foobar
+	 */
+	public MiniResult(final float foobar) {
 		this.foobar = foobar;
 	}
 }

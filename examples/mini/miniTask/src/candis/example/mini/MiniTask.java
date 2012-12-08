@@ -5,23 +5,28 @@ import candis.distributed.DistributedResult;
 import candis.distributed.DistributedTask;
 
 /**
- *
- * @author Sebastian Willenborg
+ * Example Task.
+ * Multiplies MiniParameter.foo with MiniParamter.bar
  */
 public class MiniTask extends DistributedTask {
 
-	public static DistributedTask newInstance() {
-		return new MiniTask();
-	}
-
+	/**
+	 * Gets called, when the Task should be aborted.
+	 */
 	@Override
 	public void stop() {
-		//throw new UnsupportedOperationException("Not supported yet.");
+		// Nothing to do here
 	}
 
+	/**
+	 * Main code for this Task.
+	 *
+	 * @param parameter
+	 * @return The generated MiniResult, when the task is finished
+	 */
 	@Override
 	public DistributedResult run(DistributedParameter parameter) {
-		//System.out.println("MiniTask: run()");
+		// Cast incomming Parameter
 		MiniParameter p = (MiniParameter) parameter;
 		return new MiniResult(p.foo * p.bar);
 	}

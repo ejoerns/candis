@@ -5,10 +5,9 @@ import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
 
 /**
- *
- * @author Sebastian Willenborg
+ * Minimalistic example how to initialize a set of Tasks.
  */
-public class miniControl implements DistributedControl {
+public class MiniControl implements DistributedControl {
 
 	@Override
 	public Scheduler initScheduler() {

@@ -4,7 +4,7 @@ import candis.distributed.DistributedControl;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
 import candis.example.mini.MiniTask;
-import candis.example.mini.miniControl;
+import candis.example.mini.MiniControl;
 import candis.server.DroidManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,7 +22,7 @@ public class TestMain{
 	 */
 	public static void main(String[] args) {
 
-		DistributedControl t = new miniControl();
+		DistributedControl t = new MiniControl();
 
 		TestCommunicationIO comio = new TestCommunicationIO<MiniTask>(new MiniTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
