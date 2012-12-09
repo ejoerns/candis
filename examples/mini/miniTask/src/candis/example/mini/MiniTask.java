@@ -10,6 +10,7 @@ import candis.distributed.DistributedTask;
  */
 public class MiniTask extends DistributedTask {
 
+	private MiniInitParameter initial;
 	/**
 	 * Gets called, when the Task should be aborted.
 	 */
@@ -28,6 +29,11 @@ public class MiniTask extends DistributedTask {
 	public DistributedResult run(DistributedParameter parameter) {
 		// Cast incomming Parameter
 		MiniParameter p = (MiniParameter) parameter;
-		return new MiniResult(p.foo * p.bar);
+		return new MiniResult(p.foo * p.bar + initial.offset);
+	}
+
+	@Override
+	public void setInitialParameter(DistributedParameter parameter) {
+		initial =  (MiniInitParameter) parameter;
 	}
 }
