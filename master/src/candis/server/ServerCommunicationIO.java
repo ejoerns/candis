@@ -71,12 +71,18 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		return mDroidManager.getKnownDroids().get(droidID);
 	}
 
+	private boolean isQueueEmpty() {
+		synchronized (comIOQueue) {
+			return comIOQueue.isEmpty();
+		}
+	}
+
 	@Override
 	public void run() {
 		try {
-			while (!comIOQueue.isEmpty() || !scheduler.isDone()) {
+			while (!(isQueueEmpty() && scheduler.isDone())) {
 
-				while (!comIOQueue.isEmpty()) {
+				while (!isQueueEmpty()) {
 					Runnable task;
 					synchronized (comIOQueue) {
 						task = comIOQueue.remove(0);
@@ -86,7 +92,9 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 				}
 				if (!scheduler.isDone()) {
 					synchronized (comIOQueue) {
-						comIOQueue.wait();
+						if(comIOQueue.isEmpty()) {
+							comIOQueue.wait();
+						}
 					}
 				}
 
@@ -108,6 +116,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	}
 
 	protected void addToQueue(Runnable task) {
+
 		synchronized (comIOQueue) {
 			comIOQueue.add(task);
 			comIOQueue.notify();

@@ -27,12 +27,9 @@ public class TestMain{
 		TestCommunicationIO comio = new TestCommunicationIO<MiniTask>(new MiniTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
 		comio.setScheduler(t.initScheduler());
-
+		comio.startScheduler();
 		try {
-			Thread.sleep(1);
-			comio.startScheduler();
 
-			Thread.sleep(100);
 			comio.join();
 		}
 		catch (InterruptedException ex) {
