@@ -28,7 +28,12 @@ public class TestServerStateMachine extends FSM {
 
 		UNCONNECTED,
 		CONNECTED,
-		JOB_SENT;
+		BINARY_SENT,
+		BINARY_SENT_DONE,
+		INIT_SENT,
+		INIT_SENT_DONE,
+		JOB_SENT,
+		JOB_SENT_DONE;
 	}
 
 	public enum TestServerTrans implements Transition {
@@ -55,14 +60,56 @@ public class TestServerStateMachine extends FSM {
 
 		addState(TestServerStates.CONNECTED)
 						.addTransition(
+						Instruction.SEND_BINARY,
+						TestServerStates.BINARY_SENT,
+						null);
+
+		addState(TestServerStates.BINARY_SENT)
+						.addTransition(
+						Instruction.ACK,
+						TestServerStates.BINARY_SENT_DONE,
+						new ClientBinarySentHandler());
+
+		addState(TestServerStates.BINARY_SENT_DONE)
+						.addTransition(
+						Instruction.SEND_INITAL,
+						TestServerStates.INIT_SENT,
+						null)
+						.addTransition(
+						Instruction.SEND_BINARY,
+						TestServerStates.BINARY_SENT,
+						null);
+
+		addState(TestServerStates.INIT_SENT)
+						.addTransition(
+						Instruction.ACK,
+						TestServerStates.INIT_SENT_DONE,
+						new ClientInitalParameterSentHandler());
+
+		addState(TestServerStates.INIT_SENT_DONE)
+						.addTransition(
 						Instruction.SEND_JOB,
 						TestServerStates.JOB_SENT,
+						null)
+						.addTransition(
+						Instruction.SEND_BINARY,
+						TestServerStates.BINARY_SENT,
+						null)
+						.addTransition(
+						Instruction.SEND_INITAL,
+						TestServerStates.INIT_SENT,
 						null);
 
 		addState(TestServerStates.JOB_SENT)
 						.addTransition(
+						Instruction.ACK,
+						TestServerStates.JOB_SENT_DONE,
+						null);
+
+		addState(TestServerStates.JOB_SENT_DONE)
+						.addTransition(
 						Instruction.SEND_RESULT,
-						TestServerStates.CONNECTED,
+						TestServerStates.INIT_SENT_DONE,
 						new ClientJobDonedHandler());
 
 		setState(TestServerStates.UNCONNECTED);
@@ -73,8 +120,6 @@ public class TestServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object o) {
-			//LOGGER.log(Level.INFO, "hilfe!");
-			//mDroidManager.connectDroid((String) o, mConnection);
 			mCommunicationIO.onDroidConnected((String) o, mConnection);
 		}
 	}
@@ -83,9 +128,23 @@ public class TestServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object o) {
-			//System.out.println(mConnection.getDroidID());
-			//System.out.println(o);
 			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedResult) o);
+		}
+	}
+
+	private class ClientBinarySentHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			mCommunicationIO.onBinarySent(mConnection.getDroidID());
+		}
+	}
+
+	private class ClientInitalParameterSentHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			mCommunicationIO.onInitalParameterSent(mConnection.getDroidID());
 		}
 	}
 }

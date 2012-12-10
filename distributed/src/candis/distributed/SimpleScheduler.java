@@ -15,12 +15,19 @@ import java.util.logging.Logger;
  * @author Sebastian Willenborg
  */
 public class SimpleScheduler implements Scheduler {
+	private enum DroidState {
+		NEW,
+		BINARY,
+		INITIAL;
+	}
 
 	private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
 	private CommunicationIO comIO;
+	private DistributedParameter initalParameter = null;
 	private Stack<DistributedParameter> params = new Stack<DistributedParameter>();
 	private final Map<String, DistributedParameter> running = new HashMap<String, DistributedParameter>();
 	private final Map<DistributedParameter, DistributedResult> done = new HashMap<DistributedParameter, DistributedResult>();
+	private final Map<String, DroidState> droidStates = new HashMap<String, DroidState>();
 	private boolean started = false;
 
 	public SimpleScheduler() {
@@ -49,10 +56,25 @@ public class SimpleScheduler implements Scheduler {
 		if (running.containsKey(droidID)) {
 			return false;
 		}
-
-		DistributedParameter param = params.pop();
-		comIO.startJob(droidID, param);
-		running.put(droidID, param);
+		DroidState state = DroidState.NEW;
+		if(droidStates.containsKey(droidID)) {
+			state = droidStates.get(droidID);
+		}
+		switch(state) {
+			case NEW:
+				comIO.sendBinary(droidID);
+				break;
+			case BINARY:
+				comIO.sendInitialParameter(droidID, initalParameter);
+				break;
+			case INITIAL:
+				DistributedParameter param = params.pop();
+				comIO.startJob(droidID, param);
+				running.put(droidID, param);
+				break;
+			default:
+				throw new AssertionError(state.name());
+		}
 		return true;
 	}
 
@@ -67,6 +89,7 @@ public class SimpleScheduler implements Scheduler {
 			return;
 		}
 		LOGGER.log(Level.INFO, "Got new Droid {0}", droidID);
+		droidStates.put(droidID, DroidState.NEW);
 		assignTask(droidID);
 	}
 
@@ -104,5 +127,22 @@ public class SimpleScheduler implements Scheduler {
 	public boolean isDone() {
 		LOGGER.log(Level.FINE, "running {0}, params {1}, available Droids {2}", new Object[]{running.size(), params.size(), comIO.getDroidCount()});
 		return (running.size() + params.size()) == 0;
+	}
+
+	public void setInitialParameter(DistributedParameter param) {
+		initalParameter = param;
+	}
+
+	public void onBinaryRecieved(String droidID) {
+		droidStates.put(droidID, DroidState.BINARY);
+		// Send inital Parameter
+		assignTask(droidID);
+
+	}
+
+	public void onInitParameterRecieved(String droidID) {
+		droidStates.put(droidID, DroidState.INITIAL);
+		// Send Job
+		assignTask(droidID);
 	}
 }

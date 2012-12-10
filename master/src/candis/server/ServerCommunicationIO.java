@@ -57,6 +57,29 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	}
 
 	@Override
+	public void sendBinary(String droidID) {
+		Connection d = getDroidConnection(droidID);
+		try {
+			// Insert code here (TODO!)
+			d.sendBinary(new byte[] {0x00, 0x11});
+		}
+		catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	@Override
+	public void sendInitialParameter(String droidID, DistributedParameter parameter) {
+		Connection d = getDroidConnection(droidID);
+		try {
+			d.sendInitialParameter(parameter);
+		}
+		catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	@Override
 	public void stopJob(final String id) {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
@@ -106,6 +129,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		LOGGER.log(Level.INFO, "CommunicationIO done");
 	}
 
+	@Override
 	public void join() throws InterruptedException {
 		queueThread.join();
 	}
@@ -149,6 +173,24 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 			@Override
 			public void run() {
 				scheduler.onNewDroid(droidID);
+			}
+		});
+	}
+
+	public void onBinarySent(final String droidID) {
+		addToQueue(new Runnable() {
+			@Override
+			public void run() {
+				scheduler.onBinaryRecieved(droidID);
+			}
+		});
+	}
+
+	public void onInitalParameterSent(final String droidID) {
+		addToQueue(new Runnable() {
+			@Override
+			public void run() {
+				scheduler.onInitParameterRecieved(droidID);
 			}
 		});
 	}

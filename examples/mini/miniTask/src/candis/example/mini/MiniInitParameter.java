@@ -8,9 +8,9 @@ import java.io.Serializable;
  * @author Sebastian Willenborg
  */
 public class MiniInitParameter extends DistributedParameter implements Serializable {
-	public int offset;
+	public final int offset;
 
-	public MiniInitParameter(int offset) {
+	public MiniInitParameter(final int offset) {
 		this.offset = offset;
 	}
 

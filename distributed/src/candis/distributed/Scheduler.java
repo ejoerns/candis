@@ -6,6 +6,8 @@ package candis.distributed;
  */
 public interface Scheduler {
 
+	public void setInitialParameter(DistributedParameter param);
+
 	public void addParameter(DistributedParameter param);
 
 	public void addParameters(DistributedParameter[] params);
@@ -25,6 +27,10 @@ public interface Scheduler {
 	 * @param result
 	 */
 	public void onJobDone(String droidID, DistributedResult result);
+
+	public void onBinaryRecieved(String droidID);
+	
+	public void onInitParameterRecieved(String droidID);
 
 	/**
 	 * Is called when an error occurred during computation.

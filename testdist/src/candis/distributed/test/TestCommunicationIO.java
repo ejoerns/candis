@@ -21,7 +21,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	private final TaskFactory<T> factory;
 	/// Default number of droids generated if not specified otherwise
-	private static final int DEFAULT_DROIDAMOUNT = 4;
+	private static final int DEFAULT_DROIDAMOUNT = 1;
 	private boolean isClosed = false;
 
 	public TestCommunicationIO(TaskFactory<T> fact, DroidManager manager) {
@@ -74,7 +74,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	private class TestConnection extends Connection {
 
 		private TestDroid droid;
-		private final Logger logger = Logger.getLogger(TestDroid.class.getName());
+		private final Logger LOGGER = Logger.getLogger(TestConnection.class.getName());
 
 		public TestConnection(TestDroid droid, final DroidManager manager, final CommunicationIO comIO) {
 			super(null, manager, comIO);
@@ -90,7 +90,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 				mStateMachine.process(TestServerStateMachine.TestServerTrans.CLIENT_CONNECTED, droid.getId());
 			}
 			catch (StateMachineException ex) {
-				logger.log(Level.SEVERE, null, ex);
+				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
 

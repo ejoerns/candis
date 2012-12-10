@@ -12,6 +12,10 @@ public interface CommunicationIO {
 
 	DroidData getDroidData(String droidID);
 
+	void sendBinary(String droidID);
+
+	void sendInitialParameter(String droidID, DistributedParameter p);
+
 	void startJob(String droidID, DistributedParameter p);
 
 	void stopJob(String droidID);

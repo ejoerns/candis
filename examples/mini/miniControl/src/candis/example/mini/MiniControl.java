@@ -12,6 +12,7 @@ public class MiniControl implements DistributedControl {
 	@Override
 	public Scheduler initScheduler() {
 		Scheduler sch = new SimpleScheduler();
+		sch.setInitialParameter(new MiniInitParameter(23));
 		for (int i = 0; i < 10; i++) {
 			sch.addParameter(new MiniParameter(i, 3.5f));
 		}

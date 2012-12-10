@@ -48,7 +48,27 @@ public class Connection implements Runnable {
 			sendMessage(new Message(Instruction.SEND_JOB, param));
 		}
 		catch (StateMachineException ex) {
-			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	public void sendInitialParameter(final DistributedParameter param) throws IOException {
+		try {
+			mStateMachine.process(Instruction.SEND_INITAL);
+			sendMessage(new Message(Instruction.SEND_INITAL, param));
+		}
+		catch(StateMachineException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	public void sendBinary(byte[] binary) throws IOException {
+		try {
+			mStateMachine.process(Instruction.SEND_BINARY);
+			sendMessage(new Message(Instruction.SEND_BINARY, binary));
+		}
+		catch(StateMachineException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
 
@@ -63,7 +83,7 @@ public class Connection implements Runnable {
 			}
 		}
 		catch (IOException ex) {
-			Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
 
@@ -106,7 +126,7 @@ public class Connection implements Runnable {
 						mStateMachine.process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
 					}
 					catch (StateMachineException ex1) {
-						Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex1);
+						LOGGER.log(Level.SEVERE, null, ex1);
 					}
 					// terminate connection to client
 					isStopped = true;

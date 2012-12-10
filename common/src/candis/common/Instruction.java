@@ -20,8 +20,10 @@ public enum Instruction implements Transition {
 
 	// -- Available messages
 	NO_MSG(0),
-	/// Remote error occured 
+	/// Remote error occured
 	ERROR(1),
+	/// Ack
+	ACK(2),
 	/// Request information - unused
 	GET_INFO(10),
 	/// Send information - unused
@@ -42,6 +44,10 @@ public enum Instruction implements Transition {
 	REJECT_CONNECTION(80),
 	/// Droid requests job
 	REQUEST_JOB(90),
+	/// Master sends Job binary
+	SEND_BINARY(95),
+	/// Master sends Inital Parameter
+	SEND_INITAL(96),
 	/// Master sends job
 	SEND_JOB(100),
 	/// Droid sends result to master
@@ -78,11 +84,11 @@ public enum Instruction implements Transition {
 //		this.name = name;
 //		this.val = val;
 //	}
-//	
+//
 //	public String getName() {
 //		return this.name;
 //	}
-//	
+//
 //	public int getVal() {
 //		return this.val;
 //	}
