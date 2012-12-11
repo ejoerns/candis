@@ -10,6 +10,8 @@ import candis.distributed.DistributedResult;
 import candis.server.Connection;
 import candis.server.DroidManager;
 import candis.server.ServerCommunicationIO;
+import candis.server.ServerStateMachine;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,102 +19,77 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestServerStateMachine extends FSM {
+public class TestServerStateMachine extends ServerStateMachine {
 
-	private final Connection mConnection;
-	private final DroidManager mDroidManager;
-	private final ServerCommunicationIO mCommunicationIO;
-	private static final Logger LOGGER = Logger.getLogger(TestServerStateMachine.class.getName());
-
-	private enum TestServerStates implements StateEnum {
-
-		UNCONNECTED,
-		CONNECTED,
-		BINARY_SENT,
-		BINARY_SENT_DONE,
-		INIT_SENT,
-		INIT_SENT_DONE,
-		JOB_SENT,
-		JOB_SENT_DONE;
-	}
-
-	public enum TestServerTrans implements Transition {
-
-		CLIENT_CONNECTED,
-		CLIENT_DISCONNECTED,
-		GOT_RESULT;
-	}
+	//private static final Logger LOGGER = Logger.getLogger(TestServerStateMachine.class.getName());
 
 	public TestServerStateMachine(final Connection connection, final DroidManager droidManager, final ServerCommunicationIO comIO) {
-		super();
-		mConnection = connection;
-		mDroidManager = droidManager;
-		mCommunicationIO = comIO;
-		init();
+		super(connection, droidManager, comIO);
 	}
 
-	private void init() {
-		addState(TestServerStates.UNCONNECTED)
+	@Override
+	protected void init() {
+		addState(ServerStates.UNCONNECTED)
 						.addTransition(
-						TestServerTrans.CLIENT_CONNECTED,
-						TestServerStates.CONNECTED,
+						ServerTrans.CLIENT_NEW,
+						ServerStates.CONNECTED,
 						new ClientConnectedHandler());
 
-		addState(TestServerStates.CONNECTED)
+		addState(ServerStates.CONNECTED)
 						.addTransition(
-						Instruction.SEND_BINARY,
-						TestServerStates.BINARY_SENT,
-						null);
+						ServerTrans.SEND_BINARY,
+						ServerStates.BINARY_SENT,
+						new SendBinaryHandler());
 
-		addState(TestServerStates.BINARY_SENT)
+		addState(ServerStates.BINARY_SENT)
 						.addTransition(
 						Instruction.ACK,
-						TestServerStates.BINARY_SENT_DONE,
+						ServerStates.BINARY_SENT_DONE,
 						new ClientBinarySentHandler());
 
-		addState(TestServerStates.BINARY_SENT_DONE)
+		addState(ServerStates.BINARY_SENT_DONE)
 						.addTransition(
-						Instruction.SEND_INITAL,
-						TestServerStates.INIT_SENT,
-						null)
+						ServerStateMachine.ServerTrans.SEND_INITAL,
+						ServerStates.INIT_SENT,
+						new SendInitialParameterHandler())
 						.addTransition(
 						Instruction.SEND_BINARY,
-						TestServerStates.BINARY_SENT,
-						null);
+						ServerStates.BINARY_SENT,
+						new SendBinaryHandler());
 
-		addState(TestServerStates.INIT_SENT)
+		addState(ServerStates.INIT_SENT)
 						.addTransition(
 						Instruction.ACK,
-						TestServerStates.INIT_SENT_DONE,
+						ServerStates.INIT_SENT_DONE,
 						new ClientInitalParameterSentHandler());
 
-		addState(TestServerStates.INIT_SENT_DONE)
+		addState(ServerStates.INIT_SENT_DONE)
 						.addTransition(
-						Instruction.SEND_JOB,
-						TestServerStates.JOB_SENT,
-						null)
+						ServerStateMachine.ServerTrans.SEND_JOB,
+						ServerStates.JOB_SENT,
+						new SendJobHandler())
 						.addTransition(
-						Instruction.SEND_BINARY,
-						TestServerStates.BINARY_SENT,
-						null)
+						ServerStateMachine.ServerTrans.SEND_BINARY,
+						ServerStates.BINARY_SENT,
+						new SendBinaryHandler())
 						.addTransition(
-						Instruction.SEND_INITAL,
-						TestServerStates.INIT_SENT,
-						null);
+						ServerStateMachine.ServerTrans.SEND_INITAL,
+						ServerStates.INIT_SENT,
+						new SendInitialParameterHandler());
 
-		addState(TestServerStates.JOB_SENT)
+		addState(ServerStates.JOB_SENT)
 						.addTransition(
 						Instruction.ACK,
-						TestServerStates.JOB_SENT_DONE,
+						ServerStates.JOB_SENT_DONE,
 						null);
 
-		addState(TestServerStates.JOB_SENT_DONE)
+		addState(ServerStates.JOB_SENT_DONE)
 						.addTransition(
 						Instruction.SEND_RESULT,
-						TestServerStates.INIT_SENT_DONE,
+						ServerStates.INIT_SENT_DONE,
 						new ClientJobDonedHandler());
 
-		setState(TestServerStates.UNCONNECTED);
+		setState(ServerStates.UNCONNECTED);
 
 	}
 
@@ -121,30 +98,6 @@ public class TestServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object o) {
 			mCommunicationIO.onDroidConnected((String) o, mConnection);
-		}
-	}
-
-	private class ClientJobDonedHandler implements ActionHandler {
-
-		@Override
-		public void handle(final Object o) {
-			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedResult) o);
-		}
-	}
-
-	private class ClientBinarySentHandler implements ActionHandler {
-
-		@Override
-		public void handle(final Object o) {
-			mCommunicationIO.onBinarySent(mConnection.getDroidID());
-		}
-	}
-
-	private class ClientInitalParameterSentHandler implements ActionHandler {
-
-		@Override
-		public void handle(final Object o) {
-			mCommunicationIO.onInitalParameterSent(mConnection.getDroidID());
 		}
 	}
 }

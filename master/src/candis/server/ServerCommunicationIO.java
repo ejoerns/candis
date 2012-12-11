@@ -75,7 +75,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	public void sendBinary(String droidID) {
 		Connection d = getDroidConnection(droidID);
 		try {
-			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_BINARY);
+			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_BINARY, getDroidBinary());
 		}
 		catch (StateMachineException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
