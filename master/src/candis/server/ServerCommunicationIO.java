@@ -2,22 +2,39 @@ package candis.server;
 
 import candis.common.fsm.StateMachineException;
 import candis.distributed.CommunicationIO;
+import candis.distributed.DistributedControl;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
 import candis.distributed.DroidData;
 import candis.distributed.Scheduler;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Vector;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 /**
  *
@@ -71,6 +88,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		}
 	}
 
+	// Called by Scheduler.
 	@Override
 	public void sendBinary(String droidID) {
 		Connection d = getDroidConnection(droidID);
@@ -209,24 +227,72 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		});
 	}
 
+	public void loadCandisDistributedBundle(final File cdbfile) {
+		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
+		final CDBContext cdbContext = new CDBContext(projectPath);
+		extractCandisDistributedBundle(cdbfile, cdbContext);
+
+		List<String> classList = getClassNamesInJar(cdbContext.getServerBin().getPath());
+
+		URLClassLoader child;
+		try {
+			System.out.println("Load URL: " + cdbContext.getServerBin().toURI().toURL());
+			child = new URLClassLoader(
+							new URL[]{cdbContext.getServerBin().toURI().toURL()},
+							this.getClass().getClassLoader());
+
+			for (String classname : classList) {
+				System.out.println("Trying to load class: " + classname);
+				// finds the DistributedControl instance
+				Class classToLoad = child.loadClass(classname);
+				if (DistributedControl.class.isAssignableFrom(classToLoad)) {
+					System.out.println("YEAH, CLASS IS ASSIGNABLE");
+				}
+				else {
+					System.out.println("NO, CLASS IS NOT ASSIGNABLE");
+				}
+			}
+		}
+		catch (MalformedURLException ex) {
+			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		catch (SecurityException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		catch (ClassNotFoundException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+
+	}
+
 	/**
-	 * Loads candis distributed bundle.
+	 * Extracts candis distributed bundle to the directory given with cdbContext.
 	 *
 	 * File format: zip containing 3 files: - config.properties - droid binary -
 	 * server binary
 	 *
 	 * @param file Name of cdb-file
+	 * @return Project directory if succeede, otherwise null
 	 */
-	public void loadCandisDistributedBundle(File cdbfile) {
+	private void extractCandisDistributedBundle(final File cdbfile, final CDBContext cdbContext) {
+		ZipFile zipFile = null;
+//		String projectDir = null;
+		String server_binary = null;
+		String droid_binary = null;
+		int libNumber = 0;
 		try {
-			ZipFile zipFile = new ZipFile(cdbfile);
-			String server_binary = null;
-			String droid_binary = null;
-
+			zipFile = new ZipFile(cdbfile);
+			// create new directory to store unzipped project files
+			File newDir = cdbContext.getProjectDir();
+			if (!newDir.exists()) {
+				if (!newDir.mkdir()) {
+					LOGGER.log(Level.WARNING, "Project directory {0} could not be created", newDir);
+				}
+			}
 			// try to load filenames from properties file
 			ZipEntry entry = zipFile.getEntry("config.properties");
 			if (entry == null) {
-				throw new FileNotFoundException("Zip does not contain 'config.properties'");
+				throw new FileNotFoundException("cdb does not have a 'config.properties'");
 			}
 			Properties p = new Properties();
 			p.load(zipFile.getInputStream(entry));
@@ -242,20 +308,176 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 			}
 			// load server binary
 			entry = zipFile.getEntry(server_binary);
-			mServerBinary = new byte[(int) entry.getSize()];
-			zipFile.getInputStream(entry).read(mServerBinary);
-			LOGGER.log(Level.FINE, "Loaded server binary", entry.getName());
+			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
+							new FileOutputStream(cdbContext.getServerBin())));
+			LOGGER.log(Level.FINE, "Extracted server binary: {0}", entry.getName());
 			// load droid binary
 			entry = zipFile.getEntry(droid_binary);
-			mDroidBinary = new byte[(int) entry.getSize()];
-			zipFile.getInputStream(entry).read(mDroidBinary);
-			LOGGER.log(Level.FINE, "Loaded client binary", entry.getName());
+			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
+							new FileOutputStream(cdbContext.getDroidBin())));
+			LOGGER.log(Level.FINE, "Extracted droid binary: {0}", entry.getName());
+			// load libs
+			String lib;
+			while ((lib = p.getProperty(String.format("server.lib.%d", libNumber))) != null) {
+				entry = zipFile.getEntry(lib);
+				copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
+								new FileOutputStream(cdbContext.getLib(libNumber))));
+				LOGGER.log(Level.FINE, "Extracted lib: {0}", entry.getName());
+				libNumber++;
+			}
+			LOGGER.log(Level.FINE, "{0} libs found", libNumber);
 		}
 		catch (ZipException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	private static final void copyInputStream(InputStream in, OutputStream out)
+					throws IOException {
+		byte[] buffer = new byte[1024];
+		int len;
+
+		while ((len = in.read(buffer)) >= 0) {
+			out.write(buffer, 0, len);
+		}
+
+		in.close();
+		out.close();
+	}
+
+	public void listLoadedClasses(ClassLoader byClassLoader) {
+		Class clKlass = byClassLoader.getClass();
+		System.out.println("Classloader: " + clKlass.getCanonicalName());
+		while (clKlass != java.lang.ClassLoader.class) {
+			clKlass = clKlass.getSuperclass();
+		}
+		try {
+			java.lang.reflect.Field fldClasses = clKlass
+							.getDeclaredField("classes");
+			fldClasses.setAccessible(true);
+			Vector classes = (Vector) fldClasses.get(byClassLoader);
+			for (Iterator iter = classes.iterator(); iter.hasNext();) {
+				System.out.println("   Loaded " + iter.next());
+			}
+		}
+		catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		}
+		catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		}
+		catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Finds all class names in a jar file.
+	 *
+	 * @param jarName Jar file to search in
+	 * @return List of all full class names
+	 */
+	public static List<String> getClassNamesInJar(String jarName) {
+		List<String> classes = new ArrayList<String>();
+
+		JarInputStream jarFile = null;
+		try {
+			jarFile = new JarInputStream(new FileInputStream(jarName));
+			JarEntry jarEntry;
+
+			while (true) {
+				jarEntry = jarFile.getNextJarEntry();
+				if (jarEntry == null) {
+					break;
+				}
+				if (jarEntry.getName().endsWith(".class")) {
+					LOGGER.log(Level.FINE, "Found class: " + jarEntry.getName().replaceAll("/", "\\."));
+					classes.add(removeFileExtension(jarEntry.getName().replaceAll("/", "\\.")));
+				}
+			}
+		}
+		catch (Exception e) {
+			try {
+				if (jarFile != null) {
+					jarFile.close();
+				}
+				LOGGER.log(Level.WARNING, null, "Closed jar input stream");
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+		}
+		return classes;
+	}
+
+	/**
+	 * Removes the filename extension from filename.
+	 *
+	 * @param s filename to process
+	 * @return filename without extension
+	 */
+	public static String removeFileExtension(String s) {
+
+		String separator = System.getProperty("file.separator");
+		String filename;
+
+		// Remove the path upto the filename.
+		int lastSeparatorIndex = s.lastIndexOf(separator);
+		if (lastSeparatorIndex == -1) {
+			filename = s;
+		}
+		else {
+			filename = s.substring(lastSeparatorIndex + 1);
+		}
+
+		// Remove the extension.
+		int extensionIndex = filename.lastIndexOf(".");
+		if (extensionIndex == -1) {
+			return filename;
+		}
+
+		return filename.substring(0, extensionIndex);
+	}
+
+	private class CDBContext {
+
+		private String mPath;
+		private File mDroidBin;
+		private File mServerBin;
+		private int mLibCount;
+
+		/**
+		 * Creates CDB context for the given path.
+		 *
+		 * @param path project path
+		 */
+		public CDBContext(String path) {
+			mPath = path;
+			mDroidBin = new File(mPath, "droid.binary.dex");
+			mServerBin = new File(mPath, "server.binary.jar");
+			mLibCount = 0;
+		}
+
+		public File getProjectDir() {
+			return new File(mPath);
+		}
+
+		public File getDroidBin() {
+			return mDroidBin;
+		}
+
+		public File getServerBin() {
+			return mServerBin;
+		}
+
+		public File getLib(int n) {
+			return new File(mPath, String.format("server.lib.%d", n));
 		}
 	}
 }
