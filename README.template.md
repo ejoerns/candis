@@ -52,10 +52,11 @@ Simple serverside Task management using `SimpleScheduler`. It is possible to wri
 
 ### Generate Candis Distributed Bundle (cdb)
 
-Using `mkcdb.py` (located in `tools/`) to create the cdb-file:
+Using `mkcdb.py` (located in [`tools/`](https://github.com/ejoerns/candis/tree/master/tools)) to create the cdb-file:
 
 ```
 >> mkcdb.py miniTaks.cdb examples/mini/miniControl/ examples/mini/miniTask/
 ```
 
 The generated file `miniTask.cdb` is ready to be read by the server-control application.
+
