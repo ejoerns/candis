@@ -1,16 +1,23 @@
 package candis.server;
 
+import candis.common.fsm.StateMachineException;
 import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
 import candis.distributed.DroidData;
 import candis.distributed.Scheduler;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
 
 /**
  *
@@ -23,6 +30,8 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	private Thread queueThread;
 	private static final Logger LOGGER = Logger.getLogger(ServerCommunicationIO.class.getName());
 	private final List<Runnable> comIOQueue = new LinkedList<Runnable>();
+	private byte[] mServerBinary;
+	private byte[] mDroidBinary;
 
 	public ServerCommunicationIO(final DroidManager manager) {
 		mDroidManager = manager;
@@ -43,27 +52,32 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		return mDroidManager.getConnectedDroids().get(droidID);
 	}
 
-	@Override
-	public void startJob(String id, DistributedParameter p) {
+	public byte[] getDroidBinary() {
+		return mDroidBinary;
+	}
 
+	public byte[] getServerBinary() {
+		return mServerBinary;
+	}
+
+	@Override
+	public void startJob(String id, DistributedParameter param) {
 		Connection d = getDroidConnection(id);
 		try {
-			d.sendJob(p);
+			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_JOB, param);
 		}
-		catch (IOException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
+		catch (StateMachineException ex) {
+			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
 		}
-
 	}
 
 	@Override
 	public void sendBinary(String droidID) {
 		Connection d = getDroidConnection(droidID);
 		try {
-			// Insert code here (TODO!)
-			d.sendBinary(new byte[] {0x00, 0x11});
+			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_BINARY);
 		}
-		catch (IOException ex) {
+		catch (StateMachineException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
@@ -72,10 +86,10 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	public void sendInitialParameter(String droidID, DistributedParameter parameter) {
 		Connection d = getDroidConnection(droidID);
 		try {
-			d.sendInitialParameter(parameter);
+			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_INITAL);
 		}
-		catch (IOException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
+		catch (StateMachineException ex) {
+			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
 
@@ -115,7 +129,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 				}
 				if (!scheduler.isDone()) {
 					synchronized (comIOQueue) {
-						if(comIOQueue.isEmpty()) {
+						if (comIOQueue.isEmpty()) {
 							comIOQueue.wait();
 						}
 					}
@@ -193,5 +207,55 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 				scheduler.onInitParameterRecieved(droidID);
 			}
 		});
+	}
+
+	/**
+	 * Loads candis distributed bundle.
+	 *
+	 * File format: zip containing 3 files: - config.properties - droid binary -
+	 * server binary
+	 *
+	 * @param file Name of cdb-file
+	 */
+	public void loadCandisDistributedBundle(File cdbfile) {
+		try {
+			ZipFile zipFile = new ZipFile(cdbfile);
+			String server_binary = null;
+			String droid_binary = null;
+
+			// try to load filenames from properties file
+			ZipEntry entry = zipFile.getEntry("config.properties");
+			if (entry == null) {
+				throw new FileNotFoundException("Zip does not contain 'config.properties'");
+			}
+			Properties p = new Properties();
+			p.load(zipFile.getInputStream(entry));
+			server_binary = p.getProperty("server.binary");
+			droid_binary = p.getProperty("droid.binary");
+			if (server_binary == null) {
+				LOGGER.log(Level.SEVERE, "No server binary given");
+				return;
+			}
+			if (droid_binary == null) {
+				LOGGER.log(Level.SEVERE, "No droid binary given");
+				return;
+			}
+			// load server binary
+			entry = zipFile.getEntry(server_binary);
+			mServerBinary = new byte[(int) entry.getSize()];
+			zipFile.getInputStream(entry).read(mServerBinary);
+			LOGGER.log(Level.FINE, "Loaded server binary", entry.getName());
+			// load droid binary
+			entry = zipFile.getEntry(droid_binary);
+			mDroidBinary = new byte[(int) entry.getSize()];
+			zipFile.getInputStream(entry).read(mDroidBinary);
+			LOGGER.log(Level.FINE, "Loaded client binary", entry.getName());
+		}
+		catch (ZipException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
 	}
 }

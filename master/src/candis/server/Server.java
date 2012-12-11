@@ -31,7 +31,7 @@ public class Server implements Runnable {
 	private ServerSocket ssocket;
 	private boolean doStop = false;
 	final DroidManager mDroidManager;
-	final CommunicationIO mCommunicationIO;
+	final ServerCommunicationIO mCommunicationIO;
 
 	/**
 	 * @param args the command line arguments

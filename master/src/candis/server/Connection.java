@@ -1,11 +1,8 @@
 package candis.server;
 
-import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
-import candis.distributed.CommunicationIO;
-import candis.distributed.DistributedParameter;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -28,48 +25,25 @@ public class Connection implements Runnable {
 	// each connection has its own state machine
 	protected FSM mStateMachine = null;
 	protected final DroidManager mDroidManager;
-	protected final CommunicationIO mCommunicationIO;
+	protected final ServerCommunicationIO mCommunicationIO;
 	protected ObjectOutputStream oos = null;
 	protected ObjectInputStream ois = null;
 
-	public Connection(final Socket socket, final DroidManager droidmanager, final CommunicationIO comIO) {
+	public Connection(
+					final Socket socket,
+					final DroidManager droidmanager,
+					final ServerCommunicationIO comIO) {
 		mSocket = socket;
 		mDroidManager = droidmanager;
 		mCommunicationIO = comIO;
 	}
 
+	public FSM getStateMachine() {
+		return mStateMachine;
+	}
+
 	public void sendMessage(final Message msg) throws IOException {
 		oos.writeObject(msg);
-	}
-
-	public void sendJob(final DistributedParameter param) throws IOException {
-		try {
-			mStateMachine.process(Instruction.SEND_JOB);
-			sendMessage(new Message(Instruction.SEND_JOB, param));
-		}
-		catch (StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
-	}
-
-	public void sendInitialParameter(final DistributedParameter param) throws IOException {
-		try {
-			mStateMachine.process(Instruction.SEND_INITAL);
-			sendMessage(new Message(Instruction.SEND_INITAL, param));
-		}
-		catch(StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
-	}
-
-	public void sendBinary(byte[] binary) throws IOException {
-		try {
-			mStateMachine.process(Instruction.SEND_BINARY);
-			sendMessage(new Message(Instruction.SEND_BINARY, binary));
-		}
-		catch(StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
 	}
 
 	protected void initConnection() {

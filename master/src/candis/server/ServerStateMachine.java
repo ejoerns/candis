@@ -11,15 +11,14 @@ import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
-import candis.distributed.CommunicationIO;
+import candis.distributed.DistributedResult;
 import candis.distributed.droid.StaticProfile;
-import candis.server.gui.CheckCodeShowDialog;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.SwingUtilities;
 
 /**
  *
@@ -31,7 +30,7 @@ public class ServerStateMachine extends FSM {
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private final Connection mConnection;
 	protected final DroidManager mDroidManager;
-	protected final CommunicationIO mCommunicationIO;
+	protected final ServerCommunicationIO mCommunicationIO;
 	RandomID mCurrentID;
 
 	private enum ServerStates implements StateEnum {
@@ -42,7 +41,12 @@ public class ServerStateMachine extends FSM {
 		CHECKCODE_REQUESTED,
 		CHECKCODE_VALIDATE,
 		CONNECTED,
-		JOB_SENT,;
+		BINARY_SENT,
+		BINARY_SENT_DONE,
+		INIT_SENT,
+		INIT_SENT_DONE,
+		JOB_SENT,
+		JOB_SENT_DONE;
 	}
 
 	public enum ServerTrans implements Transition {
@@ -55,15 +59,16 @@ public class ServerStateMachine extends FSM {
 		CHECKCODE_INVALID,
 		POST_JOB,
 		CLIENT_INVALID,
-		CLIENT_DISCONNECTED;
+		CLIENT_DISCONNECTED,
+		SEND_INITAL,
+		SEND_BINARY,
+		SEND_JOB;
 	}
 
-	private enum ClientHandlerID implements HandlerID {
-
-		MY_ID;
-	}
-
-	public ServerStateMachine(final Connection connection, final DroidManager droidManager, final CommunicationIO comIO) {
+	public ServerStateMachine(
+					final Connection connection,
+					final DroidManager droidManager,
+					final ServerCommunicationIO comIO) {
 		super();
 		mConnection = connection;
 		mDroidManager = droidManager;
@@ -120,18 +125,55 @@ public class ServerStateMachine extends FSM {
 						new ReceivedProfileHandler());
 		addState(ServerStates.CONNECTED)
 						.addTransition(
-						Instruction.SEND_JOB,
-						ServerStates.JOB_SENT,
-						null)
+						ServerTrans.SEND_BINARY,
+						ServerStates.BINARY_SENT,
+						new SendBinaryHandler())
 						.addTransition(
 						ServerTrans.CLIENT_DISCONNECTED,
 						ServerStates.UNCONNECTED,
 						new ClientDisconnectedHandler());
+		addState(ServerStates.BINARY_SENT)
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.BINARY_SENT_DONE,
+						new ClientBinarySentHandler());
+		addState(ServerStates.BINARY_SENT_DONE)
+						.addTransition(
+						ServerTrans.SEND_INITAL,
+						ServerStates.INIT_SENT,
+						new SendInitialParameterHandler())
+						.addTransition(
+						ServerTrans.SEND_BINARY,
+						ServerStates.BINARY_SENT,
+						null);
+		addState(ServerStates.INIT_SENT)
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.INIT_SENT_DONE,
+						new ClientInitalParameterSentHandler());
+		addState(ServerStates.INIT_SENT_DONE)
+						.addTransition(
+						ServerTrans.SEND_JOB,
+						ServerStates.JOB_SENT,
+						new SendJobHandler())
+						.addTransition(
+						ServerTrans.SEND_BINARY,
+						ServerStates.BINARY_SENT,
+						null)
+						.addTransition(
+						ServerTrans.SEND_INITAL,
+						ServerStates.INIT_SENT,
+						null);
 		addState(ServerStates.JOB_SENT)
 						.addTransition(
-						Instruction.SEND_RESULT,
-						ServerStates.CONNECTED,
+						Instruction.ACK,
+						ServerStates.JOB_SENT_DONE,
 						null);
+		addState(ServerStates.JOB_SENT_DONE)
+						.addTransition(
+						Instruction.SEND_RESULT,
+						ServerStates.INIT_SENT_DONE,
+						new ClientJobDonedHandler());
 		setState(ServerStates.UNCONNECTED);
 	}
 
@@ -271,6 +313,7 @@ public class ServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object o) {
+			System.out.println("ProfileRequestHandler() called");
 			try {
 				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
 			}
@@ -287,6 +330,7 @@ public class ServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object o) {
+			System.out.println("CheckCodeRequestedHandler() called");
 			// generate 6digit string
 			final SecureRandom random = new SecureRandom();
 			final byte[] byteCode = new byte[3];
@@ -298,6 +342,96 @@ public class ServerStateMachine extends FSM {
 				Utilities.byte2hex(byteCode[i], buf);
 			}
 			mDroidManager.showCheckCode(buf.toString());
+		}
+	}
+
+	/**
+	 * Gets called if JOB_DONE was received.
+	 */
+	private class ClientJobDonedHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			System.out.println("ClientJobDonedHandler() called");
+			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedResult) o);
+		}
+	}
+
+	/**
+	 * Sends binary file to droid.
+	 */
+	private class SendBinaryHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object binary) {
+			System.out.println("SendBinaryHandler() called");
+			try {
+				// TODO: test if empty
+				mConnection.sendMessage(new Message(Instruction.SEND_BINARY, (Serializable) binary));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 * Gets called if Droid ACKs binary receive.
+	 */
+	private class ClientBinarySentHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			System.out.println("ClientBinarySentHandler() called");
+			mCommunicationIO.onBinarySent(mConnection.getDroidID());
+		}
+	}
+
+	/**
+	 * Sends the initial parameter to the droid.
+	 */
+	private class SendInitialParameterHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object param) {
+			System.out.println("SendInitialParameterHandler() called");
+			try {
+				// TODO: test if empty
+				mConnection.sendMessage(new Message(Instruction.SEND_INITAL, (Serializable) param));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 * Gets called when the droid ACKed the initial parameter.
+	 */
+	private class ClientInitalParameterSentHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			System.out.println("ClientInitalParameterSentHandler() called");
+			mCommunicationIO.onInitalParameterSent(mConnection.getDroidID());
+		}
+	}
+
+	/**
+	 * Sends the job to the droid.
+	 */
+	private class SendJobHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object param) {
+			System.out.println("SendJobHandler() called");
+			try {
+				// TODO: test if empty
+				mConnection.sendMessage(new Message(Instruction.SEND_JOB, (Serializable) param));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
 		}
 	}
 }

@@ -3,6 +3,7 @@ package candis.server.gui;
 import candis.common.Settings;
 import candis.server.DroidManager;
 import candis.server.Server;
+import candis.server.ServerCommunicationIO;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.logging.Level;
@@ -17,9 +18,10 @@ import javax.swing.filechooser.FileFilter;
  */
 public class CandisMasterFrame extends javax.swing.JFrame {
 
+	private DroidManager mDroidManager;
+	private ServerCommunicationIO mCommIO;
 	private DroidlistTableModel mDroidlistTableModel;
 	private DroidInfoTableModel mDroidInfoTableModel;
-	private DroidManager mDroidManager;
 	private OptionsDialog mOptionDialog;
 	private CheckCodeShowDialog mCheckCodeShowDialog;
 	private CandisLoggerHandler mLoggerHandler;
@@ -27,8 +29,12 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	/**
 	 * Creates new form CandisMasterFrame.
 	 */
-	public CandisMasterFrame(DroidManager droidmanager, DroidlistTableModel droidlisttablemodel) {
+	public CandisMasterFrame(
+					DroidManager droidmanager,
+					ServerCommunicationIO commIO,
+					DroidlistTableModel droidlisttablemodel) {
 		mDroidManager = droidmanager;
+		mCommIO = commIO;
 		mDroidlistTableModel = droidlisttablemodel;
 		mDroidInfoTableModel = new DroidInfoTableModel();
 		mOptionDialog = new OptionsDialog(this, false);
@@ -259,7 +265,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private void mUploadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mUploadButtonActionPerformed
 		// TODO add your handling code here:
 		JFileChooser fileChooser = new JFileChooser();
-		FileFilter filter = new ExtensionFilter(".jar file", ".jar");
+		FileFilter filter = new ExtensionFilter(".cdb file", ".cdb");
 		fileChooser.addChoosableFileFilter(filter);
 		fileChooser.setFileFilter(filter);
 		fileChooser.showOpenDialog(this);
@@ -333,8 +339,9 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		//</editor-fold>
 
 		final DroidManager droidmanager = DroidManager.getInstance();
+		final ServerCommunicationIO scio = new ServerCommunicationIO(droidmanager);
 		final DroidlistTableModel dltm = new DroidlistTableModel();
-		final CandisMasterFrame cmf = new CandisMasterFrame(droidmanager, dltm);
+		final CandisMasterFrame cmf = new CandisMasterFrame(droidmanager, scio, dltm);
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			public void run() {
