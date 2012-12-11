@@ -10,10 +10,35 @@ This is an example, how to implement a distributed Task with candis.
 
 ### Data exchange
 
-To transfer data between management server and the remote App with serializable classes.
+To transfer data between management server and the remote App you implement your own serializable container classes.
+
+#### Initial Parameter
+Initial Parameters are used to set Task parameters which are same for all tasks (Implementation of `DistributedParameter`).
+
+```java
+package candis.example.mini;
+
+import candis.distributed.DistributedParameter;
+import java.io.Serializable;
+
+/**
+ *
+ * @author Sebastian Willenborg
+ */
+public class MiniInitParameter extends DistributedParameter implements Serializable {
+	public final int offset;
+
+	public MiniInitParameter(final int offset) {
+		this.offset = offset;
+	}
+
+}
+
+```
 
 #### Task Parameter
-Each task is specified by an implementation of `DistributedParameter`.
+Each task is specified by its own Parameters (implementation of `DistributedParameter`).
+
 ```java
 package candis.example.mini;
 
@@ -44,7 +69,8 @@ public class MiniParameter extends DistributedParameter implements Serializable 
 ```
 
 #### Result Data
-The result of a successful done task will be transferred back with an implementation of `DistributedResult`.
+The result of a successful done task will be transferred back in it's result container (implementation of `DistributedResult`).
+
 ```java
 package candis.example.mini;
 
@@ -88,6 +114,7 @@ import candis.distributed.DistributedTask;
  */
 public class MiniTask extends DistributedTask {
 
+	private MiniInitParameter initial;
 	/**
 	 * Gets called, when the Task should be aborted.
 	 */
@@ -106,7 +133,12 @@ public class MiniTask extends DistributedTask {
 	public DistributedResult run(DistributedParameter parameter) {
 		// Cast incomming Parameter
 		MiniParameter p = (MiniParameter) parameter;
-		return new MiniResult(p.foo * p.bar);
+		return new MiniResult(p.foo * p.bar + initial.offset);
+	}
+
+	@Override
+	public void setInitialParameter(DistributedParameter parameter) {
+		initial =  (MiniInitParameter) parameter;
 	}
 }
 ```
@@ -114,6 +146,7 @@ public class MiniTask extends DistributedTask {
 ### Task Management
 
 Simple serverside Task management using `SimpleScheduler`. It is possible to write own scheduler by implementing `Scheduler`.
+
 ```java
 package candis.example.mini;
 
@@ -129,6 +162,7 @@ public class MiniControl implements DistributedControl {
 	@Override
 	public Scheduler initScheduler() {
 		Scheduler sch = new SimpleScheduler();
+		sch.setInitialParameter(new MiniInitParameter(23));
 		for (int i = 0; i < 10; i++) {
 			sch.addParameter(new MiniParameter(i, 3.5f));
 		}
@@ -138,3 +172,12 @@ public class MiniControl implements DistributedControl {
 }
 ```
 
+### Generate Candis Distributed Bundle (cdb)
+
+Using `mkcdb.py` (located in `tools/`) to create the cdb-file:
+
+```
+>> mkcdb.py miniTaks.cdb examples/mini/miniControl/ examples/mini/miniTask/
+```
+
+The generated file `miniTask.cdb` is ready to be read by the server-control application.
