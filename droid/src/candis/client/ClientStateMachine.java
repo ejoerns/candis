@@ -42,8 +42,8 @@ public final class ClientStateMachine extends FSM {
 		CHECKCODE_ENTER,
 		CHECKCODE_SENT,
 		PROFILE_SENT,
-		WAIT_FOR_JOB,
-		RECEIVED_JOB;
+		CONNECTED,
+		JOB_RECEIVED, BINARY_RECEIVED, INIT_RECEIVED;
 	}
 
 	public enum ClientTrans implements Transition {
@@ -90,7 +90,7 @@ public final class ClientStateMachine extends FSM {
 						new ProfileRequestHandler())
 						.addTransition(
 						Instruction.ACCEPT_CONNECTION,
-						ClientStates.WAIT_FOR_JOB,
+						ClientStates.CONNECTED,
 						null)
 						.addTransition(
 						Instruction.REJECT_CONNECTION,
@@ -113,18 +113,36 @@ public final class ClientStateMachine extends FSM {
 		addState(ClientStates.PROFILE_SENT)
 						.addTransition(
 						Instruction.ACCEPT_CONNECTION,
-						ClientStates.WAIT_FOR_JOB,
+						ClientStates.CONNECTED,
 						null);
-		addState(ClientStates.WAIT_FOR_JOB)
+		addState(ClientStates.CONNECTED)
+						.addTransition(
+						Instruction.SEND_BINARY,
+						ClientStates.BINARY_RECEIVED,
+						new BinaryReceivedHandler());
+		addState(ClientStates.BINARY_RECEIVED)
+						.addTransition(
+						Instruction.SEND_INITAL,
+						ClientStates.INIT_RECEIVED,
+						new InitialParameterReceivedHandler())
+						.addTransition(
+						Instruction.SEND_BINARY,
+						ClientStates.BINARY_RECEIVED,
+						new BinaryReceivedHandler());
+		addState(ClientStates.INIT_RECEIVED)
 						.addTransition(
 						Instruction.SEND_JOB,
-						ClientStates.RECEIVED_JOB,
-						null);
-		addState(ClientStates.RECEIVED_JOB)
+						ClientStates.JOB_RECEIVED,
+						new JobReceivedHandler())
+						.addTransition(
+						Instruction.SEND_BINARY,
+						ClientStates.BINARY_RECEIVED,
+						new BinaryReceivedHandler());
+		addState(ClientStates.JOB_RECEIVED)
 						.addTransition(
 						ClientTrans.JOB_FINISHED,
-						ClientStates.WAIT_FOR_JOB,
-						null);
+						ClientStates.INIT_RECEIVED,
+						new JobFinishedHandler());
 		setState(ClientStates.UNCONNECTED);
 	}
 
@@ -158,7 +176,7 @@ public final class ClientStateMachine extends FSM {
 				mOutStream.writeObject(new Message(Instruction.REQUEST_CONNECTION, mRid));
 			}
 			catch (IOException ex) {
-				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
 	}
@@ -175,7 +193,7 @@ public final class ClientStateMachine extends FSM {
 				mOutStream.writeObject(new Message(Instruction.SEND_PROFILE, mProfile));
 			}
 			catch (IOException ex) {
-				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
 	}
@@ -215,7 +233,79 @@ public final class ClientStateMachine extends FSM {
 				}
 			}
 			catch (IOException ex) {
-				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 *
+	 */
+	private class BinaryReceivedHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object o) {
+			System.out.println("BinaryReceivedHandler() called");
+			// TODO...
+			try {
+				mOutStream.writeObject(new Message(Instruction.ACK));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 *
+	 */
+	private class InitialParameterReceivedHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object o) {
+			System.out.println("InitialParameterReceivedHandler() called");
+			// TODO...
+			try {
+				mOutStream.writeObject(new Message(Instruction.ACK));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 *
+	 */
+	private class JobReceivedHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object o) {
+			System.out.println("JobReceivedHandler() called");
+			// TODO...
+			try {
+				mOutStream.writeObject(new Message(Instruction.ACK));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 *
+	 */
+	private class JobFinishedHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object o) {
+			System.out.println("CheckcodeSendHandler() called");
+			// TODO...
+			try {
+				mOutStream.writeObject(new Message(Instruction.SEND_RESULT, null));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
 	}
