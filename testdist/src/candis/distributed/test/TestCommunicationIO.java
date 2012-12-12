@@ -113,7 +113,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	}
 
 	/**
-	 * Stops all running TestDroid and DroidListener Threads
+	 * Stops all running TestDroid and DroidListener Threads.
 	 */
 	public void stopDroids() {
 		for (Thread t : droidThreads) {
