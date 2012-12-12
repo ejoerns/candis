@@ -44,7 +44,8 @@ The task is an implementation of `DistributedTask`.
 
 ### Task Management
 
-Simple serverside Task management using `SimpleScheduler`. It is possible to write own scheduler by implementing `Scheduler`.
+Simple serverside Task management using `SimpleScheduler`. It is possible to write own scheduler by implementing/extending `Scheduler`.
+This is also the class which receives the results of the distributed tasks.
 
 ```java
 {include:examples/mini/miniControl/src/candis/example/mini/MiniControl.java}

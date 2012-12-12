@@ -12,7 +12,7 @@ public class MiniResult extends DistributedResult implements Serializable {
 	public final float foobar;
 
 	/**
-	 * Initalizes the Resultdata.
+	 * Initializes the result data.
 	 *
 	 * @param foobar
 	 */

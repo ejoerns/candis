@@ -135,7 +135,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
-		mDistributedControl.schedulerDone();
+		mDistributedControl.onSchedulerDone();
 		LOGGER.log(Level.INFO, "CommunicationIO done");
 	}
 
