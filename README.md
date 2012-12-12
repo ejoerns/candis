@@ -91,7 +91,7 @@ public class MiniResult extends DistributedResult implements Serializable {
 	public final float foobar;
 
 	/**
-	 * Initalizes the Resultdata.
+	 * Initializes the result data.
 	 *
 	 * @param foobar
 	 */
@@ -157,30 +157,60 @@ public class MiniTask extends DistributedTask {
 
 ### Task Management
 
-Simple serverside Task management using `SimpleScheduler`. It is possible to write own scheduler by implementing `Scheduler`.
+Simple serverside Task management using `SimpleScheduler`. It is possible to write own scheduler by implementing/extending `Scheduler`.
+This is also the class which receives the results of the distributed tasks.
 
 ```java
 package candis.example.mini;
 
 import candis.distributed.DistributedControl;
+import candis.distributed.DistributedParameter;
+import candis.distributed.DistributedResult;
+import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
 
 /**
- * Minimalistic example how to initialize a set of Tasks.
+ * Minimalistic example how to initialize a set of tasks and receive its
+ * results.
  */
-public class MiniControl implements DistributedControl {
+public class MiniControl implements DistributedControl, ResultReceiver {
+
+	MiniInitParameter init;
+	Scheduler scheduler;
 
 	@Override
 	public Scheduler initScheduler() {
-		Scheduler sch = new SimpleScheduler();
-		sch.setInitialParameter(new MiniInitParameter(23));
+		scheduler = new SimpleScheduler();
+
+		// Register ResultReceiver
+		scheduler.addResultReceiver(this);
+
+		// Set initial Parameters
+		init = new MiniInitParameter(23);
+		scheduler.setInitialParameter(init);
+
+		// Create some tasks
 		for (int i = 0; i < 10; i++) {
-			sch.addParameter(new MiniParameter(i, 3.5f));
+			scheduler.addParameter(new MiniParameter(i, 3.5f));
 		}
-		return sch;
+
+		return scheduler;
 	}
 
+	@Override
+	public void onSchedulerDone() {
+		// Now all tasks are completed successfully
+		System.out.println("done!");
+	}
+
+	@Override
+	public void onReceiveResult(DistributedParameter param, DistributedResult result) {
+		/// One result is finished and we can use it, somehow ...
+		MiniResult miniResult = (MiniResult) result;
+		System.out.println(String.format("%.3f", miniResult.foobar));
+
+	}
 }
 ```
 
