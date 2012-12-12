@@ -6,6 +6,15 @@ package candis.distributed;
  */
 public interface DistributedControl {
 
+	/**
+	 * Requests creation of the Scheduler for it's Project.
+	 *
+	 * @return Initalized scheduler, ready for distribution
+	 */
 	public Scheduler initScheduler();
-	public void schedulerDone();
+
+	/**
+	 * Gets called when the scheduler finished its work.
+	 */
+	public void onSchedulerDone();
 }
