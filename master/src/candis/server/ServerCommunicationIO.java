@@ -5,6 +5,7 @@ import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
+import candis.distributed.DistributedTask;
 import candis.distributed.DroidData;
 import candis.distributed.Scheduler;
 import java.io.BufferedOutputStream;
@@ -226,32 +227,64 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 			}
 		});
 	}
+	private DistributedControl mLoadedDistributedControl;
+	private DistributedParameter mLoadedDistributedInitialParameter;
+	private DistributedParameter mLoadedDistributedParameter;
+	private DistributedResult mLoadedDistributedResult;
+	private DistributedTask mLoadedDistributedTask;
 
 	public void loadCandisDistributedBundle(final File cdbfile) {
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
 		final CDBContext cdbContext = new CDBContext(projectPath);
 		extractCandisDistributedBundle(cdbfile, cdbContext);
 
-		List<String> classList = getClassNamesInJar(cdbContext.getServerBin().getPath());
+		List<String> classList = null;
 
 		URLClassLoader child;
 		try {
-			System.out.println("Load URL: " + cdbContext.getServerBin().toURI().toURL());
-			child = new URLClassLoader(
-							new URL[]{cdbContext.getServerBin().toURI().toURL()},
-							this.getClass().getClassLoader());
 
+			child = new URLClassLoader(
+							new URL[]{cdbContext.getLib(0).toURI().toURL(), cdbContext.getServerBin().toURI().toURL()},
+							this.getClass().getClassLoader());
+			
+			// load lib 0
+			// TODO: allow for multiple libs
+			classList = getClassNamesInJar(cdbContext.getLib(0).getPath());
+			
+			for (String classname : classList) {
+				// finds the DistributedControl instance
+				Class classToLoad = child.loadClass(classname);
+				if ((!DistributedParameter.class.isAssignableFrom(classToLoad))
+					&& (!DistributedResult.class.isAssignableFrom(classToLoad))
+					&& (!DistributedTask.class.isAssignableFrom(classToLoad))) {
+					LOGGER.log(Level.INFO, "Loaded class with non-default interface: {0}", classToLoad.getName());
+				} else {
+					LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
+				}
+			}
+
+			// load server binary
+			classList = getClassNamesInJar(cdbContext.getServerBin().getPath());
+			
 			for (String classname : classList) {
 				System.out.println("Trying to load class: " + classname);
 				// finds the DistributedControl instance
 				Class classToLoad = child.loadClass(classname);
 				if (DistributedControl.class.isAssignableFrom(classToLoad)) {
-					System.out.println("YEAH, CLASS IS ASSIGNABLE");
-				}
-				else {
-					System.out.println("NO, CLASS IS NOT ASSIGNABLE");
+					LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
+					try {
+						DistributedControl obj = (DistributedControl) classToLoad.newInstance();
+						obj.initScheduler();
+					}
+					catch (InstantiationException ex) {
+						LOGGER.log(Level.SEVERE, null, ex);
+					}
+					catch (IllegalAccessException ex) {
+						LOGGER.log(Level.SEVERE, null, ex);
+					}
 				}
 			}
+
 		}
 		catch (MalformedURLException ex) {
 			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
@@ -318,7 +351,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 			LOGGER.log(Level.FINE, "Extracted droid binary: {0}", entry.getName());
 			// load libs
 			String lib;
-			while ((lib = p.getProperty(String.format("server.lib.%d", libNumber))) != null) {
+			while ((lib = p.getProperty(String.format("server.lib.%d.jar", libNumber))) != null) {
 				entry = zipFile.getEntry(lib);
 				copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 								new FileOutputStream(cdbContext.getLib(libNumber))));
@@ -477,7 +510,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		}
 
 		public File getLib(int n) {
-			return new File(mPath, String.format("server.lib.%d", n));
+			return new File(mPath, String.format("server.lib.%d.jar", n));
 		}
 	}
 }
