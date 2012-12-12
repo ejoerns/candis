@@ -2,6 +2,7 @@ package candis.server;
 
 import candis.common.fsm.StateMachineException;
 import candis.distributed.CommunicationIO;
+import candis.distributed.DistributedControl;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
 import candis.distributed.DroidData;
@@ -26,6 +27,7 @@ import java.util.zip.ZipFile;
 public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	protected Scheduler scheduler;
+	protected DistributedControl distributedControl;
 	protected final DroidManager mDroidManager;
 	private Thread queueThread;
 	private static final Logger LOGGER = Logger.getLogger(ServerCommunicationIO.class.getName());
@@ -37,10 +39,11 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		mDroidManager = manager;
 	}
 
-	public void setScheduler(Scheduler s) {
+	public void setDistributedControl(DistributedControl dc) {
 		if (scheduler == null || scheduler.isDone()) {
-			scheduler = s;
-			s.setCommunicationIO(this);
+			distributedControl = dc;
+			scheduler = dc.initScheduler();
+			scheduler.setCommunicationIO(this);
 			queueThread = new Thread(this);
 			queueThread.start();
 		}
@@ -86,7 +89,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	public void sendInitialParameter(String droidID, DistributedParameter parameter) {
 		Connection d = getDroidConnection(droidID);
 		try {
-			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_INITAL);
+			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_INITAL, parameter);
 		}
 		catch (StateMachineException ex) {
 			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
@@ -140,6 +143,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
+		distributedControl.schedulerDone();
 		LOGGER.log(Level.INFO, "CommunicationIO done");
 	}
 

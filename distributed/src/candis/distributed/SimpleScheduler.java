@@ -14,7 +14,9 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class SimpleScheduler implements Scheduler {
+public class SimpleScheduler extends Scheduler {
+
+
 	private enum DroidState {
 		NEW,
 		BINARY,
@@ -37,6 +39,11 @@ public class SimpleScheduler implements Scheduler {
 		comIO = io;
 	}
 
+	@Override
+	public Map<DistributedParameter, DistributedResult> getResults() {
+		return done;
+	}
+	
 	public void start() {
 		started = true;
 		assignTasks();
@@ -97,6 +104,7 @@ public class SimpleScheduler implements Scheduler {
 		if (running.containsKey(droidID)) {
 			DistributedParameter p = running.remove(droidID);
 			done.put(p, result);
+			releaseResult(p, result);
 			LOGGER.log(Level.INFO, "Param {0} on {1} done with {2}", new Object[]{p, droidID, result});
 		}
 		assignTask(droidID);

@@ -7,4 +7,5 @@ package candis.distributed;
 public interface DistributedControl {
 
 	public Scheduler initScheduler();
+	public void schedulerDone();
 }
