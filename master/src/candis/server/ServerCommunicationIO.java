@@ -204,9 +204,9 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 			}
 		});
 	}
-	
+
 	void loadCDB(final File cdbFile) {
 		mCDBLoader = new CDBLoader(cdbFile);
 	}
-	
+
 }

@@ -1,7 +1,6 @@
 package candis.distributed.test;
 
 import candis.common.fsm.StateMachineException;
-import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedTask;
 import candis.server.Connection;
 import candis.server.DroidManager;
@@ -19,6 +18,7 @@ import java.util.logging.Logger;
  */
 public class TestCommunicationIO<T extends DistributedTask> extends ServerCommunicationIO {
 
+	private static final Logger LOGGER = Logger.getLogger(TestCommunicationIO.class.getName());
 	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	private final TaskFactory<T> factory;
@@ -29,9 +29,23 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	public TestCommunicationIO(TaskFactory<T> fact, DroidManager manager) {
 		super(manager);
 		factory = fact;
-
 	}
 
+		// Called by Scheduler.
+	@Override
+	public void sendBinary(String droidID) {
+		Connection d = getDroidConnection(droidID);
+		try {
+			System.out.println(d);
+			d.getStateMachine().process(
+							ServerStateMachine.ServerTrans.SEND_BINARY,
+							null);
+		}
+		catch (StateMachineException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+
+		}
+	}
 	public void initDroids() {
 		initDroids(DEFAULT_DROIDAMOUNT);
 	}
