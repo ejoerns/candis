@@ -6,6 +6,8 @@ import candis.distributed.DistributedTask;
 import candis.server.Connection;
 import candis.server.DroidManager;
 import candis.server.ServerCommunicationIO;
+import candis.server.ServerStateMachine;
+import candis.server.ServerStateMachine.ServerTrans;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.Level;
@@ -76,7 +78,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		private TestDroid droid;
 		private final Logger LOGGER = Logger.getLogger(TestConnection.class.getName());
 
-		public TestConnection(TestDroid droid, final DroidManager manager, final CommunicationIO comIO) {
+		public TestConnection(TestDroid droid, final DroidManager manager, final ServerCommunicationIO comIO) {
 			super(null, manager, comIO);
 			this.droid = droid;
 		}
@@ -85,9 +87,9 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		protected void initConnection() {
 			oos = droid.getOutputStream();
 			ois = droid.getInputStream();
-			mStateMachine = new TestServerStateMachine(this, mDroidManager, (ServerCommunicationIO) mCommunicationIO);
+			mStateMachine = new TestServerStateMachine(this, mDroidManager, mCommunicationIO);
 			try {
-				mStateMachine.process(TestServerStateMachine.TestServerTrans.CLIENT_CONNECTED, droid.getId());
+				mStateMachine.process(ServerTrans.CLIENT_NEW, droid.getId());
 			}
 			catch (StateMachineException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

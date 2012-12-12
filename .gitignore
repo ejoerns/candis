@@ -30,3 +30,4 @@ private/
 proguard-project.txt
 settings.properties
 /examples/mini/miniTask/nbandroid/
+*.cdb

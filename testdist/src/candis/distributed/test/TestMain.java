@@ -26,7 +26,7 @@ public class TestMain{
 
 		TestCommunicationIO comio = new TestCommunicationIO<MiniTask>(new MiniTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
-		comio.setScheduler(t.initScheduler());
+		comio.setDistributedControl(t);
 		comio.startScheduler();
 		try {
 

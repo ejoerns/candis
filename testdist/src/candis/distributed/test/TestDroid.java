@@ -12,12 +12,9 @@ import candis.distributed.DistributedTask;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -79,8 +76,8 @@ public class TestDroid extends DroidData implements Runnable {
 								internalOos.writeObject(new Message(Instruction.ACK, null));
 								break;
 							case SEND_INITAL:
-								DistributedParameter inital = (DistributedParameter) m_in.getData();
-								task.setInitialParameter(inital);
+								DistributedParameter initial = (DistributedParameter) m_in.getData();
+								task.setInitialParameter(initial);
 								internalOos.writeObject(new Message(Instruction.ACK, null));
 								break;
 							case SEND_JOB:

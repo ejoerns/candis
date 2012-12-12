@@ -8,7 +8,7 @@ public interface ActionHandler {
 
 	/**
 	 *
-	 * @param hid
+	 * @param obj
 	 */
 	void handle(Object obj);
 }

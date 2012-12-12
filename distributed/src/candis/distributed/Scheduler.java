@@ -1,24 +1,39 @@
 package candis.distributed;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 /**
  *
  * @author Sebastian Willenborg
  */
-public interface Scheduler {
+public abstract class Scheduler {
+	protected final List<ResultReceiver> mReceivers = new LinkedList<ResultReceiver>();
 
-	public void setInitialParameter(DistributedParameter param);
+	public void addResultReceiver(ResultReceiver receiver) {
+		mReceivers.add(receiver);
+	}
 
-	public void addParameter(DistributedParameter param);
+	protected void releaseResult(DistributedParameter param, DistributedResult result) {
+		for(ResultReceiver receiver: mReceivers) {
+			receiver.onReceiveResult(param, result);
+		}
+	}
 
-	public void addParameters(DistributedParameter[] params);
+	public abstract void setInitialParameter(DistributedParameter param);
 
-	public void setCommunicationIO(CommunicationIO io);
+	public abstract void addParameter(DistributedParameter param);
 
-	public void start();
+	public abstract void addParameters(DistributedParameter[] params);
 
-	public void abort();
+	public abstract void setCommunicationIO(CommunicationIO io);
 
-	public void onNewDroid(String droidID);
+	public abstract void start();
+
+	public abstract void abort();
+
+	public abstract void onNewDroid(String droidID);
 
 	/**
 	 * Is called when a job is done.
@@ -26,11 +41,11 @@ public interface Scheduler {
 	 * @param droidID
 	 * @param result
 	 */
-	public void onJobDone(String droidID, DistributedResult result);
+	public abstract void onJobDone(String droidID, DistributedResult result);
 
-	public void onBinaryRecieved(String droidID);
-	
-	public void onInitParameterRecieved(String droidID);
+	public abstract void onBinaryRecieved(String droidID);
+
+	public abstract void onInitParameterRecieved(String droidID);
 
 	/**
 	 * Is called when an error occurred during computation.
@@ -38,7 +53,9 @@ public interface Scheduler {
 	 * @param droidID
 	 * @param error
 	 */
-	public void onDroidError(String droidID, DistributedError error);
+	public abstract void onDroidError(String droidID, DistributedError error);
 
-	public boolean isDone();
+	public abstract boolean isDone();
+
+	public abstract Map<DistributedParameter, DistributedResult> getResults();
 }

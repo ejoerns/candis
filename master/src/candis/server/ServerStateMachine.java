@@ -28,12 +28,12 @@ public class ServerStateMachine extends FSM {
 
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
-	private final Connection mConnection;
+	protected final Connection mConnection;
 	protected final DroidManager mDroidManager;
 	protected final ServerCommunicationIO mCommunicationIO;
-	RandomID mCurrentID;
+	private RandomID mCurrentID;
 
-	private enum ServerStates implements StateEnum {
+	protected enum ServerStates implements StateEnum {
 
 		UNCONNECTED,
 		CHECK,
@@ -76,7 +76,7 @@ public class ServerStateMachine extends FSM {
 		init();
 	}
 
-	private void init() {
+	protected void init() {
 		// TODO: add default transition? "else Transition"?
 		addState(ServerStates.UNCONNECTED)
 						.addTransition(
@@ -180,7 +180,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Invoked if server got connection from a client.
 	 */
-	private class ConnectionRequestedHandler implements ActionHandler {
+	public class ConnectionRequestedHandler implements ActionHandler {
 
 		@Override
 		public void handle(Object obj) {
@@ -233,11 +233,10 @@ public class ServerStateMachine extends FSM {
 		}
 	}
 
-	// TODO: make static?
 	/**
 	 * Invoked if server received a clients profile data.
 	 */
-	private class ReceivedProfileHandler implements ActionHandler {
+	public class ReceivedProfileHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object obj) {
@@ -261,9 +260,9 @@ public class ServerStateMachine extends FSM {
 	}
 
 	/**
-	 * Conncects droid to DroidManager.
+	 * Connects droid to DroidManager.
 	 */
-	private class ClientConnectedHandler implements ActionHandler {
+	public class ClientConnectedHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -273,9 +272,9 @@ public class ServerStateMachine extends FSM {
 	}
 
 	/**
-	 * Disconncects droid from DroidManager.
+	 * Disconnects droid from DroidManager.
 	 */
-	private class ClientDisconnectedHandler implements ActionHandler {
+	public class ClientDisconnectedHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -287,7 +286,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Compares received check code from droid with server generated one.
 	 */
-	private class ValidateCheckcodeHandler implements ActionHandler {
+	public class ValidateCheckcodeHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -309,7 +308,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Requests profile without check.
 	 */
-	private class ProfileRequestHandler implements ActionHandler {
+	public class ProfileRequestHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -326,7 +325,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Generates new check code (6 digits) and shows it via DroidManager.
 	 */
-	private class CheckCodeRequestedHandler implements ActionHandler {
+	public class CheckCodeRequestedHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -348,7 +347,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Gets called if JOB_DONE was received.
 	 */
-	private class ClientJobDonedHandler implements ActionHandler {
+	public class ClientJobDonedHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -360,7 +359,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends binary file to droid.
 	 */
-	private class SendBinaryHandler implements ActionHandler {
+	public class SendBinaryHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object binary) {
@@ -376,9 +375,9 @@ public class ServerStateMachine extends FSM {
 	}
 
 	/**
-	 * Gets called if Droid ACKs binary receive.
+	 * Gets called if droid ACKs binary receive.
 	 */
-	private class ClientBinarySentHandler implements ActionHandler {
+	public class ClientBinarySentHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -390,7 +389,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends the initial parameter to the droid.
 	 */
-	private class SendInitialParameterHandler implements ActionHandler {
+	public class SendInitialParameterHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object param) {
@@ -408,7 +407,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Gets called when the droid ACKed the initial parameter.
 	 */
-	private class ClientInitalParameterSentHandler implements ActionHandler {
+	public class ClientInitalParameterSentHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object o) {
@@ -420,13 +419,12 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends the job to the droid.
 	 */
-	private class SendJobHandler implements ActionHandler {
+	public class SendJobHandler implements ActionHandler {
 
 		@Override
 		public void handle(final Object param) {
 			System.out.println("SendJobHandler() called");
 			try {
-				// TODO: test if empty
 				mConnection.sendMessage(new Message(Instruction.SEND_JOB, (Serializable) param));
 			}
 			catch (IOException ex) {
