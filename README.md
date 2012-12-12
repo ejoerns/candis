@@ -133,7 +133,7 @@ public class MiniTask extends DistributedTask {
 	 * Gets called to start the Task with given parameter.
 	 * Contains main code for this Task.
 	 *
-	 * @param parameter
+	 * @param parameter Parameter (MiniParameter) specifying the current Task
 	 * @return The generated MiniResult, when the task is finished
 	 */
 	@Override
