@@ -245,7 +245,8 @@ public final class ClientStateMachine extends FSM {
 
 		@Override
 		public void handle(Object o) {
-			System.out.println("BinaryReceivedHandler() called");
+			LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
+			//System.out.println("BinaryReceivedHandler() called");
 			// TODO...
 			try {
 				mOutStream.writeObject(new Message(Instruction.ACK));

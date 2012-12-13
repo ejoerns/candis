@@ -28,6 +28,7 @@ public class Connection implements Runnable {
 	protected final ServerCommunicationIO mCommunicationIO;
 	protected ObjectOutputStream oos = null;
 	protected ObjectInputStream ois = null;
+	private String droidID;
 
 	public Connection(
 					final Socket socket,
@@ -69,8 +70,12 @@ public class Connection implements Runnable {
 		mSocket.close();
 	}
 
+	public void setDroidID(final String droidID) {
+		this.droidID = droidID;
+	}
+
 	public String getDroidID() {
-		return null;
+		return droidID;
 	}
 
 	@Override

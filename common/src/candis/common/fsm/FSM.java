@@ -14,16 +14,25 @@ import java.util.logging.Logger;
  *
  * @author Enrico Joerns
  */
-// class FSM<? extends> {...
 public class FSM {
 
+	private class TransitionContainer {
+		final StateEnum dest;
+		final ActionHandler act;
+
+		public TransitionContainer(StateEnum dest, ActionHandler act) {
+			this.dest = dest;
+			this.act = act;
+		}
+	}
 	private static final String TAG = "FSM";
-	private static Logger LOGGER = Logger.getLogger("FSM");
+	private static final Logger LOGGER = Logger.getLogger("FSM");
 	private AtomicReference<StateEnum> mCurrentState = new AtomicReference<StateEnum>();
 	/**
 	 * Holds all attached states.
 	 */
 	private final Map<StateEnum, State> mStateMap = new HashMap<StateEnum, State>();
+	private final Map<Transition, TransitionContainer> mGloabalTransitions = new HashMap<Transition, TransitionContainer>();
 
 	public FSM() {
 	}
@@ -35,8 +44,25 @@ public class FSM {
 	 */
 	public final State addState(final StateEnum s) {
 		State state = new State(s);
+		for(Transition t: mGloabalTransitions.keySet()) {
+			TransitionContainer c = mGloabalTransitions.get(t);
+			state.addTransition(t, c.dest, c.act);
+		}
 		mStateMap.put(s, state);
 		return state;
+	}
+
+	public void addGlobalTransition(Transition trans, StateEnum dest) {
+		addGlobalTransition(trans, dest, null);
+	}
+
+	public void addGlobalTransition(Transition trans, StateEnum dest, ActionHandler act) {
+		for(StateEnum s: mStateMap.keySet()) {
+			State st = mStateMap.get(s);
+			if(!st.containsTransition(trans)) {
+				st.addTransition(trans, dest, act);
+			}
+		}
 	}
 
 	/**

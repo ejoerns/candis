@@ -1,13 +1,15 @@
 package candis.server;
 
+import candis.common.RandomID;
+import candis.common.Utilities;
 import candis.common.fsm.StateMachineException;
 import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
-import candis.distributed.DistributedTask;
 import candis.distributed.DroidData;
 import candis.distributed.Scheduler;
+import candis.distributed.SchedulerStillRuningException;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,15 +34,20 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	public ServerCommunicationIO(final DroidManager manager) {
 		mDroidManager = manager;
+
 	}
 
-	public void setDistributedControl(DistributedControl dc) {
+	public void setDistributedControl(DistributedControl dc) throws SchedulerStillRuningException {
 		if (mScheduler == null || mScheduler.isDone()) {
 			mDistributedControl = dc;
 			mScheduler = dc.initScheduler();
 			mScheduler.setCommunicationIO(this);
 			mQueueThread = new Thread(this);
 			mQueueThread.start();
+			System.out.println(mQueueThread);
+		}
+		else {
+			throw new SchedulerStillRuningException("Scheduler still running");
 		}
 	}
 
@@ -79,6 +86,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 
 	@Override
 	public void sendInitialParameter(String droidID, DistributedParameter parameter) {
+		System.out.println(droidID);
 		Connection d = getDroidConnection(droidID);
 		try {
 			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_INITAL, parameter);
@@ -118,7 +126,6 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 					Runnable task;
 					synchronized (mComIOQueue) {
 						task = mComIOQueue.remove(0);
-
 					}
 					task.run();
 				}
@@ -129,7 +136,6 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 						}
 					}
 				}
-
 			}
 		}
 		catch (InterruptedException ex) {
@@ -149,22 +155,26 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		return mDroidManager.getConnectedDroids().keySet();
 	}
 
-	protected void addToQueue(Runnable task) {
-
-		synchronized (mComIOQueue) {
+	public void addToQueue(Runnable task) {
+		synchronized(mComIOQueue) {
 			mComIOQueue.add(task);
 			mComIOQueue.notify();
 		}
+
 	}
 
-	public void startScheduler() {
-		addToQueue(new Runnable() {
-			@Override
-			public void run() {
-				mScheduler.start();
-			}
-		});
-
+	public void startScheduler() throws SchedulerStillRuningException {
+		if (mScheduler != null || mScheduler.isDone()) {
+			addToQueue(new Runnable() {
+				@Override
+				public void run() {
+					mScheduler.start();
+				}
+			});
+		}
+		else {
+			throw new SchedulerStillRuningException("Scheduler still running");
+		}
 	}
 
 	public void onJobDone(final String droidID, final DistributedResult result) {
@@ -176,9 +186,11 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		});
 
 	}
+	public void onDroidConnected(final RandomID rid, final Connection connection) {
+		onDroidConnected(Utilities.toSHA1String(rid.getBytes()), connection);
+	}
 
 	public void onDroidConnected(final String droidID, final Connection connection) {
-		mDroidManager.connectDroid(droidID, connection);
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
@@ -205,8 +217,10 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		});
 	}
 
-	void loadCDB(final File cdbFile) {
+	public void loadCDB(final File cdbFile) throws Exception{
 		mCDBLoader = new CDBLoader(cdbFile);
+		setDistributedControl(mCDBLoader.getDistributedControl());
 	}
+
 
 }

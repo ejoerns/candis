@@ -1,6 +1,7 @@
 package candis.server.gui;
 
 import candis.common.Settings;
+import candis.distributed.SchedulerStillRuningException;
 import candis.server.DroidManager;
 import candis.server.Server;
 import candis.server.ServerCommunicationIO;
@@ -9,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
@@ -25,7 +27,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private OptionsDialog mOptionDialog;
 	private CheckCodeShowDialog mCheckCodeShowDialog;
 	private CandisLoggerHandler mLoggerHandler;
-
+	private static Logger LOGGER = Logger.getLogger(CandisMasterFrame.class.getName());
 	/**
 	 * Creates new form CandisMasterFrame.
 	 */
@@ -239,7 +241,13 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   }// </editor-fold>//GEN-END:initComponents
 
   private void mExecuteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mExecuteButtonActionPerformed
-		// TODO add your handling code here:
+		try {
+			// TODO add your handling code here:
+			mCommIO.startScheduler();
+		}
+		catch (SchedulerStillRuningException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
   }//GEN-LAST:event_mExecuteButtonActionPerformed
 
   private void mDroidInfoTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_mDroidInfoTableMouseClicked
@@ -268,7 +276,18 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		FileFilter filter = new ExtensionFilter(".cdb file", ".cdb");
 		fileChooser.addChoosableFileFilter(filter);
 		fileChooser.setFileFilter(filter);
-		fileChooser.showOpenDialog(this);
+		int returnVal = fileChooser.showOpenDialog(this);
+		if(returnVal == JFileChooser.APPROVE_OPTION)
+		{
+			try {
+				mCommIO.loadCDB(fileChooser.getSelectedFile());
+			}
+			catch (Exception ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+				JOptionPane.showMessageDialog(null, ex, "Error:", JOptionPane.OK_CANCEL_OPTION);
+			}
+
+		}
   }//GEN-LAST:event_mUploadButtonActionPerformed
 
   private void mBlacklistButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mBlacklistButtonActionPerformed
@@ -318,7 +337,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		/* Set the Nimbus look and feel */
 		//<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-		 * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+		 * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
 		 */
 		try {
 			for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -344,13 +363,14 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		final CandisMasterFrame cmf = new CandisMasterFrame(droidmanager, scio, dltm);
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
+			@Override
 			public void run() {
 				cmf.initComponents();
 				cmf.setVisible(true);
 			}
 		});
 		droidmanager.addListener(dltm);
-		new Server(droidmanager);
+		new Server(droidmanager, scio);
 
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables

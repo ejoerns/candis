@@ -7,7 +7,6 @@ import candis.common.Settings;
 import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
-import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
@@ -31,7 +30,7 @@ public class ServerStateMachine extends FSM {
 	protected final Connection mConnection;
 	protected final DroidManager mDroidManager;
 	protected final ServerCommunicationIO mCommunicationIO;
-	private RandomID mCurrentID;
+	//private RandomID mCurrentID;
 
 	protected enum ServerStates implements StateEnum {
 
@@ -127,11 +126,8 @@ public class ServerStateMachine extends FSM {
 						.addTransition(
 						ServerTrans.SEND_BINARY,
 						ServerStates.BINARY_SENT,
-						new SendBinaryHandler())
-						.addTransition(
-						ServerTrans.CLIENT_DISCONNECTED,
-						ServerStates.UNCONNECTED,
-						new ClientDisconnectedHandler());
+						new SendBinaryHandler());
+
 		addState(ServerStates.BINARY_SENT)
 						.addTransition(
 						Instruction.ACK,
@@ -174,6 +170,12 @@ public class ServerStateMachine extends FSM {
 						Instruction.SEND_RESULT,
 						ServerStates.INIT_SENT_DONE,
 						new ClientJobDonedHandler());
+
+		addGlobalTransition(
+						ServerTrans.CLIENT_DISCONNECTED,
+						ServerStates.UNCONNECTED,
+						new ClientDisconnectedHandler());
+		
 		setState(ServerStates.UNCONNECTED);
 	}
 
@@ -189,17 +191,19 @@ public class ServerStateMachine extends FSM {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
 			}
-			mCurrentID = ((RandomID) obj);
+			RandomID currentID = ((RandomID) obj);
 			Transition trans;
 			Instruction instr;
 			// catch invalid messages
-			if (mCurrentID == null) {
+			if (currentID == null) {
 				trans = ServerTrans.CLIENT_INVALID;
 				instr = Instruction.ERROR;
 				// check if droid is known in db
 			}
-			else if (mDroidManager.isDroidKnown(mCurrentID)) {
-				if (mDroidManager.isDroidBlacklisted(mCurrentID)) {
+			else {
+				mConnection.setDroidID(currentID.toSHA1());
+			if (mDroidManager.isDroidKnown(currentID)) {
+				if (mDroidManager.isDroidBlacklisted(currentID)) {
 					trans = ServerTrans.CLIENT_BLACKLISTED;
 					instr = Instruction.REJECT_CONNECTION;
 				}
@@ -218,6 +222,7 @@ public class ServerStateMachine extends FSM {
 					trans = ServerTrans.CLIENT_NEW;
 					instr = Instruction.REQUEST_PROFILE;
 				}
+			}
 			}
 			try {
 				mConnection.sendMessage(new Message(instr));
@@ -246,10 +251,9 @@ public class ServerStateMachine extends FSM {
 				if (!(obj instanceof StaticProfile)) {
 					LOGGER.log(Level.WARNING, "EMPTY PROFILE DATA!");
 				}
-				mDroidManager.addDroid(mCurrentID, (StaticProfile) obj);
+				mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
-				mDroidManager.connectDroid(mCurrentID, mConnection);
-				LOGGER.log(Level.INFO, String.format("Client %s connected", mCurrentID));
+
 				mConnection.sendMessage(new Message(Instruction.ACCEPT_CONNECTION));
 				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
 			}
@@ -266,8 +270,11 @@ public class ServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object o) {
+			mDroidManager.connectDroid(mConnection.getDroidID(), mConnection);
+			LOGGER.log(Level.INFO, String.format("Client %s connected", mConnection.getDroidID()));
 			System.out.println("ClientConnectedHandler() called");
-			mDroidManager.connectDroid(mCurrentID, mConnection);
+			mCommunicationIO.onDroidConnected(mConnection.getDroidID(), mConnection);
+			//mDroidManager.connectDroid(mCurrentID, mConnection);
 		}
 	}
 
@@ -279,7 +286,7 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object o) {
 			System.out.println("ClientDisconnectedHandler() called");
-			mDroidManager.disconnectDroid(mCurrentID);
+			mDroidManager.disconnectDroid(mConnection.getDroidID());
 		}
 	}
 
