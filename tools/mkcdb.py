@@ -140,16 +140,19 @@ def mkcdb(cdbfile, serverproject, clientproject):
 	zf = zipfile.ZipFile(cdbfile, mode="w")
 
 	# add dex to zip
-	zf.writestr("%s.dex" % client_proj.name, path)
+	print "Compressing %s.dex: %s" % (client_proj.name, os.path.relpath(path))
+	zf.write(path, "%s.dex" % client_proj.name)
 	properties["droid.binary"] = "%s.dex" % client_proj.name
 
 	# add main jar
-	zf.writestr("%s.jar" % server_proj.name, server_proj.main)
+	print "Compressing %s.jar: %s" % (server_proj.name, os.path.relpath(server_proj.main))
+	zf.write(server_proj.main, "%s.jar" % server_proj.name)
 	properties["server.binary"] = "%s.jar" % server_proj.name
 
 	i = 0
 	for lib in server_proj.libs:
-		zf.writestr("lib%d.jar" % i, lib)
+		print "Compressing lib %d.jar: %s" % (i,os.path.relpath(lib))
+		zf.write(lib, "lib%d.jar" % i)
 		properties["server.lib.%d" % i] = "lib%d.jar" % i
 		i += 1
 	#create
