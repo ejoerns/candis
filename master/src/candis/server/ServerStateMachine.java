@@ -37,6 +37,7 @@ public class ServerStateMachine extends FSM {
 		UNCONNECTED,
 		CHECK,
 		PROFILE_REQUESTED,
+		PROFILE_VALIDATE,
 		CHECKCODE_REQUESTED,
 		CHECKCODE_VALIDATE,
 		CONNECTED,
@@ -56,6 +57,8 @@ public class ServerStateMachine extends FSM {
 		CLIENT_ACCEPTED,
 		CHECKCODE_VALID,
 		CHECKCODE_INVALID,
+		PROFILE_VALID,
+		PROFILE_INVALID,
 		POST_JOB,
 		CLIENT_INVALID,
 		CLIENT_DISCONNECTED,
@@ -120,14 +123,22 @@ public class ServerStateMachine extends FSM {
 		addState(ServerStates.PROFILE_REQUESTED)
 						.addTransition(
 						Instruction.SEND_PROFILE,
-						ServerStates.CONNECTED,
+						ServerStates.PROFILE_VALIDATE,
 						new ReceivedProfileHandler());
+		addState(ServerStates.PROFILE_VALIDATE)
+						.addTransition(
+						ServerTrans.PROFILE_VALID,
+						ServerStates.CONNECTED,
+						new ClientConnectedHandler())
+						.addTransition(
+						ServerTrans.PROFILE_INVALID,
+						ServerStates.UNCONNECTED,
+						new ConnectionRejectedHandler());
 		addState(ServerStates.CONNECTED)
 						.addTransition(
 						ServerTrans.SEND_BINARY,
 						ServerStates.BINARY_SENT,
 						new SendBinaryHandler());
-
 		addState(ServerStates.BINARY_SENT)
 						.addTransition(
 						Instruction.ACK,
@@ -175,7 +186,7 @@ public class ServerStateMachine extends FSM {
 						ServerTrans.CLIENT_DISCONNECTED,
 						ServerStates.UNCONNECTED,
 						new ClientDisconnectedHandler());
-		
+
 		setState(ServerStates.UNCONNECTED);
 	}
 
@@ -202,27 +213,30 @@ public class ServerStateMachine extends FSM {
 			}
 			else {
 				mConnection.setDroidID(currentID.toSHA1());
-			if (mDroidManager.isDroidKnown(currentID)) {
-				if (mDroidManager.isDroidBlacklisted(currentID)) {
-					trans = ServerTrans.CLIENT_BLACKLISTED;
-					instr = Instruction.REJECT_CONNECTION;
+				if (mDroidManager.isDroidKnown(currentID)) {
+					System.out.println("Droid ist known: " + currentID.toSHA1());
+					if (mDroidManager.isDroidBlacklisted(currentID)) {
+						System.out.println("Droid ist blacklisted");
+						trans = ServerTrans.CLIENT_BLACKLISTED;
+						instr = Instruction.REJECT_CONNECTION;
+					}
+					else {
+						trans = ServerTrans.CLIENT_ACCEPTED;
+						instr = Instruction.ACCEPT_CONNECTION;
+					}
 				}
 				else {
-					trans = ServerTrans.CLIENT_ACCEPTED;
-					instr = Instruction.ACCEPT_CONNECTION;
+					System.out.println("Droid ist unknown: " + currentID.toSHA1());
+					// check if option 'check code auth' is active
+					if (Settings.getBoolean("pincode_auth")) {
+						trans = ServerTrans.CLIENT_NEW_CHECK;
+						instr = Instruction.REQUEST_CHECKCODE;
+					}
+					else {
+						trans = ServerTrans.CLIENT_NEW;
+						instr = Instruction.REQUEST_PROFILE;
+					}
 				}
-			}
-			else {
-				// check if option 'check code auth' is active
-				if (Settings.getBoolean("pincode_auth")) {
-					trans = ServerTrans.CLIENT_NEW_CHECK;
-					instr = Instruction.REQUEST_CHECKCODE;
-				}
-				else {
-					trans = ServerTrans.CLIENT_NEW;
-					instr = Instruction.REQUEST_PROFILE;
-				}
-			}
 			}
 			try {
 				mConnection.sendMessage(new Message(instr));
@@ -240,6 +254,9 @@ public class ServerStateMachine extends FSM {
 
 	/**
 	 * Invoked if server received a clients profile data.
+	 *
+	 * Checks if profile data is valid and processes either CHECKCODE_VALID or
+	 * CHECKCODE_INVALID
 	 */
 	public class ReceivedProfileHandler implements ActionHandler {
 
@@ -250,12 +267,14 @@ public class ServerStateMachine extends FSM {
 				// store profile data
 				if (!(obj instanceof StaticProfile)) {
 					LOGGER.log(Level.WARNING, "EMPTY PROFILE DATA!");
+					process(ServerTrans.PROFILE_INVALID);
 				}
 				mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
-
-				mConnection.sendMessage(new Message(Instruction.ACCEPT_CONNECTION));
-				LOGGER.log(Level.INFO, String.format("Server reply: %s", Instruction.ACCEPT_CONNECTION));
+				process(ServerTrans.PROFILE_VALID);
+			}
+			catch (StateMachineException ex) {
+				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -275,6 +294,23 @@ public class ServerStateMachine extends FSM {
 			System.out.println("ClientConnectedHandler() called");
 			mCommunicationIO.onDroidConnected(mConnection.getDroidID(), mConnection);
 			//mDroidManager.connectDroid(mCurrentID, mConnection);
+		}
+	}
+
+	/**
+	 * Gets called if client should be rejected.
+	 */
+	public class ConnectionRejectedHandler implements ActionHandler {
+
+		@Override
+		public void handle(final Object o) {
+			System.out.println("ConnectionRejectedHandler() called");
+			try {
+				mConnection.sendMessage(new Message(Instruction.REJECT_CONNECTION));
+			}
+			catch (IOException ex) {
+				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
 		}
 	}
 
