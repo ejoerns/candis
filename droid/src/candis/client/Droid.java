@@ -9,17 +9,14 @@ import candis.client.comm.CertAcceptRequest;
 import candis.client.comm.CommRequestBroker;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.SecureConnection;
-import candis.client.gui.CertAcceptDialog;
 import candis.common.RandomID;
 import candis.common.Settings;
-import candis.common.Utilities;
 import candis.common.fsm.FSM;
 import candis.distributed.droid.StaticProfile;
 import candis.system.StaticProfiler;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.StreamCorruptedException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -34,25 +31,27 @@ public class Droid {
 
 	private static final String TAG = "Droid";
 	private final Activity mApp;
-	private final GetIDTask mIDTask;
-	private final ProfilerTask mProfilerTask;
+	private final InitTask mInitTask;
+//	private final ProfilerTask mProfilerTask;
 	private final ConnectTask mConnectTask;
-	private StaticProfile mProfile = null;
-	private RandomID mID = null;
+//	private StaticProfile mProfile = null;
+//	private RandomID mID = null;
+	private DroidContext mDroidContext = null;
 	private SecureConnection mSConn = null;
 	private CommRequestBroker mCRB;
 	private FSM mFSM;
 
 	public Droid(Activity a) {
 		mApp = a;
-		mIDTask = new GetIDTask(mApp, new File(mApp.getFilesDir() + "/" + Settings.getString("idstore")), mID);
-		mProfilerTask = new ProfilerTask(a, new File(mApp.getFilesDir() + "/" + Settings.getString("profilestore")));
+		mInitTask = new InitTask(
+						mApp,
+						new File(mApp.getFilesDir() + "/" + Settings.getString("idstore")),
+						new File(mApp.getFilesDir() + "/" + Settings.getString("profilestore")));
 		mConnectTask = new ConnectTask(mApp, new File(mApp.getFilesDir() + "/" + Settings.getString("truststore")));
 	}
 
 	public void start() {
-		mIDTask.execute();
-		mProfilerTask.execute();
+		mInitTask.execute();
 		Log.i(TAG, "CONNECTING...");
 		try {
 			mConnectTask.execute(
@@ -60,18 +59,20 @@ public class Droid {
 							Settings.getInt("masterport"),
 							(X509TrustManager) new ReloadableX509TrustManager(
 							new File(mApp.getFilesDir() + "/" + Settings.getString("truststore")), null));
-		} catch (Exception ex) {
-//							new File(mApp.getFilesDir() + "/" + Settings.getString("truststore")),
-//							new CertAcceptDialog(mApp, new Handler())));
-//		}
-//		catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			Log.i(TAG, ex.toString());
 		}
 		try {
 			mSConn = mConnectTask.get();
-			mProfile = mProfilerTask.get();
+			mDroidContext = mInitTask.get();
 			Log.i("Droid", "Starting CommRequestBroker");
-			mFSM = new ClientStateMachine(mSConn, mID, mProfile, new Handler(), mApp.getFragmentManager());// TODO: check handler usage
+			mFSM = new ClientStateMachine(
+							mSConn,
+							mDroidContext.getID(),
+							mDroidContext.getProfile(),
+							new Handler(),
+							mApp.getFragmentManager());// TODO: check handler usage
 			mCRB = new CommRequestBroker(
 							mSConn.getInputStream(),
 							mFSM);
@@ -92,39 +93,30 @@ public class Droid {
 		}
 	}
 
-	// load profile
-	// load random id
-	// load truststore
 	/**
-	 * InitTask, checks for ID, profile, truststore and generates if not existing.
+	 * InitTask, checks for ID, profile, ?truststore? and generates if not
+	 * existing.
 	 */
-	/**
-	 * Loads client ID and generates it if necessary
-	 */
-	private class GetIDTask extends AsyncTask<Void, Object, RandomID> {
+	private class InitTask extends AsyncTask<Void, Object, DroidContext> {
 
 		private static final String TAG = "GetIDTask";
-		private final Activity app;
-		private final File idfile;
-		private RandomID randID;
-		private boolean do_generate = false;
+		private final Activity mActivity;
+		private final File mIDFile;
+		private final File mProfileFile;
+		private boolean mGenerateID = false;
+		private boolean mGeneradeProfile = false;
 
-		public GetIDTask(final Activity a, final File f, RandomID id) {
-			app = a;
-			idfile = f;
-			randID = id;
+		public InitTask(
+						final Activity act,
+						final File idfile,
+						final File profilefile) {
+			mActivity = act;
+			mIDFile = idfile;
+			mProfileFile = profilefile;
 		}
 
 		@Override
 		protected void onPreExecute() {
-			if (!idfile.exists()) {
-				Log.v(TAG, "ID file " + idfile + " does not exist. Will be generated...");
-				do_generate = true;
-				Toast.makeText(
-								app.getApplicationContext(),
-								"Generating ID...",
-								Toast.LENGTH_SHORT).show();
-			}
 		}
 
 		/**
@@ -134,82 +126,60 @@ public class Droid {
 		 * @return
 		 */
 		@Override
-		protected RandomID doInBackground(Void... params) {
-			if (do_generate) {
-				randID = RandomID.init(idfile);
+		protected DroidContext doInBackground(Void... params) {
+			// check for profile file
+			if (!mIDFile.exists()) {
+				Log.v(TAG, "ID file " + mIDFile + " does not exist. Will be generated...");
+				mGenerateID = true;
+				publishProgress("Generating ID...", Toast.LENGTH_SHORT);
+			}
+
+			// load or generate ID
+			RandomID id = null;
+			if (mGenerateID) {
+				id = RandomID.init(mIDFile);
+				publishProgress("ID (SHA-1): " + id.toSHA1(), Toast.LENGTH_LONG);
 			}
 			else {
 				try {
-					randID = RandomID.readFromFile(idfile);
+					id = RandomID.readFromFile(mIDFile);
 				}
 				catch (FileNotFoundException ex) {
 					Log.e(TAG, ex.toString());
 				}
 			}
-			mID = randID;
-			return null;
+
+			// check for profile file
+			if (!mProfileFile.exists()) {
+				Log.v(TAG, "Pofile file " + mProfileFile + " does not exist. Run Profiling...");
+				mGeneradeProfile = true;
+				publishProgress("Starting Profiler...", Toast.LENGTH_SHORT);
+			}
+
+			// load or generate profile
+			StaticProfile profile;
+			if (mGeneradeProfile) {
+				profile = new StaticProfiler(mActivity).profile();
+				StaticProfiler.writeProfile(mProfileFile, profile);
+				publishProgress("Profile generated", Toast.LENGTH_SHORT);
+			}
+			else {
+				profile = StaticProfiler.readProfile(mProfileFile);
+			}
+			return new DroidContext(id, profile);//TODO!!!Q
 		}
 
 		/**
-		 * Shows Toast with SHA1 if new ID was created
+		 * Shows Toasts in UI thread.
 		 *
-		 * @param args
+		 * @param msg String / Integer pait for message and show duration
 		 */
 		@Override
-		protected void onPostExecute(RandomID args) {
-			if ((!do_generate) || (randID == null)) {
-				return;
-			}
+		protected void onProgressUpdate(Object... msg) {
 			Toast.makeText(
-							app.getApplicationContext(),
-							"ClientID SHA1: " + Utilities.toSHA1String(randID.getBytes()),
-							Toast.LENGTH_SHORT).show();
-		}
-	}
-
-	/**
-	 * Loads profile data, runs profiler if no data available
-	 */
-	private class ProfilerTask extends AsyncTask<Void, Integer, StaticProfile> {
-
-		private static final String TAG = "ProfilerTask";
-		private final Activity act;
-		private final File pfile;
-		private boolean do_generate;
-
-		public ProfilerTask(final Activity a, final File f) {
-			act = a;
-			pfile = f;
-		}
-
-		@Override
-		protected void onPreExecute() {
-			if (!pfile.exists()) {
-				Log.v(TAG, "Pofile file " + pfile + " does not exist. Run Profiling...");
-				do_generate = true;
-				Toast.makeText(
-								mApp.getApplicationContext(),
-								"Starting Profiler...",
-								Toast.LENGTH_SHORT).show();
-			}
-		}
-
-		@Override
-		protected StaticProfile doInBackground(Void... params) {
-			StaticProfile profile;
-			if (do_generate) {
-				profile = new StaticProfiler(act).profile();
-				StaticProfiler.writeProfile(pfile, profile);
-			}
-			else {
-				profile = StaticProfiler.readProfile(pfile);
-			}
-			return profile;
-		}
-
-		@Override
-		protected void onProgressUpdate(Integer... progress) {
-//         setProgressPercent(progress[0]);
+							mActivity.getApplicationContext(),
+							(String) msg[0],
+							(Integer) msg[1]).show();
 		}
 	}
 
