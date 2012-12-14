@@ -14,8 +14,8 @@ import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
 import candis.distributed.droid.StaticProfile;
-import candist.client.gui.CheckcodeInputDialog;
-import candist.client.gui.ErrorMessageDialog;
+import candis.client.gui.CheckcodeInputDialog;
+import candis.client.gui.ErrorMessageDialog;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
@@ -29,11 +29,12 @@ public final class ClientStateMachine extends FSM {
 
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
-	private ObjectOutputStream mOutStream = null;
+//	private ObjectOutputStream mOutStream = null;
 	private final RandomID mRid;
 	private final StaticProfile mProfile;
 	private final Handler mHandler;
 	private final FragmentManager mFragManager;
+	private final SecureConnection mSConn;
 
 	private enum ClientStates implements StateEnum {
 
@@ -68,12 +69,13 @@ public final class ClientStateMachine extends FSM {
 		this.mProfile = profile;
 		mHandler = handler;
 		mFragManager = manager;
-		try {
-			this.mOutStream = new ObjectOutputStream(sconn.getOutputStream());
-		}
-		catch (IOException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
+		mSConn = sconn;
+//		try {
+//			this.mOutStream = new ObjectOutputStream(sconn.getOutputStream());
+//		}
+//		catch (IOException ex) {
+//			LOGGER.log(Level.SEVERE, null, ex);
+//		}
 		init();
 	}
 
@@ -171,13 +173,14 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object obj) {
 			System.out.println("SocketConnectedHandler() called");
-			try {
-				// todo: ID
-				mOutStream.writeObject(new Message(Instruction.REQUEST_CONNECTION, mRid));
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+//			try {
+//				// todo: ID
+//				mOutStream.writeObject(new Message(Instruction.REQUEST_CONNECTION, mRid));
+//			}
+//			catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
+//			}
+			mSConn.send(new Message(Instruction.REQUEST_CONNECTION, mRid));
 		}
 	}
 
@@ -189,12 +192,13 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object obj) {
 			System.out.println("ProfileRequestHandler() called");
-			try {
-				mOutStream.writeObject(new Message(Instruction.SEND_PROFILE, mProfile));
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+//			try {
+//				mOutStream.writeObject(new Message(Instruction.SEND_PROFILE, mProfile));
+//			}
+//			catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
+//			}
+			mSConn.send(new Message(Instruction.SEND_PROFILE, mProfile));
 		}
 	}
 
@@ -223,18 +227,19 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			System.out.println("CheckcodeSendHandler() called");
-			try {
-				if (o instanceof String) {
-					System.out.println("Checkcode seems to be: " + (String) o);
-					mOutStream.writeObject(new Message(Instruction.SEND_CHECKCODE, (String) o));
-				}
-				else {
-					throw new ClassCastException("Data failure, expected String, got Trash");
-				}
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+//			try {
+//				if (o instanceof String) {
+//					System.out.println("Checkcode seems to be: " + (String) o);
+//					mOutStream.writeObject(new Message(Instruction.SEND_CHECKCODE, (String) o));
+//				}
+//				else {
+//					throw new ClassCastException("Data failure, expected String, got Trash");
+//				}
+//			}
+//			catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
+//			}
+			mSConn.send(new Message(Instruction.SEND_CHECKCODE, (String) o));
 		}
 	}
 
@@ -247,12 +252,13 @@ public final class ClientStateMachine extends FSM {
 		public void handle(Object o) {
 			System.out.println("BinaryReceivedHandler() called");
 			// TODO...
-			try {
-				mOutStream.writeObject(new Message(Instruction.ACK));
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+//			try {
+//				mOutStream.writeObject(new Message(Instruction.ACK));
+//			}
+//			catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
+//			}
+			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
 
@@ -265,12 +271,13 @@ public final class ClientStateMachine extends FSM {
 		public void handle(Object o) {
 			System.out.println("InitialParameterReceivedHandler() called");
 			// TODO...
-			try {
-				mOutStream.writeObject(new Message(Instruction.ACK));
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+//			try {
+//				mOutStream.writeObject(new Message(Instruction.ACK));
+//			}
+//			catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
+//			}
+			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
 
@@ -283,12 +290,13 @@ public final class ClientStateMachine extends FSM {
 		public void handle(Object o) {
 			System.out.println("JobReceivedHandler() called");
 			// TODO...
-			try {
-				mOutStream.writeObject(new Message(Instruction.ACK));
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+//			try {
+//				mOutStream.writeObject(new Message(Instruction.ACK));
+//			}
+//			catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
+//			}
+			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
 
@@ -301,12 +309,13 @@ public final class ClientStateMachine extends FSM {
 		public void handle(Object o) {
 			System.out.println("CheckcodeSendHandler() called");
 			// TODO...
-			try {
-				mOutStream.writeObject(new Message(Instruction.SEND_RESULT, null));
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+//			try {
+//				mOutStream.writeObject(new Message(Instruction.SEND_RESULT, null));
+//			}
+//			catch (IOException ex) {
+//				LOGGER.log(Level.SEVERE, null, ex);
+//			}
+			mSConn.send(new Message(Instruction.SEND_RESULT, null));
 		}
 	}
 }

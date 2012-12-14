@@ -1,41 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    >
-<TextView  
-    android:id="@+id/greeting_field"
-    android:layout_width="fill_parent" 
-    android:layout_height="wrap_content" 
-    android:text="@string/hello"
-    />
-<TextView  
-    android:layout_width="fill_parent" 
-    android:layout_height="wrap_content" 
-    android:layout_marginTop="20dp"
-    android:text="@string/enter_your_name"
-    />
-
-    <LinearLayout 
-        android:orientation="horizontal"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        >
-        <Button
-            android:id="@+id/start_button"
-            android:layout_width="wrap_content" 
-            android:layout_height="wrap_content"
-            android:text="@string/start_button"
-            android:layout_weight="1"
-            /> 
-        <Button
-            android:id="@+id/stop_button"
-            android:layout_width="wrap_content" 
-            android:layout_height="wrap_content"
-            android:text="@string/stop_button"
-            android:layout_weight="1"
-            /> 
-    </LinearLayout>
-    
+							android:orientation="vertical"
+							android:layout_width="fill_parent"
+							android:layout_height="fill_parent">
+<!--	<TextView  
+		android:id="@+id/greeting_field"
+		android:layout_width="fill_parent" 
+		android:layout_height="wrap_content" 
+		android:text="@string/hello"/>-->
+<!--	<TextView  
+		android:layout_width="fill_parent" 
+		android:layout_height="wrap_content" 
+		android:layout_marginTop="20dp"
+		android:text="@string/enter_your_name"/>-->
+	<LinearLayout 
+		android:orientation="horizontal"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:layout_marginTop="5dp">
+		<TextView
+			android:id="@+id/text"
+			android:layout_width="wrap_content" 
+			android:layout_height="fill_parent" 
+			android:gravity="center"
+			android:text="Service running"
+			android:textColor="#0F0"
+			android:layout_weight="1"/> 
+		<Button
+			android:id="@+id/stop_button"
+			android:layout_width="wrap_content" 
+			android:layout_height="wrap_content"
+			android:text="@string/service_start_button"
+			android:layout_weight="1"/> 
+	</LinearLayout>
+	<TextView
+		android:id="@+id/text"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:layout_marginTop="5dp"
+		android:layout_marginBottom="5dp"
+		android:layout_marginLeft="5dp"
+		android:layout_marginRight="5dp"
+		android:padding="5dp"
+		android:background="#FFF"
+		android:textColor="#111"
+		android:text="Hello, I am a TextView" />    
 </LinearLayout>

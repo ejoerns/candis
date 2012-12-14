@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+	<PreferenceCategory android:title="@string/pref_category_title">
+		<EditTextPreference
+			android:key="pref_host"
+			android:inputType="textUri"
+			android:title="@string/pref_host_title"
+			android:summary="@string/pref_host_summary"
+			android:defaultValue="127.0.0.1"/>
+		<EditTextPreference
+			android:key="pref_port"
+			android:inputType="numberDecimal"
+			android:digits="0123456789"
+			android:title="@string/pref_port_title"
+			android:summary="@string/pref_port_summary"
+			android:defaultValue="9999"/>
+		<ListPreference
+			android:key="pref_powermode"
+			android:title="@string/pref_powermode_title"
+			android:dialogTitle="@string/pref_powermode_dtitle"
+			android:entries="@array/pref_powermode_entries"
+			android:entryValues="@array/pref_powermode_values"
+			android:defaultValue="@string/pref_powermode_default" />
+	</PreferenceCategory>
+</PreferenceScreen>

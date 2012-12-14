@@ -2,12 +2,14 @@ package candis.client.comm;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -30,7 +32,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 	/// Port to connect to
 	private int port;
 	private boolean connected;
-	private OutputStream mOutstream;
+	private ObjectOutputStream mObjOutstream;
 	private InputStream mInstream;
 	private X509TrustManager tstore;
 
@@ -65,13 +67,16 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 		try {
 			context = SSLContext.getInstance("TLS");
 			context.init(null, new TrustManager[]{tstore}, null);
-		} catch (NoSuchAlgorithmException ex) {
+		}
+		catch (NoSuchAlgorithmException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 			return;
-		} catch (KeyManagementException ex) {
+		}
+		catch (KeyManagementException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 			return;
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 			return;
 		}
@@ -80,9 +85,11 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 		LOGGER.log(Level.FINE, "Got SSLSocketFactory");
 		try {
 			socket = sf.createSocket(host, port);
-		} catch (UnknownHostException ex) {
+		}
+		catch (UnknownHostException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
@@ -90,12 +97,14 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 						"Connected to %s:%d", socket.getInetAddress(), socket.getPort()));
 
 		try {
-			mOutstream = socket.getOutputStream();
+			mObjOutstream = new ObjectOutputStream(socket.getOutputStream());
 			Thread.sleep(500);
 			mInstream = socket.getInputStream();
-		} catch (InterruptedException ex) {
+		}
+		catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, "Failed creating input/output streams");
 		}
 
@@ -115,7 +124,8 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 			if (socket != null) {
 				socket.close();
 			}
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, "Failed to close socket");
 		}
 	}
@@ -136,7 +146,26 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 		return mInstream;
 	}
 
-	public OutputStream getOutputStream() throws IOException {
-		return mOutstream;
+//	public OutputStream getOutputStream() throws IOException {
+//		return mObjOutstream;
+//	}
+
+	/**
+	 * Sends data in new thrad
+	 *
+	 * @todo Replace with send qeue
+	 * @param obj
+	 */
+	public void send(final Object obj) {
+		new Thread(new Runnable() {
+			public void run() {
+				try {
+					mObjOutstream.writeObject(obj);
+				}
+				catch (IOException ex) {
+					LOGGER.log(Level.SEVERE, null, ex);
+				}
+			}
+		}).start();
 	}
 }

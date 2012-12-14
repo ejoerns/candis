@@ -1,8 +1,6 @@
 package candis.client;
 
-import candis.common.Settings;
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.util.Log;
@@ -11,7 +9,9 @@ import candis.client.comm.CertAcceptRequest;
 import candis.client.comm.CommRequestBroker;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.SecureConnection;
+import candis.client.gui.CertAcceptDialog;
 import candis.common.RandomID;
+import candis.common.Settings;
 import candis.common.Utilities;
 import candis.common.fsm.FSM;
 import candis.distributed.droid.StaticProfile;
@@ -24,7 +24,6 @@ import java.io.StreamCorruptedException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -34,54 +33,61 @@ import javax.net.ssl.X509TrustManager;
 public class Droid {
 
 	private static final String TAG = "Droid";
-	private final Activity app;
-	private StaticProfile profile = null;
-	private RandomID id = null;
-	private final TrustManager tm = null;
-	private final GetIDTask idg;
-	private final ProfilerTask ptask;
-	private final ConnectTask ctask;
-	SecureConnection sc = null;
-	CommRequestBroker comm;
-	private FSM fsm;
+	private final Activity mApp;
+	private final GetIDTask mIDTask;
+	private final ProfilerTask mProfilerTask;
+	private final ConnectTask mConnectTask;
+	private StaticProfile mProfile = null;
+	private RandomID mID = null;
+	private SecureConnection mSConn = null;
+	private CommRequestBroker mCRB;
+	private FSM mFSM;
 
 	public Droid(Activity a) {
-		app = a;
-		idg = new GetIDTask(app, new File(app.getFilesDir() + "/" + Settings.getString("idstore")), id);
-		ptask = new ProfilerTask(a, new File(app.getFilesDir() + "/" + Settings.getString("profilestore")));
-		ctask = new ConnectTask(app, new File(app.getFilesDir() + "/" + Settings.getString("truststore")));
+		mApp = a;
+		mIDTask = new GetIDTask(mApp, new File(mApp.getFilesDir() + "/" + Settings.getString("idstore")), mID);
+		mProfilerTask = new ProfilerTask(a, new File(mApp.getFilesDir() + "/" + Settings.getString("profilestore")));
+		mConnectTask = new ConnectTask(mApp, new File(mApp.getFilesDir() + "/" + Settings.getString("truststore")));
 	}
 
 	public void start() {
-		idg.execute();
-		ptask.execute();
+		mIDTask.execute();
+		mProfilerTask.execute();
 		Log.i(TAG, "CONNECTING...");
 		try {
-			ctask.execute(
+			mConnectTask.execute(
 							Settings.getString("masteraddress"),
 							Settings.getInt("masterport"),
 							(X509TrustManager) new ReloadableX509TrustManager(
-							new File(app.getFilesDir() + "/" + Settings.getString("truststore")), null));
+							new File(mApp.getFilesDir() + "/" + Settings.getString("truststore")), null));
 		} catch (Exception ex) {
+//							new File(mApp.getFilesDir() + "/" + Settings.getString("truststore")),
+//							new CertAcceptDialog(mApp, new Handler())));
+//		}
+//		catch (Exception ex) {
 			Log.i(TAG, ex.toString());
 		}
 		try {
-			sc = ctask.get();
-			profile = ptask.get();
+			mSConn = mConnectTask.get();
+			mProfile = mProfilerTask.get();
 			Log.i("Droid", "Starting CommRequestBroker");
-			fsm = new ClientStateMachine(sc, id, profile, new Handler(), app.getFragmentManager());// TODO: check handler usage
-			comm = new CommRequestBroker(
-							new ObjectInputStream(sc.getInputStream()),
-							fsm);
-			new Thread(comm).start();
+			mFSM = new ClientStateMachine(mSConn, mID, mProfile, new Handler(), mApp.getFragmentManager());// TODO: check handler usage
+			mCRB = new CommRequestBroker(
+							mSConn.getInputStream(),
+							mFSM);
+			new Thread(mCRB).start();
 			Log.i("Droid", "[DONE]");
-		} catch (StreamCorruptedException ex) {
+		}
+		catch (StreamCorruptedException ex) {
 			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (InterruptedException ex) {
+		}
+		catch (InterruptedException ex) {
 			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (ExecutionException ex) {
+		}
+		catch (ExecutionException ex) {
 			Logger.getLogger(Droid.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
@@ -89,6 +95,9 @@ public class Droid {
 	// load profile
 	// load random id
 	// load truststore
+	/**
+	 * InitTask, checks for ID, profile, truststore and generates if not existing.
+	 */
 	/**
 	 * Loads client ID and generates it if necessary
 	 */
@@ -128,14 +137,16 @@ public class Droid {
 		protected RandomID doInBackground(Void... params) {
 			if (do_generate) {
 				randID = RandomID.init(idfile);
-			} else {
+			}
+			else {
 				try {
 					randID = RandomID.readFromFile(idfile);
-				} catch (FileNotFoundException ex) {
+				}
+				catch (FileNotFoundException ex) {
 					Log.e(TAG, ex.toString());
 				}
 			}
-			id = randID;
+			mID = randID;
 			return null;
 		}
 
@@ -177,7 +188,7 @@ public class Droid {
 				Log.v(TAG, "Pofile file " + pfile + " does not exist. Run Profiling...");
 				do_generate = true;
 				Toast.makeText(
-								app.getApplicationContext(),
+								mApp.getApplicationContext(),
 								"Starting Profiler...",
 								Toast.LENGTH_SHORT).show();
 			}
@@ -189,7 +200,8 @@ public class Droid {
 			if (do_generate) {
 				profile = new StaticProfiler(act).profile();
 				StaticProfiler.writeProfile(pfile, profile);
-			} else {
+			}
+			else {
 				profile = StaticProfiler.readProfile(pfile);
 			}
 			return profile;
@@ -214,7 +226,6 @@ public class Droid {
 		public ConnectTask(final Activity act, final File ts) {
 			activity = act;
 			tstore = ts;
-			cad = new CertAcceptDialog(activity, new Handler());
 		}
 
 		@Override

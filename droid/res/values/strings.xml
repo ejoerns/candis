@@ -1,19 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Useful information here</string>
-    <string name="app_name">Service Starter</string>
-    <string name="enter_your_name">Click to start/stop service.:</string>
+<!--App name-->
+	<string name="app_name">Candis Client</string>
     
-    <string name="start_button">Start</string>
-    <string name="stop_button">Stop</string>
+	<string name="start_button">Start</string>
+	<string name="service_start_button">Start Service</string>
 
-    <string name="error_name_missing">Click!</string>
-    <string name="error_ok">OK</string>
+	<string name="error_name_missing">Click!</string>
+	<string name="error_ok">OK</string>
     
-    <string name="start_msg">Starting service</string>
-    <string name="stop_msg">Stopping service</string>
+	<string name="start_msg">Starting service</string>
+	<string name="stop_msg">Stopping service</string>
 
-    <string name="accept">Accept</string>
-    <string name="reject">Reject</string>
+	<string name="accept">Accept</string>
+	<string name="reject">Reject</string>
+
+<!--Options-->
+	<string name="pref_category_title">Settings</string>
+	<!--Host-->
+	<string name="pref_host_title">Host</string>
+	<string name="pref_host_summary">Hostname</string>
+	<!--Port-->
+	<string name="pref_port_title">Port</string>
+	<string name="pref_port_summary">Portname</string>
+	<!--Powermode-->
+	<string name="pref_powermode_title">Powermode</string>
+	<string name="pref_powermode_dtitle">Calculates If</string>
+	<string name="pref_powermode_default">Always On</string>
+	<string-array name="pref_powermode_entries">
+		<item>Always</item>
+		<item>Battery >50%</item>
+		<item>Power connected</item>
+	</string-array>
+	<string-array name="pref_powermode_values">
+		<item>Always On</item>
+		<item>Battery 50%</item>
+		<item>Power connected</item>
+	</string-array>
+
+	<string name="activity_settings_name">SettingsActivity</string>
+	<string name="menu_settings">Settings</string>
 
 </resources>

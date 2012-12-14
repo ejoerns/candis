@@ -32,13 +32,13 @@ public final class ReloadableX509TrustManager
 				implements X509TrustManager, CertAcceptHandler {
 
 	private static final String TAG = "X509";
-	private static final Logger logger = Logger.getLogger(TAG);
+	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Path to truststore
-	private final File tsfile;
-	private X509TrustManager trustManager;
+	private final File mTSFile;
+	private X509TrustManager mTrustManager;
 	/// List for temporary certificates
-	private final List<Certificate> tempCertList = new LinkedList<Certificate>();
-	private CertAcceptRequest cad;
+	private final List<Certificate> mTempCertList = new LinkedList<Certificate>();
+	private CertAcceptRequest mCAR;
 	/// Boolean for synchronization
 	private final AtomicBoolean accepted = new AtomicBoolean(false);
 
@@ -52,7 +52,6 @@ public final class ReloadableX509TrustManager
 	public ReloadableX509TrustManager(final String tspath)
 					throws Exception {
 		this(tspath, null);
-		this.setCertAcceptDialog(null);
 	}
 
 	/**
@@ -64,8 +63,8 @@ public final class ReloadableX509TrustManager
 	 * @throws Exception
 	 */
 	public ReloadableX509TrustManager(final File tsfile, final CertAcceptRequest cad) throws Exception {
-		this.tsfile = tsfile;
-		this.cad = cad;
+		this.mTSFile = tsfile;
+		this.mCAR = cad;
 		reloadTrustManager();
 	}
 
@@ -76,28 +75,28 @@ public final class ReloadableX509TrustManager
 	@Override
 	public void checkClientTrusted(final X509Certificate[] chain,
 					String authType) throws java.security.cert.CertificateException {
-		logger.log(Level.INFO, "checkClientTrusted()");
-		trustManager.checkClientTrusted(chain, authType);
+		LOGGER.log(Level.INFO, "checkClientTrusted()");
+		mTrustManager.checkClientTrusted(chain, authType);
 	}
 
 	@Override
 	public void checkServerTrusted(final X509Certificate[] chain,
 					String authType) throws java.security.cert.CertificateException {
-		logger.log(Level.INFO, "checkServerTrusted()");
+		LOGGER.log(Level.INFO, "checkServerTrusted()");
 		try {
-			trustManager.checkServerTrusted(chain, authType);
+			mTrustManager.checkServerTrusted(chain, authType);
 		} catch (java.security.cert.CertificateException cx) {
-			logger.log(Level.FINEST, "CertificateException");
+			LOGGER.log(Level.FINEST, "CertificateException");
 			addServerCertAndReload(chain[0], true);
-			trustManager.checkServerTrusted(chain, authType);
+			mTrustManager.checkServerTrusted(chain, authType);
 		}
-		logger.log(Level.FINEST, "checkServerTrusted() DONE");
+		LOGGER.log(Level.FINEST, "checkServerTrusted() DONE");
 	}
 
 	@Override
 	public X509Certificate[] getAcceptedIssuers() {
-		logger.log(Level.INFO, "getAcceptedIssuers()");
-		X509Certificate[] issuers = trustManager.getAcceptedIssuers();
+		LOGGER.log(Level.INFO, "getAcceptedIssuers()");
+		X509Certificate[] issuers = mTrustManager.getAcceptedIssuers();
 		return issuers;
 	}
 
@@ -109,31 +108,31 @@ public final class ReloadableX509TrustManager
 	 * @throws Exception
 	 */
 	private void reloadTrustManager() throws Exception {
-		logger.log(Level.INFO, "reloadTrustManager()");
+		LOGGER.log(Level.INFO, "reloadTrustManager()");
 
 		// load keystore from specified cert store (or default)
 		KeyStore ts = KeyStore.getInstance("BKS");
 		InputStream in;
 		// Check if file exists and is not empty
 		try {
-			in = new FileInputStream(tsfile);
+			in = new FileInputStream(mTSFile);
 			if (in.available() == 0) {
 				in.close();
 				in = null;
 			}
 		} catch (FileNotFoundException ex) {
-			logger.log(Level.INFO, "Truststore file {0} not found.", tsfile.getName());
+			LOGGER.log(Level.INFO, "Truststore file {0} not found.", mTSFile.getName());
 			in = null;
 		}
 
 		// Initialize empty truststore if none available
 		if (in == null) {
-			OutputStream out = new FileOutputStream(tsfile);
+			OutputStream out = new FileOutputStream(mTSFile);
 			ts.load(null, "candis".toCharArray());
 			ts.store(out, "candis".toCharArray());
 			out.close();
-			in = new FileInputStream(tsfile);
-			logger.log(Level.INFO, "Initialized empty truststore {0}", tsfile.getName());
+			in = new FileInputStream(mTSFile);
+			LOGGER.log(Level.INFO, "Initialized empty truststore {0}", mTSFile.getName());
 		}
 
 		// load truststore
@@ -144,7 +143,7 @@ public final class ReloadableX509TrustManager
 		}
 
 		// add all temporary certs to KeyStore (ts)
-		for (Certificate cert : tempCertList) {
+		for (Certificate cert : mTempCertList) {
 			ts.setCertificateEntry(UUID.randomUUID().toString(), cert);
 		}
 
@@ -157,7 +156,7 @@ public final class ReloadableX509TrustManager
 		TrustManager tms[] = tmf.getTrustManagers();
 		for (int i = 0; i < tms.length; i++) {
 			if (tms[i] instanceof X509TrustManager) {
-				trustManager = (X509TrustManager) tms[i];
+				mTrustManager = (X509TrustManager) tms[i];
 				return;
 			}
 		}
@@ -177,8 +176,8 @@ public final class ReloadableX509TrustManager
 	private void addServerCertAndReload(final X509Certificate cert, final boolean permanent) {
 
 		// Call accept dialog if available, otherwise auto-accept
-		if (cad != null) {
-			cad.userCheckAccept(cert, this);
+		if (mCAR != null) {
+			mCAR.userCheckAccept(cert, this);
 
 			synchronized (accepted) {
 				try {
@@ -192,9 +191,9 @@ public final class ReloadableX509TrustManager
 		}
 
 		if (accepted.get()) {
-			logger.log(Level.INFO, "Certificate ACCEPTED");
+			LOGGER.log(Level.INFO, "Certificate ACCEPTED");
 		} else {
-			logger.log(Level.INFO, "Certificate REJECTED");
+			LOGGER.log(Level.INFO, "Certificate REJECTED");
 		}
 
 
@@ -204,7 +203,7 @@ public final class ReloadableX509TrustManager
 				KeyStore ts = KeyStore.getInstance("BKS");
 
 				// load truststore from file
-				FileInputStream cert_istream = new FileInputStream(tsfile);
+				FileInputStream cert_istream = new FileInputStream(mTSFile);
 				ts.load(cert_istream, "candis".toCharArray());
 				cert_istream.close();
 
@@ -212,22 +211,22 @@ public final class ReloadableX509TrustManager
 				ts.setCertificateEntry("candiscert", cert);
 
 				for (Enumeration<String> en = ts.aliases(); en.hasMoreElements();) {
-					logger.log(Level.INFO, "Alias found: {0}", en.nextElement());
+					LOGGER.log(Level.INFO, "Alias found: {0}", en.nextElement());
 				}
 
 				// write truststore to file
-				FileOutputStream cert_ostream = new FileOutputStream(tsfile);
+				FileOutputStream cert_ostream = new FileOutputStream(mTSFile);
 				ts.store(cert_ostream, "candis".toCharArray());
 				cert_ostream.close();
 
-				logger.log(Level.FINE, "Added certificate (permanently)");
+				LOGGER.log(Level.FINE, "Added certificate (permanently)");
 			} else {
-				tempCertList.add(cert);
-				logger.log(Level.FINE, "Added certificate (temporary)");
+				mTempCertList.add(cert);
+				LOGGER.log(Level.FINE, "Added certificate (temporary)");
 			}
 			reloadTrustManager();
 		} catch (Exception ex) {
-			logger.log(Level.SEVERE, ex.toString());
+			LOGGER.log(Level.SEVERE, ex.toString());
 		}
 	}
 
@@ -237,7 +236,7 @@ public final class ReloadableX509TrustManager
 	 * @param cad Class that implements the CertAcceptRequest interface
 	 */
 	public void setCertAcceptDialog(final CertAcceptRequest cad) {
-		this.cad = cad;
+		this.mCAR = cad;
 	}
 
 	@Override

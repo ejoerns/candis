@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.OptionalDataException;
+import java.io.StreamCorruptedException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,18 +27,27 @@ public class CommRequestBroker implements Runnable {
 	private boolean isStopped;
 	private FSM fsm;
 	private final InputStream instream;
-	private ObjectInputStream oinstream = null;
+	private ObjectInputStream mObjInstream = null;
+	private InputStream mInstream;
 
-	public CommRequestBroker(final ObjectInputStream instream, final FSM fsm) {
+	public CommRequestBroker(final InputStream instream, final FSM fsm) {
 		isStopped = false;
 		this.instream = instream;
 		this.fsm = fsm;
-		oinstream = instream;
+		mInstream = instream;
 	}
 
 	@Override
 	public void run() {
-
+		try {
+			mObjInstream = new ObjectInputStream(mInstream);
+		}
+		catch (StreamCorruptedException ex) {
+			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		catch (IOException ex) {
+			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+		}
 		try {
 			fsm.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
 		} catch (StateMachineException ex) {
@@ -67,17 +77,17 @@ public class CommRequestBroker implements Runnable {
 	public Object readObject() throws IOException {
 		Object rec = null;
 
-		if (oinstream == null) {
+		if (mObjInstream == null) {
 			LOGGER.warning("InputStream is null");
 			return null;
 		}
 
 		try {
-			rec = oinstream.readObject();
+			rec = mObjInstream.readObject();
 		} catch (EOFException ex) {
 			LOGGER.log(Level.WARNING, "Connection to server was terminated.");
 			isStopped = true;
-			oinstream.close();
+			mObjInstream.close();
 			// todo quit loop!
 		} catch (OptionalDataException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
