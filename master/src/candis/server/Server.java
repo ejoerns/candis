@@ -1,7 +1,6 @@
 package candis.server;
 
 import candis.common.Settings;
-import candis.distributed.CommunicationIO;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,6 +42,10 @@ public class Server implements Runnable {
 	}
 
 	public Server(DroidManager droidmanager) {
+		this(droidmanager, new ServerCommunicationIO(droidmanager));
+	}
+
+	public Server(DroidManager droidmanager, ServerCommunicationIO scomio) {
 
 		// load properties if available or load default properties
 		try {
@@ -52,7 +55,7 @@ public class Server implements Runnable {
 			Settings.load(Server.class.getResourceAsStream("defaultsettings.properties"));
 		}
 		mDroidManager = droidmanager;
-		mCommunicationIO = new ServerCommunicationIO(droidmanager);
+		mCommunicationIO = scomio;
 		// try to load drodmanager
 		try {
 			mDroidManager.load(new File(Settings.getString("droiddb.file")));

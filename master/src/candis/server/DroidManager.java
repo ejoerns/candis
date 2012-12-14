@@ -1,8 +1,8 @@
 package candis.server;
 
-import candis.distributed.DroidData;
 import candis.common.RandomID;
 import candis.common.Utilities;
+import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -267,7 +267,7 @@ public final class DroidManager {
 	 */
 	public void connectDroid(final String rid, Connection con) {
 		LOGGER.log(Level.INFO, "Droid {0} connected", rid);
-		connectedDroids.put(rid, con);//TODO...
+		connectedDroids.put(rid, con);
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 	}
 

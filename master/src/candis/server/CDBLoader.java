@@ -48,7 +48,7 @@ public class CDBLoader {
 	 *
 	 * @param cdbfile CDB file to load
 	 */
-	public CDBLoader(final File cdbfile) {
+	public CDBLoader(final File cdbfile) throws Exception{
 		loadCandisDistributedBundle(cdbfile);
 	}
 
@@ -75,9 +75,9 @@ public class CDBLoader {
 	 *
 	 * @param cdbfile
 	 */
-	private void loadCandisDistributedBundle(final File cdbfile) {
+	private void loadCandisDistributedBundle(final File cdbfile) throws Exception{
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
-		List<String> classList = null;
+		List<String> classList;
 
 		mCDBContext = new CDBContext(projectPath);
 		extractCandisDistributedBundle(cdbfile, mCDBContext);
@@ -148,13 +148,15 @@ public class CDBLoader {
 	 * @param cdbfile Name of cdb-file
 	 * @param cdbContext
 	 */
-	private void extractCandisDistributedBundle(final File cdbfile, final CDBContext cdbContext) {
-		ZipFile zipFile = null;
-		String server_binary = null;
-		String droid_binary = null;
+	private void extractCandisDistributedBundle(final File cdbfile, final CDBContext cdbContext) throws Exception{
+		ZipFile zipFile;
+		String server_binary;
+		String droid_binary;
 		int libNumber = 0;
+
 		try {
 			zipFile = new ZipFile(cdbfile);
+
 			// create new directory to store unzipped project files
 			File newDir = cdbContext.getProjectDir();
 			if (!newDir.exists()) {
@@ -162,6 +164,7 @@ public class CDBLoader {
 					LOGGER.log(Level.WARNING, "Project directory {0} could not be created", newDir);
 				}
 			}
+
 			// try to load filenames from properties file
 			ZipEntry entry = zipFile.getEntry("config.properties");
 			if (entry == null) {
@@ -172,26 +175,27 @@ public class CDBLoader {
 			server_binary = p.getProperty("server.binary");
 			droid_binary = p.getProperty("droid.binary");
 			if (server_binary == null) {
-				LOGGER.log(Level.SEVERE, "No server binary given");
-				return;
+				throw new Exception("No server binary given");
 			}
 			if (droid_binary == null) {
-				LOGGER.log(Level.SEVERE, "No droid binary given");
-				return;
+				throw new Exception("No droid binary given");
 			}
+
 			// load server binary
 			entry = zipFile.getEntry(server_binary);
 			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 							new FileOutputStream(cdbContext.getServerBin())));
 			LOGGER.log(Level.FINE, "Extracted server binary: {0}", entry.getName());
+
 			// load droid binary
 			entry = zipFile.getEntry(droid_binary);
 			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 							new FileOutputStream(cdbContext.getDroidBin())));
 			LOGGER.log(Level.FINE, "Extracted droid binary: {0}", entry.getName());
+
 			// load libs
 			String lib;
-			while ((lib = p.getProperty(String.format("server.lib.%d.jar", libNumber))) != null) {
+			while ((lib = p.getProperty(String.format("server.lib.%d", libNumber))) != null) {
 				entry = zipFile.getEntry(lib);
 				copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 								new FileOutputStream(cdbContext.getLib(libNumber))));
@@ -229,7 +233,6 @@ public class CDBLoader {
 	 */
 	public static List<String> getClassNamesInJar(final String jarName) {
 		List<String> classes = new ArrayList<String>();
-
 		JarInputStream jarFile = null;
 		try {
 			jarFile = new JarInputStream(new FileInputStream(jarName));
@@ -244,14 +247,20 @@ public class CDBLoader {
 					LOGGER.log(Level.FINE, "Found class: " + jarEntry.getName().replaceAll("/", "\\."));
 					classes.add(removeFileExtension(jarEntry.getName().replaceAll("/", "\\.")));
 				}
+				else{
+					LOGGER.log(Level.FINE, "Not Found " + jarEntry.getName());
+				}
 			}
 		}
 		catch (Exception e) {
+
+			LOGGER.log(Level.WARNING, "hier ist was doof", e);
+		}
+		finally {
 			try {
 				if (jarFile != null) {
 					jarFile.close();
 				}
-				LOGGER.log(Level.WARNING, null, "Closed jar input stream");
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

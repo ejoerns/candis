@@ -1,8 +1,7 @@
 package candis.distributed.test;
 
 import candis.distributed.DistributedControl;
-import candis.distributed.Scheduler;
-import candis.distributed.SimpleScheduler;
+import candis.distributed.SchedulerStillRuningException;
 import candis.example.mini.MiniTask;
 import candis.example.mini.MiniControl;
 import candis.server.DroidManager;
@@ -26,8 +25,15 @@ public class TestMain{
 
 		TestCommunicationIO comio = new TestCommunicationIO<MiniTask>(new MiniTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
-		comio.setDistributedControl(t);
-		comio.startScheduler();
+		try {
+			comio.setDistributedControl(t);
+			comio.startScheduler();
+		}
+		catch (SchedulerStillRuningException ex) {
+			Logger.getLogger(TestMain.class.getName()).log(Level.SEVERE, null, ex);
+		}
+
+
 		try {
 
 			comio.join();
