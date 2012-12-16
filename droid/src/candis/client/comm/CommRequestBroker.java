@@ -50,7 +50,8 @@ public class CommRequestBroker implements Runnable {
 		}
 		try {
 			fsm.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
-		} catch (StateMachineException ex) {
+		}
+		catch (StateMachineException ex) {
 			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		Message m = null;
@@ -62,13 +63,16 @@ public class CommRequestBroker implements Runnable {
 									"Read new Message: %s", ((Message) o).getRequest().toString()));
 					try {
 						fsm.process(((Message) o).getRequest());
-					} catch (StateMachineException ex) {
+					}
+					catch (StateMachineException ex) {
 						LOGGER.log(Level.SEVERE, null, ex);
 					}
-				} else {
+				}
+				else {
 					LOGGER.log(Level.WARNING, "Received data of unknown type!");
 				}
-			} catch (IOException ex) {
+			}
+			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
@@ -84,14 +88,17 @@ public class CommRequestBroker implements Runnable {
 
 		try {
 			rec = mObjInstream.readObject();
-		} catch (EOFException ex) {
+		}
+		catch (EOFException ex) {
 			LOGGER.log(Level.WARNING, "Connection to server was terminated.");
 			isStopped = true;
 			mObjInstream.close();
 			// todo quit loop!
-		} catch (OptionalDataException ex) {
+		}
+		catch (OptionalDataException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
-		} catch (ClassNotFoundException ex) {
+		}
+		catch (ClassNotFoundException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 

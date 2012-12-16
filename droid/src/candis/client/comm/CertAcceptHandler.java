@@ -2,7 +2,7 @@ package candis.client.comm;
 
 /**
  * Handler interface for certificate accept dialog.
- * 
+ *
  * Has to be implemented by classes that should provide a handling for
  * results from a CertAcceptRequest
  *

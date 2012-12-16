@@ -67,8 +67,8 @@ public class CertAcceptDialog implements CertAcceptRequest {
 		private CertAcceptHandler cahandler;
 
 		/**
-		 * 
-		 * @param cahandler 
+		 *
+		 * @param cahandler
 		 */
 		public Fragment(final CertAcceptHandler cahandler) {
 			this.cahandler = cahandler;
@@ -95,7 +95,8 @@ public class CertAcceptDialog implements CertAcceptRequest {
 						cahandler.acceptHandler(false);
 					}
 				});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Logger.getLogger(CertAcceptDialog.class.getName()).log(Level.SEVERE, null, ex);
 			}
 			// Create the AlertDialog object and return it

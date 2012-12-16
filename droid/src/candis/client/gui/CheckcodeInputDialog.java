@@ -39,7 +39,7 @@ public class CheckcodeInputDialog extends DialogFragment {
 		final Message msg = Message.obtain();
 		try {
 			builder.setMessage("Enter check code")
-//							.setTitle("Warning")
+							//							.setTitle("Warning")
 							.setPositiveButton(R.string.accept, new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int id) {
 					Log.v(TAG, "Positive clicked with checkcode " + input.getText().toString());

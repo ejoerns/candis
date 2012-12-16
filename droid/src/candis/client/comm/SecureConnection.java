@@ -3,13 +3,11 @@ package candis.client.comm;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -149,7 +147,6 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 //	public OutputStream getOutputStream() throws IOException {
 //		return mObjOutstream;
 //	}
-
 	/**
 	 * Sends data in new thrad
 	 *
