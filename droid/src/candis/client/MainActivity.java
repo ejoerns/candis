@@ -1,10 +1,9 @@
 package candis.client;
 
-import candis.client.gui.CertAcceptDialog;
-import candis.common.Settings;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -15,12 +14,18 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
-import candis.client.comm.CertAcceptRequest;
 import candis.client.comm.SecureConnection;
+import candis.client.gui.InfoActivity;
 import candis.client.gui.settings.SettingsActivity;
+import candis.client.service.BackgroundService;
+import candis.common.Settings;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -30,7 +35,9 @@ public class MainActivity extends Activity
 	private static final String TAG = "MainActivity";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private Button startButton;
-	private Button stopButton;
+	private Button mServiceButton;
+	private InitTask mInitTask;
+	private DroidContext mDroidContext;
 	SecureConnection sconn = null;
 
 	@Override
@@ -42,16 +49,17 @@ public class MainActivity extends Activity
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
+		Intent newintent;
 		switch (item.getItemId()) {
-//			case android.R.id.home:
-//				// app icon in action bar clicked; go home
-//				Intent intent = new Intent(this, MainActivity.class);
-//				intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//				startActivity(intent);
-//				return true;
+			case android.R.id.home:
+				return true;
+			case R.id.menu_info:
+				newintent = new Intent(this, InfoActivity.class);
+				newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+				startActivity(newintent);
+				return true;
 			case R.id.menu_settings:
-				// app icon in action bar clicked; go home
-				Intent newintent = new Intent(this, SettingsActivity.class);
+				newintent = new Intent(this, SettingsActivity.class);
 				newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 				startActivity(newintent);
 				return true;
@@ -79,36 +87,49 @@ public class MainActivity extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
-//		if (true) {
-//			return;
-//		}
 		final Handler mHandler = new Handler();
 
-		stopButton = (Button) findViewById(R.id.stop_button);
-		stopButton.setOnClickListener(this);
+		mServiceButton = (Button) findViewById(R.id.service_button);
+		mServiceButton.setOnClickListener(this);
 
 		// Load settings from R.raw.settings
 		Settings.load(this.getResources().openRawResource(R.raw.settings));
 
-		// Run droid
-		new Droid(this).start();
-
+		// TODO: fix, check, do, bla...
+		mDroidContext = DroidContext.getInstance();
+		// Init droid
+		mInitTask = new InitTask(
+						this,
+						new File(this.getFilesDir(), Settings.getString("idstore")),
+						new File(this.getFilesDir(), Settings.getString("profilestore")));
+		mInitTask.execute();
 //		CertAcceptRequest cad = new CertAcceptDialog(this, mHandler);
 	}
+	private boolean mToggleServiceButton = true;
 
 	public void onClick(View v) {
 
-		if (v == startButton) {
-			Log.d(TAG, "onClick: starting service");
-			startService(new Intent(this, MyService.class));
-			String feedback = getResources().getString(R.string.start_msg);
-			Toast.makeText(this, feedback, Toast.LENGTH_LONG).show();
-		}
-		else if (v == stopButton) {
-			Log.d(TAG, "onClick: stopping service");
-			stopService(new Intent(this, MyService.class));
-			String feedback = getResources().getString(R.string.stop_msg);
-			Toast.makeText(this, feedback, Toast.LENGTH_LONG).show();
+		if (v == mServiceButton) {
+			if (mToggleServiceButton) {
+				mToggleServiceButton = false;
+				Log.d(TAG, "onClick: starting service");
+				startService(new Intent(this, BackgroundService.class).putExtra("DROID_CONTEXT", mDroidContext));
+				mServiceButton.setText(getResources().getString(R.string.service_button_stop));
+				((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
+				((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(0, 255, 0));
+				String feedback = getResources().getString(R.string.start_msg);
+				Toast.makeText(this, feedback, Toast.LENGTH_SHORT).show();
+			}
+			else {
+				mToggleServiceButton = true;
+				Log.d(TAG, "onClick: stopping service");
+				stopService(new Intent(this, BackgroundService.class));
+				mServiceButton.setText(getResources().getString(R.string.service_button_start));
+				((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_stopped);
+				((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
+				String feedback = getResources().getString(R.string.stop_msg);
+				Toast.makeText(this, feedback, Toast.LENGTH_SHORT).show();
+			}
 		}
 
 //		if (name.length() == 0) {
@@ -119,7 +140,7 @@ public class MainActivity extends Activity
 //			return;
 //		}
 
-		if (v == startButton || v == stopButton) {
+		if (v == startButton || v == mServiceButton) {
 			int resourceId = v == startButton ? R.string.start_msg
 							: R.string.stop_msg;
 		}

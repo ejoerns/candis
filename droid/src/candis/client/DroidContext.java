@@ -2,6 +2,7 @@ package candis.client;
 
 import candis.common.RandomID;
 import candis.distributed.droid.StaticProfile;
+import java.io.Serializable;
 
 /**
  * Holds data associated with the droid.
@@ -9,18 +10,43 @@ import candis.distributed.droid.StaticProfile;
  * @todo Singleton?
  * @author Enrico Joerns
  */
-public class DroidContext {
+public class DroidContext implements Serializable {
 
 	private RandomID mID;
 	private StaticProfile mProfile;
+	private static DroidContext mInstance = null;
 
-	public DroidContext(RandomID id, StaticProfile profile) {
-		mID = id;
-		mProfile = profile;
+	protected DroidContext() {
+	}
+//	public DroidContext(RandomID id, StaticProfile profile) {
+//		mID = id;
+//		mProfile = profile;
+//	}
+
+	public static DroidContext getInstance() {
+		if (mInstance == null) {
+			System.out.println("#### new DroidContext()");
+			mInstance = new DroidContext();
+		}
+		System.out.println("#### getInstance()");
+		return mInstance;
+	}
+	
+	public void init(final DroidContext dcontext) {
+		mID = dcontext.mID;
+		mProfile = dcontext.mProfile;
+	}
+
+	public void setID(final RandomID rid) {
+		mID = rid;
 	}
 
 	public RandomID getID() {
 		return mID;
+	}
+
+	public void setProfile(final StaticProfile profile) {
+		mProfile = profile;
 	}
 
 	public StaticProfile getProfile() {

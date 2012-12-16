@@ -3,8 +3,9 @@ package candis.client;
 import android.app.DialogFragment;
 import android.app.FragmentManager;
 import android.os.Handler;
-import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
+import candis.client.gui.CheckcodeInputDialog;
+import candis.client.gui.ErrorMessageDialog;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.RandomID;
@@ -14,10 +15,6 @@ import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
 import candis.distributed.droid.StaticProfile;
-import candis.client.gui.CheckcodeInputDialog;
-import candis.client.gui.ErrorMessageDialog;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,7 +56,7 @@ public final class ClientStateMachine extends FSM {
 		MY_ID;
 	}
 
-	ClientStateMachine(
+	public ClientStateMachine(
 					SecureConnection sconn,
 					final RandomID rid,
 					final StaticProfile profile,

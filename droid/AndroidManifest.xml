@@ -25,8 +25,10 @@
 
 		<activity android:name="candis.client.gui.settings.SettingsActivity"></activity>
 
+		<activity android:name="candis.client.gui.InfoActivity"></activity>
+
 		<service android:enabled="true"
-						 android:name="BackgroundService"
+						 android:name="candis.client.service.BackgroundService"
 						 android:process=":remote" /><!-- run in seperate process! -->
 	</application>
 </manifest>

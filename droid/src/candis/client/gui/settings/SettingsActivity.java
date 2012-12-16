@@ -8,15 +8,15 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import candis.client.MainActivity;
 import candis.client.R;
+import candis.client.gui.InfoActivity;
 
 /**
  *
  * @author Enrico Joerns
  */
 public class SettingsActivity extends Activity implements OnSharedPreferenceChangeListener {
-	
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -26,34 +26,35 @@ public class SettingsActivity extends Activity implements OnSharedPreferenceChan
 						.replace(android.R.id.content, new SettingsFragment())
 						.commit();
 	}
-	
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
+		Intent newintent;
 		switch (item.getItemId()) {
+			// app icon in action bar clicked; go home
 			case android.R.id.home:
-				// app icon in action bar clicked; go home
-				Intent intent = new Intent(this, MainActivity.class);
-				intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-				startActivity(intent);
+				finish();
 				return true;
-//			case R.id.menu_settings:
-//				// app icon in action bar clicked; go home
-//				Intent newintent = new Intent(this, SettingsActivity.class);
-//				newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//				startActivity(newintent);
-//				return true;
+			case R.id.menu_info:
+				newintent = new Intent(this, InfoActivity.class);
+				newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+				startActivity(newintent);
+				return true;
+			case R.id.menu_settings:
+				finish();
+				return true;
 			default:
 				return super.onOptionsItemSelected(item);
 		}
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.settings, menu);
 		return true;
 	}
-	
+
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 		System.out.println("Preference " + key + " changed...");
