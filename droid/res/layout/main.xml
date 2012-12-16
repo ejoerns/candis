@@ -19,22 +19,22 @@
 		android:layout_height="wrap_content"
 		android:layout_marginTop="5dp">
 		<TextView
-			android:id="@+id/text"
+			android:id="@+id/servicetext"
 			android:layout_width="wrap_content" 
 			android:layout_height="fill_parent" 
 			android:gravity="center"
-			android:text="Service running"
-			android:textColor="#0F0"
+			android:text="@string/service_text_stopped"
+			android:textColor="#F00"
 			android:layout_weight="1"/> 
 		<Button
-			android:id="@+id/stop_button"
+			android:id="@+id/service_button"
 			android:layout_width="wrap_content" 
 			android:layout_height="wrap_content"
-			android:text="@string/service_start_button"
+			android:text="@string/service_button_start"
 			android:layout_weight="1"/> 
 	</LinearLayout>
 	<TextView
-		android:id="@+id/text"
+		android:id="@+id/logtext"
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"
 		android:layout_marginTop="5dp"
