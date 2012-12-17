@@ -1,17 +1,17 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.client.service;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.MainActivity;
+import candis.client.R;
 import candis.client.comm.CertAcceptRequestHandler;
 import candis.client.comm.CommRequestBroker;
 import candis.client.comm.ReloadableX509TrustManager;
@@ -22,8 +22,6 @@ import java.io.IOException;
 import java.io.StreamCorruptedException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -33,23 +31,27 @@ import javax.net.ssl.X509TrustManager;
 class ConnectTask extends AsyncTask<Object, Object, SecureConnection> implements CertAcceptRequestHandler {
 
 	private static final String TAG = "ConnectTask";
-	Context mContext;
-	private final File tstore;
-	CertAcceptRequestHandler cad;
-	private X509TrustManager tmanager;
-	private SecureConnection mSConn = null;
-	private CommRequestBroker mCRB;
-	private FSM mFSM;
-	private final BackgroundService outer;
-	private AtomicBoolean cert_check_result;
-	private DroidContext mDroidContext;
+	private static final int NOTIFCATION_ID = 4711;
+	private static final int IOEXCEPTION = 0;
+	private static final int TMLOADFAILED = 10;
+	private final AtomicBoolean mCertCheckResult;
+	private final DroidContext mDroidContext;
+	private final NotificationManager mNotificationManager;
+	private final Context mContext;
+	private final File mTSFile;
 
-	public ConnectTask(final AtomicBoolean bool, final DroidContext dcontext, final Context context, final File ts, final BackgroundService outer) {
-		cert_check_result = bool;
+	public ConnectTask(
+					final AtomicBoolean bool,
+					final DroidContext dcontext,
+					final Context context,
+					final File ts) {
+		mCertCheckResult = bool;
 		mDroidContext = dcontext;
-		this.outer = outer;
 		mContext = context;
-		tstore = ts;
+		mTSFile = ts;
+
+		mNotificationManager =
+						(NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
 	}
 
 	@Override
@@ -59,23 +61,42 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection> implements
 
 	@Override
 	protected SecureConnection doInBackground(Object... params) {
+		final X509TrustManager trustmanager;
+		final CommRequestBroker crb;
+		final FSM fsm;
+		final SecureConnection secureConn;
+
+		// try to load trustmanager
 		try {
-			tmanager = new ReloadableX509TrustManager(tstore, this);
+			trustmanager = new ReloadableX509TrustManager(mTSFile, this);
 		}
 		catch (Exception ex) {
-			Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+			Log.e(TAG, ex.toString());
+			publishProgress(TMLOADFAILED);
+			return null;
 		}
-		SecureConnection sc = new SecureConnection(tmanager);
-		sc.connect((String) params[0], ((Integer) params[1]).intValue());
+
+		// try to connect
+		SecureConnection sc = new SecureConnection(trustmanager);
 		try {
-			mSConn = sc;
-			Log.i(TAG, "Starting CommRequestBroker");
-			mFSM = new ClientStateMachine(mSConn, mDroidContext.getID(), mDroidContext.getProfile(), null, null); // TODO: check handler usage
-			// TODO: check handler usage
-			// TODO: check handler usage
-			mCRB = new CommRequestBroker(mSConn.getInputStream(), mFSM);
-			new Thread(mCRB).start();
-			Log.i("Droid", "[DONE]");
+			sc.connect((String) params[0], ((Integer) params[1]).intValue());
+		}
+		catch (IOException ex) {
+			publishProgress(IOEXCEPTION, params[0], params[1]);
+			Log.e(TAG, ex.toString());
+			return null;
+		}
+
+		// init fsm
+		try {
+			secureConn = sc;
+			fsm = new ClientStateMachine(
+							secureConn,
+							mDroidContext,
+							null,
+							null); // TODO: check handler usageIOException
+			crb = new CommRequestBroker(secureConn.getInputStream(), fsm);
+			new Thread(crb).start();
 		}
 		catch (StreamCorruptedException ex) {
 			Log.e(TAG, ex.toString());
@@ -88,33 +109,64 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection> implements
 
 	@Override
 	protected void onProgressUpdate(Object... arg) {
+		// mId allows you to update the notification later on.
+		Notification noti;
+
+		switch ((Integer) arg[0]) {
+			case IOEXCEPTION:
+				System.out.println("onProgressUpdate: IOException");
+				noti = new Notification.Builder(mContext)
+								.setContentTitle("Server not found")
+								.setContentText(String.format("Connection to %s:%d failed", (String) arg[1], ((Integer) arg[2]).intValue()))
+								.setSmallIcon(R.drawable.ic_launcher)
+								.setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_launcher))
+								.build();
+				break;
+			case TMLOADFAILED:
+				System.out.println("onProgressUpdate: IOException");
+				noti = new Notification.Builder(mContext)
+								.setContentTitle("Trustmanager Error")
+								.setContentText(String.format("Loading Trustmanager failed", (String) arg[1], ((Integer) arg[2]).intValue()))
+								.setSmallIcon(R.drawable.ic_launcher)
+								.setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_launcher))
+								.build();
+				break;
+			default:
+				System.out.println("onProgressUpdate: default");
+				noti = new Notification.Builder(mContext)
+								.setContentTitle("Notification")
+								.setContentText("default")
+								.setSmallIcon(R.drawable.ic_launcher)
+								.setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_launcher))
+								.build();
+				break;
+		}
+		mNotificationManager.notify(NOTIFCATION_ID, noti);
 	}
 
 	@Override
 	protected void onPostExecute(SecureConnection args) {
-		Log.w(TAG, "CONNECTED!!!!");
+		if (args != null) {
+			Log.i(TAG, "CONNECTED!!!!");
+			Toast.makeText(mContext, "connected", Toast.LENGTH_SHORT).show();
+		}
 	}
 
-	public boolean hasResult() {
-		throw new UnsupportedOperationException("Not supported yet.");
-	}
-
+	@Override
 	public boolean userCheckAccept(X509Certificate cert) {
 		Intent newintent = new Intent(mContext, MainActivity.class);
 		newintent.setAction(BackgroundService.CHECK_SERVERCERT).putExtra("X509Certificate", cert).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		mContext.startActivity(newintent);
-		synchronized (cert_check_result) {
+		synchronized (mCertCheckResult) {
 			try {
 				System.out.println("cert_check_result.wait()");
-				cert_check_result.wait();
+				mCertCheckResult.wait();
 				System.out.println("cert_check_result.wait() done");
 			}
 			catch (InterruptedException ex) {
-				Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+				Log.e(TAG, ex.toString());
 			}
 		}
-		return cert_check_result.get(); // TODO...
-		// TODO...
-		// TODO...
+		return mCertCheckResult.get();
 	}
 }
