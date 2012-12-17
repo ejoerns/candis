@@ -41,10 +41,8 @@ public class BackgroundService extends Service {
 	private static final String TAG = BackgroundService.class.getName();
 	private ConnectTask mConnectTask;
 	private final DroidContext mDroidContext;
-	private SecureConnection mSConn = null;
-	private CommRequestBroker mCRB;
-	private FSM mFSM;
 	private boolean mRunning = false;
+	private final AtomicBoolean cert_check_result = new AtomicBoolean(false);
 
 	public BackgroundService() {
 		mDroidContext = DroidContext.getInstance();
@@ -77,8 +75,10 @@ public class BackgroundService extends Service {
 		mDroidContext.init((DroidContext) intent.getExtras().getSerializable("DROID_CONTEXT"));
 
 		mConnectTask = new ConnectTask(
+						cert_check_result,
+						mDroidContext,
 						getApplicationContext(),
-						new File(getApplicationContext().getFilesDir(), Settings.getString("truststore")));
+						new File(getApplicationContext().getFilesDir(), Settings.getString("truststore")), this);
 
 		// We want this service to continue running until it is explicitly
 		// stopped, so return sticky.
@@ -94,7 +94,6 @@ public class BackgroundService extends Service {
 		}
 		return START_STICKY;
 	}
-	private final AtomicBoolean cert_check_result = new AtomicBoolean(false);
 
 	// NOTE: not an override!
 	public void onNewIntent(Intent intent) {
@@ -110,110 +109,6 @@ public class BackgroundService extends Service {
 
 	@Override
 	public void onDestroy() {
-	}
-
-	private class ConnectTask extends AsyncTask<Object, Object, SecureConnection> implements CertAcceptRequestHandler {
-
-		private static final String TAG = "ConnectTask";
-		Context mContext;
-		private final File tstore;
-		CertAcceptRequestHandler cad;
-		private X509TrustManager tmanager;
-
-		public ConnectTask(final Context context, final File ts) {
-			mContext = context;
-			tstore = ts;
-		}
-
-		@Override
-		protected void onPreExecute() {
-			Toast.makeText(
-							mContext.getApplicationContext(),
-							"Connecting...",
-							Toast.LENGTH_SHORT).show();
-		}
-
-		@Override
-		protected SecureConnection doInBackground(Object... params) {
-			try {
-				tmanager = new ReloadableX509TrustManager(
-								new File(getApplicationContext().getFilesDir(), Settings.getString("truststore")),
-								this);
-			}
-			catch (Exception ex) {
-				Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
-			}
-			SecureConnection sc = new SecureConnection(tmanager);
-			sc.connect((String) params[0], ((Integer) params[1]).intValue());
-
-			try {
-				mSConn = sc;
-
-				Log.i(TAG, "Starting CommRequestBroker");
-				mFSM = new ClientStateMachine(
-								mSConn,
-								mDroidContext.getID(),
-								mDroidContext.getProfile(),
-								//new Handler(),
-								null,
-								//							null,
-								//							getApplication().getFragmentManager()
-								null);// TODO: check handler usage
-				mCRB = new CommRequestBroker(
-								mSConn.getInputStream(),
-								mFSM);
-				new Thread(mCRB).start();
-				Log.i("Droid", "[DONE]");
-			}
-			catch (StreamCorruptedException ex) {
-				Log.e(TAG, ex.toString());
-			}
-			catch (IOException ex) {
-				Log.e(TAG, ex.toString());
-			}
-//			catch (InterruptedException ex) {
-//				Log.e(TAG, ex.toString());
-//			}
-//			catch (ExecutionException ex) {
-//				Log.e(TAG, ex.toString());
-//			}
-			return sc;
-
-		}
-
-		@Override
-		protected void onProgressUpdate(Object... arg) {
-		}
-
-		@Override
-		protected void onPostExecute(SecureConnection args) {
-			Log.w(TAG, "CONNECTED!!!!");
-		}
-
-		public boolean hasResult() {
-			throw new UnsupportedOperationException("Not supported yet.");
-		}
-
-		public boolean userCheckAccept(X509Certificate cert) {
-			Intent newintent = new Intent(mContext, MainActivity.class);
-			newintent.setAction(CHECK_SERVERCERT)
-							.putExtra("X509Certificate", cert)
-							.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-							.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			startActivity(newintent);
-
-			synchronized (cert_check_result) {
-				try {
-					System.out.println("cert_check_result.wait()");
-					cert_check_result.wait();
-					System.out.println("cert_check_result.wait() done");
-				}
-				catch (InterruptedException ex) {
-					Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
-				}
-			}
-			return cert_check_result.get(); // TODO...
-		}
 	}
 	public static final String CHECK_SERVERCERT = "CHECK_SERVERCERT";
 	public static final String RESULT_CHECK_SERVERCERT = "RESULT_CHECK_SERVERCERT";
