@@ -7,6 +7,8 @@ import java.io.Serializable;
 /**
  * Holds data associated with the droid.
  *
+ * Implemented as singleton.
+ *
  * @todo Singleton?
  * @author Enrico Joerns
  */
@@ -18,20 +20,14 @@ public class DroidContext implements Serializable {
 
 	protected DroidContext() {
 	}
-//	public DroidContext(RandomID id, StaticProfile profile) {
-//		mID = id;
-//		mProfile = profile;
-//	}
 
 	public static DroidContext getInstance() {
 		if (mInstance == null) {
-			System.out.println("#### new DroidContext()");
 			mInstance = new DroidContext();
 		}
-		System.out.println("#### getInstance()");
 		return mInstance;
 	}
-	
+
 	public void init(final DroidContext dcontext) {
 		mID = dcontext.mID;
 		mProfile = dcontext.mProfile;

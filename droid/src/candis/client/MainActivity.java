@@ -17,6 +17,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import candis.client.comm.SecureConnection;
+import candis.client.gui.CertAcceptDialog;
 import candis.client.gui.InfoActivity;
 import candis.client.gui.settings.SettingsActivity;
 import candis.client.service.BackgroundService;
@@ -24,21 +25,20 @@ import candis.common.Settings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
+import java.security.cert.X509Certificate;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class MainActivity extends Activity
 				implements OnClickListener {
 
-	private static final String TAG = "MainActivity";
-	private static final Logger LOGGER = Logger.getLogger(TAG);
-	private Button startButton;
+	private static final String TAG = MainActivity.class.getName();
 	private Button mServiceButton;
 	private InitTask mInitTask;
 	private DroidContext mDroidContext;
-	SecureConnection sconn = null;
+	private boolean mToggleServiceButton = true;
+	private SecureConnection sconn = null;
+	private Handler mHandler;
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -70,11 +70,17 @@ public class MainActivity extends Activity
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		System.out.println("onCreate()");
+		mHandler = new Handler();
+
+		// Load settings from R.raw.settings
+		Settings.load(this.getResources().openRawResource(R.raw.settings));
 		// load Shared Preferences
 		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 
-		// load logger.properties from /raw/res
+		// load logger.properties from /res/raw/logger.properties
+		// Must be loaded in order to get default logging levels below INFO working 
 		final InputStream inputStream = getResources().openRawResource(R.raw.logger);
 		try {
 			LogManager.getLogManager().readConfiguration(inputStream);
@@ -87,15 +93,9 @@ public class MainActivity extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
-		final Handler mHandler = new Handler();
-
 		mServiceButton = (Button) findViewById(R.id.service_button);
 		mServiceButton.setOnClickListener(this);
 
-		// Load settings from R.raw.settings
-		Settings.load(this.getResources().openRawResource(R.raw.settings));
-
-		// TODO: fix, check, do, bla...
 		mDroidContext = DroidContext.getInstance();
 		// Init droid
 		mInitTask = new InitTask(
@@ -103,9 +103,17 @@ public class MainActivity extends Activity
 						new File(this.getFilesDir(), Settings.getString("idstore")),
 						new File(this.getFilesDir(), Settings.getString("profilestore")));
 		mInitTask.execute();
-//		CertAcceptRequest cad = new CertAcceptDialog(this, mHandler);
 	}
-	private boolean mToggleServiceButton = true;
+
+	@Override
+	public void onNewIntent(Intent intent) {
+		System.out.println("onNewIntent() " + intent.getAction());
+		if (intent.getAction().equals(BackgroundService.CHECK_SERVERCERT)) {
+			X509Certificate cert = (X509Certificate) intent.getSerializableExtra("X509Certificate");
+			CertAcceptDialog cad = new CertAcceptDialog(cert, this);
+			cad.show(getFragmentManager(), "");
+		}
+	}
 
 	public void onClick(View v) {
 
@@ -131,18 +139,15 @@ public class MainActivity extends Activity
 				Toast.makeText(this, feedback, Toast.LENGTH_SHORT).show();
 			}
 		}
-
-//		if (name.length() == 0) {
-//			new AlertDialog.Builder(this).setMessage(
-//							R.string.error_name_missing).setNeutralButton(
-//							R.string.error_ok,
-//							null).show();
-//			return;
-//		}
-
-		if (v == startButton || v == mServiceButton) {
-			int resourceId = v == startButton ? R.string.start_msg
-							: R.string.stop_msg;
-		}
 	}
+	
+//	private boolean isMyServiceRunning() {
+//		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+//		for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+//			if (MyService.class.getName().equals(service.service.getClassName())) {
+//				return true;
+//			}
+//		}
+//		return false;
+//	}
 }

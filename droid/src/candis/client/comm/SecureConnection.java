@@ -25,14 +25,10 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 	private static final String TAG = "SecureConnection";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private Socket socket = null;
-	/// Host to connect to
-	private String host;
-	/// Port to connect to
-	private int port;
-	private boolean connected;
+	private boolean mConnected;
 	private ObjectOutputStream mObjOutstream;
 	private InputStream mInstream;
-	private X509TrustManager tstore;
+	private X509TrustManager mTrustManager;
 
 	/**
 	 * Creates new SecureConnection.
@@ -40,7 +36,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 	 * @param truststore_R truststore file to be used
 	 */
 	public SecureConnection(final X509TrustManager tstore) {
-		this.tstore = tstore;
+		mTrustManager = tstore;
 	}
 
 	/**
@@ -51,20 +47,18 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 	 * @return Socket if successfull or null if failed.
 	 */
 	public void connect(final String host, final int port) {
-		this.host = host;
-		this.port = port;
 
-		if (connected) {
+		if (mConnected) {
 			LOGGER.log(Level.WARNING, "Already connected");
 			return;
 		}
 
-		LOGGER.log(Level.FINE, "Starting connection");
+		LOGGER.log(Level.INFO, "Starting connection");
 
 		SSLContext context = null;
 		try {
 			context = SSLContext.getInstance("TLS");
-			context.init(null, new TrustManager[]{tstore}, null);
+			context.init(null, new TrustManager[]{mTrustManager}, null);
 		}
 		catch (NoSuchAlgorithmException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -80,7 +74,6 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 		}
 		SSLSocketFactory sf = context.getSocketFactory();
 
-		LOGGER.log(Level.FINE, "Got SSLSocketFactory");
 		try {
 			socket = sf.createSocket(host, port);
 		}
@@ -106,7 +99,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 			LOGGER.log(Level.SEVERE, "Failed creating input/output streams");
 		}
 
-		connected = true;
+		mConnected = true;
 	}
 
 	public void connect(InetAddress address, int port) {
@@ -137,18 +130,15 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 	}
 
 	public boolean isConnected() {
-		return connected;
+		return mConnected;
 	}
 
 	public InputStream getInputStream() throws IOException {
 		return mInstream;
 	}
 
-//	public OutputStream getOutputStream() throws IOException {
-//		return mObjOutstream;
-//	}
 	/**
-	 * Sends data in new thrad
+	 * Sends data in new thread
 	 *
 	 * @todo Replace with send qeue
 	 * @param obj

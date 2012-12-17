@@ -15,6 +15,7 @@ import java.io.FileNotFoundException;
  * existing.
  */
 class InitTask extends AsyncTask<Void, Object, Void> {
+
 	private static final String TAG = "GetIDTask";
 	private final Activity mActivity;
 	private final File mIDFile;
@@ -95,5 +96,4 @@ class InitTask extends AsyncTask<Void, Object, Void> {
 	protected void onProgressUpdate(Object... msg) {
 		Toast.makeText(mActivity.getApplicationContext(), (String) msg[0], (Integer) msg[1]).show();
 	}
-	
 }

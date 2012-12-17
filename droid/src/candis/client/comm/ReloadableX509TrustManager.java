@@ -29,7 +29,7 @@ import javax.net.ssl.X509TrustManager;
  * @author Enrico Joerns
  */
 public final class ReloadableX509TrustManager
-				implements X509TrustManager, CertAcceptHandler {
+				implements X509TrustManager {
 
 	private static final String TAG = "X509";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
@@ -38,7 +38,7 @@ public final class ReloadableX509TrustManager
 	private X509TrustManager mTrustManager;
 	/// List for temporary certificates
 	private final List<Certificate> mTempCertList = new LinkedList<Certificate>();
-	private CertAcceptRequest mCAR;
+	private CertAcceptRequestHandler mCAR;
 	/// Boolean for synchronization
 	private final AtomicBoolean accepted = new AtomicBoolean(false);
 
@@ -62,30 +62,36 @@ public final class ReloadableX509TrustManager
 	 * @param cad Implementation of CertAcceptDialog to enable user interaction
 	 * @throws Exception
 	 */
-	public ReloadableX509TrustManager(final File tsfile, final CertAcceptRequest cad) throws Exception {
+	public ReloadableX509TrustManager(final File tsfile, final CertAcceptRequestHandler cad) throws Exception {
 		this.mTSFile = tsfile;
-		this.mCAR = cad;
+		if (cad == null) {
+			mCAR = new DefaultAcceptHandler();
+		}
+		else {
+			mCAR = cad;
+		}
 		reloadTrustManager();
 	}
 
-	public ReloadableX509TrustManager(final String tspath, final CertAcceptRequest cad) throws Exception {
+	public ReloadableX509TrustManager(final String tspath, final CertAcceptRequestHandler cad) throws Exception {
 		this(new File(tspath), cad);
 	}
 
 	@Override
 	public void checkClientTrusted(final X509Certificate[] chain,
-					String authType) throws java.security.cert.CertificateException {
-		LOGGER.log(Level.INFO, "checkClientTrusted()");
+																 String authType) throws java.security.cert.CertificateException {
+
 		mTrustManager.checkClientTrusted(chain, authType);
 	}
 
 	@Override
 	public void checkServerTrusted(final X509Certificate[] chain,
-					String authType) throws java.security.cert.CertificateException {
-		LOGGER.log(Level.INFO, "checkServerTrusted()");
+																 String authType) throws java.security.cert.CertificateException {
+
 		try {
 			mTrustManager.checkServerTrusted(chain, authType);
-		} catch (java.security.cert.CertificateException cx) {
+		}
+		catch (java.security.cert.CertificateException cx) {
 			LOGGER.log(Level.FINEST, "CertificateException");
 			addServerCertAndReload(chain[0], true);
 			mTrustManager.checkServerTrusted(chain, authType);
@@ -95,7 +101,7 @@ public final class ReloadableX509TrustManager
 
 	@Override
 	public X509Certificate[] getAcceptedIssuers() {
-		LOGGER.log(Level.INFO, "getAcceptedIssuers()");
+
 		X509Certificate[] issuers = mTrustManager.getAcceptedIssuers();
 		return issuers;
 	}
@@ -105,10 +111,9 @@ public final class ReloadableX509TrustManager
 	 *
 	 * If the trustmanager file is empty or uninitalized, it will be initialized.
 	 *
-	 * @throws Exception
+	 * @throws ExceptionaddServerCeratAndReload
 	 */
 	private void reloadTrustManager() throws Exception {
-		LOGGER.log(Level.INFO, "reloadTrustManager()");
 
 		// load keystore from specified cert store (or default)
 		KeyStore ts = KeyStore.getInstance("BKS");
@@ -120,8 +125,10 @@ public final class ReloadableX509TrustManager
 				in.close();
 				in = null;
 			}
-		} catch (FileNotFoundException ex) {
-			LOGGER.log(Level.INFO, "Truststore file {0} not found.", mTSFile.getName());
+		}
+		catch (FileNotFoundException ex) {
+			LOGGER.log(Level.INFO, String.format(
+							"Truststore file %s not found.", mTSFile.getName()));
 			in = null;
 		}
 
@@ -132,13 +139,15 @@ public final class ReloadableX509TrustManager
 			ts.store(out, "candis".toCharArray());
 			out.close();
 			in = new FileInputStream(mTSFile);
-			LOGGER.log(Level.INFO, "Initialized empty truststore {0}", mTSFile.getName());
+			LOGGER.log(Level.INFO, String.format(
+							"Initialized empty truststore %s", mTSFile.getName()));
 		}
 
-		// load truststore
+		// load truststore (no password)
 		try {
 			ts.load(in, null);
-		} finally {
+		}
+		finally {
 			in.close();
 		}
 
@@ -160,7 +169,6 @@ public final class ReloadableX509TrustManager
 				return;
 			}
 		}
-
 		throw new NoSuchAlgorithmException(
 						"No X509TrustManager in TrustManagerFactory");
 	}
@@ -175,27 +183,15 @@ public final class ReloadableX509TrustManager
 	 */
 	private void addServerCertAndReload(final X509Certificate cert, final boolean permanent) {
 
-		// Call accept dialog if available, otherwise auto-accept
-		if (mCAR != null) {
-			mCAR.userCheckAccept(cert, this);
-
-			synchronized (accepted) {
-				try {
-					accepted.wait();
-				} catch (InterruptedException ex) {
-					Logger.getLogger(ReloadableX509TrustManager.class.getName()).log(Level.SEVERE, null, ex);
-				}
-			}
-		} else {
-			accepted.set(true);
-		}
+		// Calls handler...
+		accepted.set(mCAR.userCheckAccept(cert));
 
 		if (accepted.get()) {
 			LOGGER.log(Level.INFO, "Certificate ACCEPTED");
-		} else {
+		}
+		else {
 			LOGGER.log(Level.INFO, "Certificate REJECTED");
 		}
-
 
 		try {
 			if (permanent) {
@@ -220,12 +216,14 @@ public final class ReloadableX509TrustManager
 				cert_ostream.close();
 
 				LOGGER.log(Level.FINE, "Added certificate (permanently)");
-			} else {
+			}
+			else {
 				mTempCertList.add(cert);
 				LOGGER.log(Level.FINE, "Added certificate (temporary)");
 			}
 			reloadTrustManager();
-		} catch (Exception ex) {
+		}
+		catch (Exception ex) {
 			LOGGER.log(Level.SEVERE, ex.toString());
 		}
 	}
@@ -235,16 +233,8 @@ public final class ReloadableX509TrustManager
 	 *
 	 * @param cad Class that implements the CertAcceptRequest interface
 	 */
-	public void setCertAcceptDialog(final CertAcceptRequest cad) {
+	public void setCertAcceptDialog(final CertAcceptRequestHandler cad) {
 		this.mCAR = cad;
-	}
-
-	@Override
-	public void acceptHandler(final boolean accept) {
-		synchronized (accepted) {
-			accepted.set(accept);
-			accepted.notify();
-		}
 	}
 
 	/**
@@ -260,5 +250,28 @@ public final class ReloadableX509TrustManager
 		MessageDigest md = MessageDigest.getInstance(mdAlg);
 		byte[] digest = md.digest(encCertInfo);
 		return Utilities.toHexString(digest);
+	}
+
+	/**
+	 * Return a default (always accepting) CertAcceptRequestHandler.
+	 *
+	 * @return
+	 */
+	public CertAcceptRequestHandler getDefaultAcceptHandler() {
+		return new DefaultAcceptHandler();
+	}
+
+	/**
+	 * Auto-accepts certificate.
+	 */
+	private class DefaultAcceptHandler implements CertAcceptRequestHandler {
+
+		public boolean userCheckAccept(X509Certificate cert) {
+			return true;
+		}
+
+		public boolean hasResult() {
+			throw new UnsupportedOperationException("Not supported yet.");
+		}
 	}
 }
