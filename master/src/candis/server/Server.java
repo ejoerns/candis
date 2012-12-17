@@ -1,12 +1,9 @@
 package candis.server;
 
 import candis.common.Settings;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -15,8 +12,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLServerSocketFactory;
-//import sun.misc.Signal;
-//import sun.misc.SignalHandler;
 
 /**
  *
@@ -25,32 +20,37 @@ import javax.net.ssl.SSLServerSocketFactory;
 public class Server implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
-	private static final int port = 9999;
-	private final ExecutorService tpool;
+	private static final int mPort = 9999;
+	private final ExecutorService mExecutorService;
+	private final DroidManager mDroidManager;
+	private final ServerCommunicationIO mCommunicationIO;
 	private ServerSocket ssocket;
-	private boolean doStop = false;
-	final DroidManager mDroidManager;
-	final ServerCommunicationIO mCommunicationIO;
+	private boolean mDoStop = false;
 
 	/**
 	 * @param args the command line arguments
 	 */
 	public static void main(final String[] args) {
-
-		new Server(DroidManager.getInstance());
-//		CandisMasterFrame win = new CandisMasterFrame();
+		try {
+			new Server(DroidManager.getInstance()).connect();
+			//		CandisMasterFrame win = new CandisMasterFrame();
+		}
+		catch (IOException ex) {
+			Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 
-	public Server(DroidManager droidmanager) {
+	public Server(DroidManager droidmanager) throws IOException {
 		this(droidmanager, new ServerCommunicationIO(droidmanager));
 	}
 
-	public Server(DroidManager droidmanager, ServerCommunicationIO scomio) {
+	public Server(DroidManager droidmanager, ServerCommunicationIO scomio) throws IOException {
 
 		// load properties if available or load default properties
 		try {
 			Settings.load(new File("settings.properties"));
-		} catch (FileNotFoundException ex) {
+		}
+		catch (FileNotFoundException ex) {
 			LOGGER.log(Level.WARNING, "settings.properties not found, loading default values");
 			Settings.load(Server.class.getResourceAsStream("defaultsettings.properties"));
 		}
@@ -59,84 +59,47 @@ public class Server implements Runnable {
 		// try to load drodmanager
 		try {
 			mDroidManager.load(new File(Settings.getString("droiddb.file")));
-		} catch (FileNotFoundException ex) {
+		}
+		catch (FileNotFoundException ex) {
 			LOGGER.log(Level.WARNING, "Droid database could not be loaded, initialized empty db");
 			mDroidManager.init();
 		}
-//		final Server server = new Server();
-		tpool = Executors.newCachedThreadPool();
-		connect();
-		LOGGER.log(Level.INFO, "Server terminated");
+
+		mExecutorService = Executors.newCachedThreadPool();
 	}
 
 	public void stop() {
-		doStop = true;
+		mDoStop = true;
 	}
 
-	public void runKeytool() {
-		// try to exec keytool -- the nice way
-		try {
-			String tsname = "sometruststore.bks";
-			Process proc = Runtime.getRuntime().exec(
-							"keytool -import -v -alias clientCert -keystore " + tsname + " -storetype bks -file test.cert -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath ../bcprov-jdk16-146.jar -storepass changeit -noprompt");
-//			Process proc = rt.exec("ls ../");
-			BufferedReader buffreader = new BufferedReader(
-							new InputStreamReader(proc.getInputStream()));
-			String line;
-			// Display program output
-			LOGGER.log(Level.FINE, "<OUTPUT>");
-			while ((line = buffreader.readLine()) != null) {
-				LOGGER.log(Level.FINE, line);
-			}
-			LOGGER.log(Level.FINE, "</OUTPUT>");
-			int exitVal = -1;
-			try {
-				exitVal = proc.waitFor();
-			} catch (InterruptedException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
-			LOGGER.log(Level.FINE, "Process exitValue: {0}", exitVal);
-			if (exitVal == 0) {
-				LOGGER.log(Level.INFO, "Truststore sucessfully generated");
-			} else {
-				LOGGER.log(Level.WARNING, "Creating truststore failed!");
-			}
-		} catch (IOException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
-	}
-
-	public final void connect() {
+	public final void connect() throws IOException {
 		Socket socket = null;
-		try {
-			LOGGER.log(Level.FINE, System.getProperty("ssl.ServerSocketFactory.provider"));
 
-			ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
-			ssocket = ssocketFactory.createServerSocket(port);
+		LOGGER.log(Level.FINE, System.getProperty("ssl.ServerSocketFactory.provider"));
+
+		ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
+		ssocket = ssocketFactory.createServerSocket(mPort);
 //			ssocket.setSoTimeout(1000);
 
-			// Listen for connections
-			while (!doStop) {
-				LOGGER.log(Level.INFO, String.format(
-								"Waiting for connection on port %d", ssocket.getLocalPort()));
+		// Listen for connections
+		while (!mDoStop) {
+			LOGGER.log(Level.INFO, String.format(
+							"Waiting for connection on port %d", ssocket.getLocalPort()));
 
-				socket = ssocket.accept();
-				tpool.execute(new Connection(socket, mDroidManager, mCommunicationIO));
-			}
-			LOGGER.log(Level.INFO, "Server terminated");
-			ssocket.close();
-
-		} catch (BindException e) {
-			LOGGER.log(Level.SEVERE, String.format(
-							"Binding port failed, Address already in use"));
-		} catch (IOException e) {
-			LOGGER.log(Level.SEVERE, null, e);
+			socket = ssocket.accept();
+			mExecutorService.execute(new Connection(socket, mDroidManager, mCommunicationIO));
 		}
-
+		LOGGER.log(Level.INFO, "Server terminated");
+		ssocket.close();
 	}
 
 	@Override
 	public final void run() {
-		connect();
+		try {
+			connect();
+		}
+		catch (IOException ex) {
+			Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 }

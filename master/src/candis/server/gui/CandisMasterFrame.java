@@ -7,10 +7,13 @@ import candis.server.Server;
 import candis.server.ServerCommunicationIO;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.BindException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
@@ -28,6 +31,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private CheckCodeShowDialog mCheckCodeShowDialog;
 	private CandisLoggerHandler mLoggerHandler;
 	private static Logger LOGGER = Logger.getLogger(CandisMasterFrame.class.getName());
+
 	/**
 	 * Creates new form CandisMasterFrame.
 	 */
@@ -70,6 +74,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     mDeleteButton = new javax.swing.JButton();
     jButton1 = new javax.swing.JButton();
     jLabel1 = new javax.swing.JLabel();
+    mClearlogButton = new javax.swing.JButton();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
     setTitle("Candis Master");
@@ -237,6 +242,17 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.gridy = 5;
     getContentPane().add(jLabel1, gridBagConstraints);
 
+    mClearlogButton.setText("Clear Log");
+    mClearlogButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mClearlogButtonActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 5;
+    gridBagConstraints.gridy = 5;
+    getContentPane().add(mClearlogButton, gridBagConstraints);
+
     pack();
   }// </editor-fold>//GEN-END:initComponents
 
@@ -277,14 +293,13 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		fileChooser.addChoosableFileFilter(filter);
 		fileChooser.setFileFilter(filter);
 		int returnVal = fileChooser.showOpenDialog(this);
-		if(returnVal == JFileChooser.APPROVE_OPTION)
-		{
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				mCommIO.loadCDB(fileChooser.getSelectedFile());
 			}
 			catch (Exception ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
-				JOptionPane.showMessageDialog(null, ex, "Error:", JOptionPane.OK_CANCEL_OPTION);
+				JOptionPane.showMessageDialog(this, ex, "Error", JOptionPane.ERROR_MESSAGE);
 			}
 
 		}
@@ -295,7 +310,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		String id = (String) mDroidlistTableModel.getValueAt(mDroidlistTable.getSelectedRow(), 3);
 		if (mBlacklistButton.getModel().isSelected()) {
 			mDroidManager.blacklistDroid(id);
-		} else {
+		}
+		else {
 			mDroidManager.whitelistDroid(id);
 		}
 		new SwingWorker<Void, Object>() {
@@ -304,7 +320,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 				try {
 					Logger.getLogger("CMF").log(Level.INFO, "Saving database...");
 					mDroidManager.store(new File(Settings.getString("droiddb.file")));
-				} catch (FileNotFoundException ex) {
+				}
+				catch (FileNotFoundException ex) {
 					Logger.getLogger(CandisMasterFrame.class.getName()).log(Level.SEVERE, null, ex);
 				}
 				return null;
@@ -322,13 +339,19 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 				try {
 					Logger.getLogger("CMF").log(Level.INFO, "Saving database...");
 					mDroidManager.store(new File(Settings.getString("droiddb.file")));
-				} catch (FileNotFoundException ex) {
+				}
+				catch (FileNotFoundException ex) {
 					Logger.getLogger(CandisMasterFrame.class.getName()).log(Level.SEVERE, null, ex);
 				}
 				return null;
 			}
 		}.execute();
   }//GEN-LAST:event_mDeleteButtonActionPerformed
+
+  private void mClearlogButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mClearlogButtonActionPerformed
+		// TODO add your handling code here:
+		mLogTextArea.setText("");
+  }//GEN-LAST:event_mClearlogButtonActionPerformed
 
 	/**
 	 * @param args the command line arguments
@@ -346,13 +369,17 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 					break;
 				}
 			}
-		} catch (ClassNotFoundException ex) {
+		}
+		catch (ClassNotFoundException ex) {
 			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-		} catch (InstantiationException ex) {
+		}
+		catch (InstantiationException ex) {
 			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-		} catch (IllegalAccessException ex) {
+		}
+		catch (IllegalAccessException ex) {
 			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-		} catch (javax.swing.UnsupportedLookAndFeelException ex) {
+		}
+		catch (javax.swing.UnsupportedLookAndFeelException ex) {
 			java.util.logging.Logger.getLogger(CandisMasterFrame.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
 		}
 		//</editor-fold>
@@ -370,7 +397,21 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 			}
 		});
 		droidmanager.addListener(dltm);
-		new Server(droidmanager, scio);
+
+		// try to create new server
+		try {
+			new Server(droidmanager, scio).connect();
+		}
+		catch (final IOException ex) {
+			// show error and exit if port already bound
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					JOptionPane.showMessageDialog(cmf, ex, "Error", JOptionPane.ERROR_MESSAGE);
+					cmf.dispose();
+				}
+			});
+		}
 
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -380,6 +421,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private javax.swing.JScrollPane jScrollPane2;
   private javax.swing.JScrollPane jScrollPane3;
   private javax.swing.JToggleButton mBlacklistButton;
+  private javax.swing.JButton mClearlogButton;
   private javax.swing.JButton mDeleteButton;
   private javax.swing.JTable mDroidInfoTable;
   private javax.swing.JScrollPane mDroidlistScrollPane;
