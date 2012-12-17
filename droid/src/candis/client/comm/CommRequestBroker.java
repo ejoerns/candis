@@ -43,17 +43,21 @@ public class CommRequestBroker implements Runnable {
 			mObjInstream = new ObjectInputStream(mInstream);
 		}
 		catch (StreamCorruptedException ex) {
-			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.ALL, "StreamCorruptedException");
+//			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		catch (IOException ex) {
-			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.ALL, "IOException1");
+//			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		try {
 			fsm.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
 		}
 		catch (StateMachineException ex) {
-			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.ALL, "StateMachineException");
+//			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
 		}
+
 		Message m = null;
 		while (!isStopped) {
 			try {
@@ -62,17 +66,28 @@ public class CommRequestBroker implements Runnable {
 					LOGGER.log(Level.INFO, String.format(
 									"Read new Message: %s", ((Message) o).getRequest().toString()));
 					try {
-						fsm.process(((Message) o).getRequest());
+						System.out.println("fsm.process() " + ((Message) o).getRequest());
+						if (((Message) o).getData() == null) {
+							fsm.process(((Message) o).getRequest());
+						}
+						else {
+							fsm.process(((Message) o).getRequest(), ((Message) o).getData());
+						}
+						System.out.println("fsm.process() done");
 					}
 					catch (StateMachineException ex) {
-						LOGGER.log(Level.SEVERE, null, ex);
+						LOGGER.log(Level.ALL, "StateMachineException");
+						//						LOGGER.log(Level.SEVERE, null, ex);
 					}
 				}
 				else {
-					LOGGER.log(Level.WARNING, "Received data of unknown type!");
+					LOGGER.log(Level.WARNING, "Received data of unknown type!" + o);
+					instream.close();
+					isStopped = true;
 				}
 			}
 			catch (IOException ex) {
+				LOGGER.log(Level.ALL, "IOException2");
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}

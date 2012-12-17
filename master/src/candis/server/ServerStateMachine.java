@@ -12,8 +12,12 @@ import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedResult;
 import candis.distributed.droid.StaticProfile;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.logging.Level;
@@ -412,8 +416,23 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object binary) {
 			System.out.println("SendBinaryHandler() called");
 			try {
-				// TODO: test if empty
-				mConnection.sendMessage(new Message(Instruction.SEND_BINARY, (Serializable) binary));
+				final File file = (File) binary;
+				int nRead;
+				byte[] data = new byte[16384];
+				byte[] outdata = new byte[(int) file.length()];
+
+				// convert file to byte-array
+				final InputStream is = new FileInputStream(file);
+				final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+				while ((nRead = is.read(data, 0, data.length)) != -1) {
+					buffer.write(data, 0, nRead);
+				}
+				buffer.flush();
+				outdata = buffer.toByteArray();
+
+				mConnection.sendMessage(
+								new Message(Instruction.SEND_BINARY, outdata));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

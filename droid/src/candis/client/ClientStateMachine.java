@@ -15,6 +15,14 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
+import candis.distributed.DistributedTask;
+import dalvik.system.DexClassLoader;
+import dalvik.system.DexFile;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -233,6 +241,53 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
+
+			// create dex class loader
+			final File optimizedDexOutputPath = mContext.getDir("outdex", Context.MODE_PRIVATE);
+			final File dexInternalStoragePath = new File(mContext.getFilesDir(), "foo.dex");
+
+			DexClassLoader cl = new DexClassLoader(
+							dexInternalStoragePath.getAbsolutePath(),
+							optimizedDexOutputPath.getAbsolutePath(),
+							null,
+							this.getClass().getClassLoader());
+
+			// load all available classes
+			String path = dexInternalStoragePath.getPath();
+			try {
+				DexFile dx = DexFile.loadDex(
+								path,
+								File.createTempFile("opt", "dex", mContext.getCacheDir()).getPath(),
+								0);
+				for (Enumeration<String> classNames = dx.entries(); classNames.hasMoreElements();) {
+					String className = classNames.nextElement();
+					try {
+						Class<?> aClass = cl.loadClass(className);
+						LOGGER.log(Level.INFO, String.format("Loaded class: %s", className));
+						// find out which one is the control class
+						if (DistributedTask.class.isAssignableFrom(aClass)) {
+							System.out.println("Control task is: " + className);
+							try {
+								aClass.newInstance();
+								System.out.println("Created newInstance!");
+							}
+							catch (InstantiationException ex) {
+								Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+							}
+							catch (IllegalAccessException ex) {
+								Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+							}
+						}
+					}
+					catch (ClassNotFoundException ex) {
+						Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+					}
+				}
+			}
+			catch (IOException e) {
+				System.out.println("Error opening " + path);
+			}
+
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
