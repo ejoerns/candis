@@ -17,7 +17,4 @@ public interface CertAcceptRequestHandler {
 	 * @param cahandler A Handler that will be invoked if a result is available
 	 */
 	boolean userCheckAccept(final X509Certificate cert);
-
-	/// Maybe for pull mechanism...
-	public boolean hasResult();
 }

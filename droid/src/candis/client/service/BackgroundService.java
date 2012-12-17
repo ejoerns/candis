@@ -1,14 +1,25 @@
 package candis.client.service;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
+import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.R;
+import candis.client.comm.CommRequestBroker;
+import candis.client.comm.SecureConnection;
 import candis.common.Settings;
+import candis.common.fsm.FSM;
+import candis.common.fsm.StateMachineException;
 import java.io.File;
+import java.io.IOException;
+import java.io.StreamCorruptedException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Background service that manages connection to master, receives tasks,
@@ -22,10 +33,14 @@ public class BackgroundService extends Service {
 	// Intent Actions
 	public static final String CHECK_SERVERCERT = "CHECK_SERVERCERT";
 	public static final String RESULT_CHECK_SERVERCERT = "RESULT_CHECK_SERVERCERT";
+	public static final String SHOW_CHECKCODE = "SHOW_CHECKCODE";
+	public static final String RESULT_SHOW_CHECKCODE = "RESULT_SHOW_CHECKCODE";
+	private Context mContext;
 	private final DroidContext mDroidContext;
 	private final AtomicBoolean mCertCheckResult = new AtomicBoolean(false);
 	/// Used to avoid double-call of service initialization
 	private boolean mRunning = false;
+	private FSM fsm;
 
 	public BackgroundService() {
 		mDroidContext = DroidContext.getInstance();
@@ -38,6 +53,7 @@ public class BackgroundService extends Service {
 
 	@Override
 	public void onCreate() {
+		mContext = getApplicationContext();
 		System.out.println("Backgroundservice: onCreate()");
 		Settings.load(this.getResources().openRawResource(R.raw.settings));
 	}
@@ -45,7 +61,6 @@ public class BackgroundService extends Service {
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		System.out.println("Backgroundservice: onStartCommand()");
-		final ConnectTask connectTask;
 
 		// if service running, only handle intent
 		if (mRunning) {
@@ -53,11 +68,12 @@ public class BackgroundService extends Service {
 			return START_STICKY;
 		}
 
+		Log.i("LocalService", "Received start id " + startId + ": " + intent);
 		mRunning = true;
 
-		Log.i("LocalService", "Received start id " + startId + ": " + intent);
 		mDroidContext.init((DroidContext) intent.getExtras().getSerializable("DROID_CONTEXT"));
 
+		final ConnectTask connectTask;
 		connectTask = new ConnectTask(
 						mCertCheckResult,
 						mDroidContext,
@@ -74,6 +90,43 @@ public class BackgroundService extends Service {
 			Log.e(TAG, ex.toString());
 		}
 
+		new Thread(new Runnable() {
+			public void run() {
+				final CommRequestBroker crb;
+				SecureConnection secureConn = null;
+
+				// wait for connection to finish
+				try {
+					secureConn = connectTask.get();
+				}
+				catch (InterruptedException ex) {
+					Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+				}
+				catch (ExecutionException ex) {
+					Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+				}
+
+				// init fsm
+				try {
+					fsm = new ClientStateMachine(
+									secureConn,
+									mDroidContext,
+									mContext,
+									null); // TODO: check handler usageIOException
+					crb = new CommRequestBroker(secureConn.getInputStream(), fsm);
+					new Thread(crb).start();
+					System.out.println("[THREAD DONE]");
+				}
+				catch (StreamCorruptedException ex) {
+					Log.e(TAG, ex.toString());
+				}
+				catch (IOException ex) {
+					Log.e(TAG, ex.toString());
+				}
+
+			}
+		}).start();
+
 		// We want this service to continue running until it is explicitly
 		// stopped, so return sticky.
 		return START_STICKY;
@@ -89,10 +142,29 @@ public class BackgroundService extends Service {
 				System.out.println("cert_check_result.notifyAll()");
 			}
 		}
+		else if (intent.getAction().equals(RESULT_SHOW_CHECKCODE)) {
+			System.out.println("RESULT_SHOW_CHECKCODE");
+			try {
+				fsm.process(
+								ClientStateMachine.ClientTrans.CHECKCODE_ENTERED,
+								intent.getStringExtra("RESULT"));
+			}
+			catch (StateMachineException ex) {
+				Log.e(TAG, ex.toString());
+			}
+		}
+		else {
+			Log.w(TAG, "Unknown Intent");
+		}
 	}
 
 	@Override
 	public void onDestroy() {
-		// TODO: send terminate...
+		try {
+			fsm.process(ClientStateMachine.ClientTrans.DISCONNECT);
+		}
+		catch (StateMachineException ex) {
+			Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 }

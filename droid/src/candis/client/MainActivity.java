@@ -1,6 +1,7 @@
 package candis.client;
 
 import android.app.Activity;
+import android.app.DialogFragment;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -18,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import candis.client.comm.SecureConnection;
 import candis.client.gui.CertAcceptDialog;
+import candis.client.gui.CheckcodeInputDialog;
 import candis.client.gui.InfoActivity;
 import candis.client.gui.settings.SettingsActivity;
 import candis.client.service.BackgroundService;
@@ -113,6 +115,10 @@ public class MainActivity extends Activity
 			CertAcceptDialog cad = new CertAcceptDialog(cert, this);
 			cad.show(getFragmentManager(), "");
 		}
+		else if (intent.getAction().equals(BackgroundService.SHOW_CHECKCODE)) {
+			DialogFragment checkDialog = new CheckcodeInputDialog(this);
+			checkDialog.show(getFragmentManager(), TAG);
+		}
 	}
 
 	public void onClick(View v) {
@@ -125,8 +131,6 @@ public class MainActivity extends Activity
 				mServiceButton.setText(getResources().getString(R.string.service_button_stop));
 				((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
 				((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(0, 255, 0));
-				String feedback = getResources().getString(R.string.start_msg);
-				Toast.makeText(this, feedback, Toast.LENGTH_SHORT).show();
 			}
 			else {
 				mToggleServiceButton = true;
@@ -135,12 +139,9 @@ public class MainActivity extends Activity
 				mServiceButton.setText(getResources().getString(R.string.service_button_start));
 				((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_stopped);
 				((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
-				String feedback = getResources().getString(R.string.stop_msg);
-				Toast.makeText(this, feedback, Toast.LENGTH_SHORT).show();
 			}
 		}
 	}
-	
 //	private boolean isMyServiceRunning() {
 //		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 //		for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {

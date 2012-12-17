@@ -3,15 +3,15 @@ package candis.client.gui;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Message;
 import android.util.Log;
 import android.widget.EditText;
-import candis.client.ClientStateMachine;
 import candis.client.R;
-import candis.common.fsm.FSM;
-import candis.common.fsm.StateMachineException;
+import candis.client.service.BackgroundService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,10 +22,10 @@ import java.util.logging.Logger;
 public class CheckcodeInputDialog extends DialogFragment {
 
 	private static final String TAG = "CheckcodeInputDialog";
-	private final FSM mStateMachine;
+	private final Context mContext;
 
-	public CheckcodeInputDialog(FSM fsm) {
-		mStateMachine = fsm;
+	public CheckcodeInputDialog(Context context) {
+		mContext = context;
 	}
 
 	@Override
@@ -43,20 +43,10 @@ public class CheckcodeInputDialog extends DialogFragment {
 							.setPositiveButton(R.string.accept, new DialogInterface.OnClickListener() {
 				public void onClick(DialogInterface dialog, int id) {
 					Log.v(TAG, "Positive clicked with checkcode " + input.getText().toString());
-					try {
-						mStateMachine.process(
-										ClientStateMachine.ClientTrans.CHECKCODE_ENTERED,
-										input.getText().toString());
-					}
-					catch (StateMachineException ex) {
-						Logger.getLogger(CheckcodeInputDialog.class.getName()).log(Level.SEVERE, null, ex);
-					}
-				}
-			})
-							.setNegativeButton(R.string.reject, new DialogInterface.OnClickListener() {
-				public void onClick(DialogInterface dialog, int id) {
-					Log.v(TAG, "Negative clicked with checkcode " + input.getText().toString());
-					// TODO...
+					final Intent intent = new Intent(mContext, BackgroundService.class);
+					intent.setAction(BackgroundService.RESULT_SHOW_CHECKCODE)
+									.putExtra("RESULT", input.getText().toString());
+					mContext.startService(intent);
 				}
 			});
 		}

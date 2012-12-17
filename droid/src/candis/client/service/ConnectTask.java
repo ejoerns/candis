@@ -28,7 +28,8 @@ import javax.net.ssl.X509TrustManager;
  *
  * @author Enrico Joerns
  */
-class ConnectTask extends AsyncTask<Object, Object, SecureConnection> implements CertAcceptRequestHandler {
+class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
+				implements CertAcceptRequestHandler {
 
 	private static final String TAG = "ConnectTask";
 	private static final int NOTIFCATION_ID = 4711;
@@ -56,15 +57,14 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection> implements
 
 	@Override
 	protected void onPreExecute() {
+		System.out.println("onPreExecute()");
 		Toast.makeText(mContext.getApplicationContext(), "Connecting...", Toast.LENGTH_SHORT).show();
+		System.out.println("onPreExecute() done");
 	}
 
 	@Override
 	protected SecureConnection doInBackground(Object... params) {
 		final X509TrustManager trustmanager;
-		final CommRequestBroker crb;
-		final FSM fsm;
-		final SecureConnection secureConn;
 
 		// try to load trustmanager
 		try {
@@ -87,23 +87,6 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection> implements
 			return null;
 		}
 
-		// init fsm
-		try {
-			secureConn = sc;
-			fsm = new ClientStateMachine(
-							secureConn,
-							mDroidContext,
-							null,
-							null); // TODO: check handler usageIOException
-			crb = new CommRequestBroker(secureConn.getInputStream(), fsm);
-			new Thread(crb).start();
-		}
-		catch (StreamCorruptedException ex) {
-			Log.e(TAG, ex.toString());
-		}
-		catch (IOException ex) {
-			Log.e(TAG, ex.toString());
-		}
 		return sc;
 	}
 

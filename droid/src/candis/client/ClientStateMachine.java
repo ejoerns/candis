@@ -1,20 +1,20 @@
 package candis.client;
 
-import android.app.DialogFragment;
 import android.app.FragmentManager;
-import android.os.Handler;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.BitmapFactory;
 import candis.client.comm.SecureConnection;
-import candis.client.gui.CheckcodeInputDialog;
-import candis.client.gui.ErrorMessageDialog;
+import candis.client.service.BackgroundService;
 import candis.common.Instruction;
 import candis.common.Message;
-import candis.common.RandomID;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
-import candis.distributed.droid.StaticProfile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,12 +26,10 @@ public final class ClientStateMachine extends FSM {
 
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
-//	private ObjectOutputStream mOutStream = null;
-	private final RandomID mRid;
-	private final StaticProfile mProfile;
-	private final Handler mHandler;
-	private final FragmentManager mFragManager;
+	private final DroidContext mDroitContext;
 	private final SecureConnection mSConn;
+	private final Context mContext;
+	private final NotificationManager mNotificationManager;
 
 	private enum ClientStates implements StateEnum {
 
@@ -48,7 +46,8 @@ public final class ClientStateMachine extends FSM {
 
 		SOCKET_CONNECTED,
 		CHECKCODE_ENTERED,
-		JOB_FINISHED;
+		JOB_FINISHED,
+		DISCONNECT;
 	}
 
 	private enum ClientHandlerID implements HandlerID {
@@ -58,21 +57,16 @@ public final class ClientStateMachine extends FSM {
 
 	public ClientStateMachine(
 					SecureConnection sconn,
-					final RandomID rid,
-					final StaticProfile profile,
-					final Handler handler,
-					final FragmentManager manager) {
-		this.mRid = rid;
-		this.mProfile = profile;
-		mHandler = handler;
-		mFragManager = manager;
+					final DroidContext dcontext,
+					final Context context,
+					final FragmentManager fragmanager) {
+		mDroitContext = dcontext;
+		mContext = context;
 		mSConn = sconn;
-//		try {
-//			this.mOutStream = new ObjectOutputStream(sconn.getOutputStream());
-//		}
-//		catch (IOException ex) {
-//			LOGGER.log(Level.SEVERE, null, ex);
-//		}
+
+		mNotificationManager =
+						(NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+
 		init();
 	}
 
@@ -142,6 +136,10 @@ public final class ClientStateMachine extends FSM {
 						ClientTrans.JOB_FINISHED,
 						ClientStates.INIT_RECEIVED,
 						new JobFinishedHandler());
+		addGlobalTransition(
+						ClientTrans.DISCONNECT,
+						ClientStates.UNCONNECTED,
+						new DisconnectHandler());
 		setState(ClientStates.UNCONNECTED);
 	}
 
@@ -153,12 +151,25 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object obj) {
 			System.out.println("ConnectionRejectedHandler() called");
-			mHandler.post(new Runnable() {
-				public void run() {
-					DialogFragment checkDialog = new ErrorMessageDialog("Connection refused!");
-					checkDialog.show(mFragManager, TAG);
-				}
-			});
+			Notification noti = new Notification.Builder(mContext)
+							.setContentTitle("Connection Rejected")
+							.setContentText("Server rejected connection")
+							.setSmallIcon(R.drawable.ic_launcher)
+							.setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_launcher))
+							.build();
+			mNotificationManager.notify(42, noti);
+		}
+	}
+
+	/**
+	 * Sends disconnect instruction to master.
+	 */
+	private class DisconnectHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object o) {
+			System.out.println("DisconnectHandler() called");
+			mSConn.send(new Message(Instruction.DISCONNECT));
 		}
 	}
 
@@ -170,14 +181,7 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object obj) {
 			System.out.println("SocketConnectedHandler() called");
-//			try {
-//				// todo: ID
-//				mOutStream.writeObject(new Message(Instruction.REQUEST_CONNECTION, mRid));
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
-			mSConn.send(new Message(Instruction.REQUEST_CONNECTION, mRid));
+			mSConn.send(new Message(Instruction.REQUEST_CONNECTION, mDroitContext.getID()));
 		}
 	}
 
@@ -189,13 +193,7 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object obj) {
 			System.out.println("ProfileRequestHandler() called");
-//			try {
-//				mOutStream.writeObject(new Message(Instruction.SEND_PROFILE, mProfile));
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
-			mSConn.send(new Message(Instruction.SEND_PROFILE, mProfile));
+			mSConn.send(new Message(Instruction.SEND_PROFILE, mDroitContext.getProfile()));
 		}
 	}
 
@@ -207,12 +205,11 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			System.out.println("CheckcodeInputHandler() called");
-			mHandler.post(new Runnable() {
-				public void run() {
-					DialogFragment checkDialog = new CheckcodeInputDialog(ClientStateMachine.this);
-					checkDialog.show(mFragManager, TAG);
-				}
-			});
+			Intent newintent = new Intent(mContext, MainActivity.class);
+			newintent.setAction(BackgroundService.SHOW_CHECKCODE)
+							.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+							.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			mContext.startActivity(newintent);
 		}
 	}
 
@@ -224,18 +221,6 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			System.out.println("CheckcodeSendHandler() called");
-//			try {
-//				if (o instanceof String) {
-//					System.out.println("Checkcode seems to be: " + (String) o);
-//					mOutStream.writeObject(new Message(Instruction.SEND_CHECKCODE, (String) o));
-//				}
-//				else {
-//					throw new ClassCastException("Data failure, expected String, got Trash");
-//				}
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
 			mSConn.send(new Message(Instruction.SEND_CHECKCODE, (String) o));
 		}
 	}
@@ -248,14 +233,6 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
-			//System.out.println("BinaryReceivedHandler() called");
-			// TODO...
-//			try {
-//				mOutStream.writeObject(new Message(Instruction.ACK));
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
@@ -268,13 +245,6 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			System.out.println("InitialParameterReceivedHandler() called");
-			// TODO...
-//			try {
-//				mOutStream.writeObject(new Message(Instruction.ACK));
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
@@ -287,13 +257,6 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			System.out.println("JobReceivedHandler() called");
-			// TODO...
-//			try {
-//				mOutStream.writeObject(new Message(Instruction.ACK));
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
@@ -306,13 +269,6 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(Object o) {
 			System.out.println("CheckcodeSendHandler() called");
-			// TODO...
-//			try {
-//				mOutStream.writeObject(new Message(Instruction.SEND_RESULT, null));
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
 			mSConn.send(new Message(Instruction.SEND_RESULT, null));
 		}
 	}

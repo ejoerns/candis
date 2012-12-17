@@ -46,7 +46,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 	 * @param port remote port number to connect to
 	 * @return Socket if successfull or null if failed.
 	 */
-	public void connect(final String host, final int port) {
+	public void connect(final String host, final int port) throws IOException {
 
 		if (mConnected) {
 			LOGGER.log(Level.WARNING, "Already connected");
@@ -55,7 +55,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 
 		LOGGER.log(Level.INFO, "Starting connection");
 
-		SSLContext context = null;
+		SSLContext context;
 		try {
 			context = SSLContext.getInstance("TLS");
 			context.init(null, new TrustManager[]{mTrustManager}, null);
@@ -76,16 +76,13 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 
 		try {
 			socket = sf.createSocket(host, port);
+			LOGGER.log(Level.INFO, String.format(
+							"Connected to %s:%d", socket.getInetAddress(), socket.getPort()));
 		}
 		catch (UnknownHostException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, "UnknownHostException");
+			return;
 		}
-		catch (IOException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
-
-		LOGGER.log(Level.INFO, String.format(
-						"Connected to %s:%d", socket.getInetAddress(), socket.getPort()));
 
 		try {
 			mObjOutstream = new ObjectOutputStream(socket.getOutputStream());
@@ -102,7 +99,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 		mConnected = true;
 	}
 
-	public void connect(InetAddress address, int port) {
+	public void connect(InetAddress address, int port) throws IOException {
 		connect(address.getHostName(), port);
 	}
 
