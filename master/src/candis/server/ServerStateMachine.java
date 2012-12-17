@@ -182,8 +182,12 @@ public class ServerStateMachine extends FSM {
 						ServerStates.INIT_SENT_DONE,
 						new ClientJobDonedHandler());
 
-		addGlobalTransition(
+		addGlobalTransition(// TODO: 
 						ServerTrans.CLIENT_DISCONNECTED,
+						ServerStates.UNCONNECTED,
+						new ClientDisconnectedHandler());
+		addGlobalTransition(
+						Instruction.DISCONNECT,
 						ServerStates.UNCONNECTED,
 						new ClientDisconnectedHandler());
 
