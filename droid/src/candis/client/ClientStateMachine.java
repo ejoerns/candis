@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
 import candis.client.service.BackgroundService;
 import candis.common.Instruction;
@@ -15,9 +16,13 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
+import candis.distributed.DistributedParameter;
+import candis.distributed.DistributedResult;
 import candis.distributed.DistributedTask;
+import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -242,15 +247,34 @@ public final class ClientStateMachine extends FSM {
 		public void handle(Object o) {
 			LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
 
-			// create dex class loader
-			final File optimizedDexOutputPath = mContext.getDir("outdex", Context.MODE_PRIVATE);
-			final File dexInternalStoragePath = new File(mContext.getFilesDir(), "foo.dex");
+//			final File optimizedDexOutputPath = mContext.getDir("outdex", Context.MODE_PRIVATE);
+			final File dexInternalStoragePath = new File(mContext.getFilesDir(), "foo.jar");
+			BufferedOutputStream bos = null;
 
-			DexClassLoader cl = new DexClassLoader(
-							dexInternalStoragePath.getAbsolutePath(),
-							optimizedDexOutputPath.getAbsolutePath(),
-							null,
-							this.getClass().getClassLoader());
+			try {
+				//create an object of FileOutputStream
+				FileOutputStream fos = new FileOutputStream(dexInternalStoragePath);
+				//create an object of BufferedOutputStream
+				bos = new BufferedOutputStream(fos);
+				bos.write((byte[]) o);
+				System.out.println("File written");
+			}
+			catch (FileNotFoundException fnfe) {
+				System.out.println("Specified file not found" + fnfe);
+			}
+			catch (IOException ioe) {
+				System.out.println("Error while writing file" + ioe);
+			}
+			finally {
+				if (bos != null) {
+					try {
+						bos.flush();
+						bos.close();
+					}
+					catch (Exception e) {
+					}
+				}
+			}
 
 			// load all available classes
 			String path = dexInternalStoragePath.getPath();
@@ -261,26 +285,21 @@ public final class ClientStateMachine extends FSM {
 								0);
 				for (Enumeration<String> classNames = dx.entries(); classNames.hasMoreElements();) {
 					String className = classNames.nextElement();
+					LOGGER.log(Level.INFO, String.format("found class: %s", className));
+					Class<?> aClass = null;
 					try {
-						Class<?> aClass = cl.loadClass(className);
+						final File tmpDir = mContext.getDir("dex", 0);
+
+						final DexClassLoader classloader = new DexClassLoader(
+										dexInternalStoragePath.getAbsolutePath(),
+										tmpDir.getAbsolutePath(),
+										null,
+										this.getClass().getClassLoader());
+						final Class<Object> classToLoad = (Class<Object>) classloader.loadClass(className);
 						LOGGER.log(Level.INFO, String.format("Loaded class: %s", className));
-						// find out which one is the control class
-						if (DistributedTask.class.isAssignableFrom(aClass)) {
-							System.out.println("Control task is: " + className);
-							try {
-								aClass.newInstance();
-								System.out.println("Created newInstance!");
-							}
-							catch (InstantiationException ex) {
-								Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-							}
-							catch (IllegalAccessException ex) {
-								Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-							}
-						}
 					}
-					catch (ClassNotFoundException ex) {
-						Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+					catch (Exception ex) {
+						LOGGER.log(Level.SEVERE, null, ex);
 					}
 				}
 			}
@@ -295,7 +314,7 @@ public final class ClientStateMachine extends FSM {
 	/**
 	 *
 	 */
-	private class InitialParameterReceivedHandler implements ActionHandler {
+	private class InitialParameterReceivedHandler extends DistributedParameter implements ActionHandler {
 
 		@Override
 		public void handle(Object o) {
