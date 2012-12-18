@@ -8,6 +8,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectStreamClass;
 import java.io.OptionalDataException;
 import java.io.StreamCorruptedException;
 import java.util.logging.Level;
@@ -25,37 +26,34 @@ public class CommRequestBroker implements Runnable {
 	private static final String TAG = "CRB";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private boolean isStopped;
-	private FSM fsm;
-	private final InputStream instream;
+	private final FSM mFSM;
+	private final ClassLoader mClassLoader;
 	private ObjectInputStream mObjInstream = null;
 	private InputStream mInstream;
 
-	public CommRequestBroker(final InputStream instream, final FSM fsm) {
-		isStopped = false;
-		this.instream = instream;
-		this.fsm = fsm;
+	public CommRequestBroker(final InputStream instream, final FSM fsm, final ClassLoader cl) {
 		mInstream = instream;
+		mFSM = fsm;
+		mClassLoader = cl;
+		isStopped = false;
 	}
 
 	@Override
 	public void run() {
 		try {
-			mObjInstream = new ObjectInputStream(mInstream);
+			mObjInstream = new DexloaderObjectInputStream(mInstream);
 		}
 		catch (StreamCorruptedException ex) {
-			LOGGER.log(Level.ALL, "StreamCorruptedException");
-//			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		catch (IOException ex) {
-			LOGGER.log(Level.ALL, "IOException1");
-//			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		try {
-			fsm.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
+			mFSM.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
 		}
 		catch (StateMachineException ex) {
-			LOGGER.log(Level.ALL, "StateMachineException");
-//			Logger.getLogger(CommRequestBroker.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
 		Message m = null;
@@ -68,21 +66,20 @@ public class CommRequestBroker implements Runnable {
 					try {
 						System.out.println("fsm.process() " + ((Message) o).getRequest());
 						if (((Message) o).getData() == null) {
-							fsm.process(((Message) o).getRequest());
+							mFSM.process(((Message) o).getRequest());
 						}
 						else {
-							fsm.process(((Message) o).getRequest(), ((Message) o).getData());
+							mFSM.process(((Message) o).getRequest(), ((Message) o).getData());
 						}
 						System.out.println("fsm.process() done");
 					}
 					catch (StateMachineException ex) {
-						LOGGER.log(Level.ALL, "StateMachineException");
-						//						LOGGER.log(Level.SEVERE, null, ex);
+						LOGGER.log(Level.SEVERE, null, ex);
 					}
 				}
 				else {
 					LOGGER.log(Level.WARNING, "Received data of unknown type!" + o);
-					instream.close();
+					mInstream.close();
 					isStopped = true;
 				}
 			}
@@ -100,9 +97,12 @@ public class CommRequestBroker implements Runnable {
 			LOGGER.warning("InputStream is null");
 			return null;
 		}
-
 		try {
 			rec = mObjInstream.readObject();
+		}
+		catch (ClassNotFoundException ex) {
+			LOGGER.log(Level.WARNING,
+								 String.format("ClassNotFoundException: %s", ex.getMessage()));
 		}
 		catch (EOFException ex) {
 			LOGGER.log(Level.WARNING, "Connection to server was terminated.");
@@ -113,10 +113,30 @@ public class CommRequestBroker implements Runnable {
 		catch (OptionalDataException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
-		catch (ClassNotFoundException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
 
 		return rec;
+	}
+
+	/**
+	 * Resolves class with custom classloader.
+	 */
+	public class DexloaderObjectInputStream extends ObjectInputStream {
+
+		@Override
+		public Class resolveClass(ObjectStreamClass desc) throws IOException,
+						ClassNotFoundException {
+
+			try {
+				return mClassLoader.loadClass(desc.getName());
+			}
+			catch (Exception e) {
+			}
+
+			return super.resolveClass(desc);
+		}
+
+		public DexloaderObjectInputStream(InputStream in) throws IOException {
+			super(in);
+		}
 	}
 }

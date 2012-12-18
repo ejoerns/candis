@@ -13,6 +13,7 @@ import candis.client.comm.SecureConnection;
 import candis.common.Settings;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
+import dalvik.system.DexClassLoader;
 import java.io.File;
 import java.io.IOException;
 import java.io.StreamCorruptedException;
@@ -108,12 +109,26 @@ public class BackgroundService extends Service {
 
 				// init fsm
 				try {
+					final File tmpDir = mContext.getDir("dex", 0);
+
+					final File dexInternalStoragePath = new File(mContext.getFilesDir(), "foo.jar");
+					final DexClassLoader classloader = new DexClassLoader(
+									dexInternalStoragePath.getAbsolutePath(),
+									tmpDir.getAbsolutePath(),
+									null,
+									BackgroundService.class.getClassLoader());
+
+//					classloader = Thread.currentThread().getContextClassLoader();
 					fsm = new ClientStateMachine(
 									secureConn,
 									mDroidContext,
 									mContext,
-									null); // TODO: check handler usageIOException
-					crb = new CommRequestBroker(secureConn.getInputStream(), fsm);
+									null,
+									classloader); // TODO: check handler usageIOException
+					crb = new CommRequestBroker(
+									secureConn.getInputStream(),
+									fsm,
+									classloader);
 					new Thread(crb).start();
 					System.out.println("[THREAD DONE]");
 				}

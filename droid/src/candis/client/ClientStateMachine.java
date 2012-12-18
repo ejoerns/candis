@@ -17,9 +17,6 @@ import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
-import candis.distributed.DistributedTask;
-import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 import java.io.BufferedOutputStream;
@@ -43,6 +40,7 @@ public final class ClientStateMachine extends FSM {
 	private final SecureConnection mSConn;
 	private final Context mContext;
 	private final NotificationManager mNotificationManager;
+	private final ClassLoader mClassLoader;
 
 	private enum ClientStates implements StateEnum {
 
@@ -72,10 +70,12 @@ public final class ClientStateMachine extends FSM {
 					SecureConnection sconn,
 					final DroidContext dcontext,
 					final Context context,
-					final FragmentManager fragmanager) {
+					final FragmentManager fragmanager,
+					final ClassLoader cl) {
 		mDroitContext = dcontext;
 		mContext = context;
 		mSConn = sconn;
+		mClassLoader = cl;
 
 		mNotificationManager =
 						(NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -175,7 +175,7 @@ public final class ClientStateMachine extends FSM {
 	}
 
 	/**
-	 * Sends disconnect instruction to master.
+	 * Sends disconnect instruction to master.setAccessingle
 	 */
 	private class DisconnectHandler implements ActionHandler {
 
@@ -290,12 +290,7 @@ public final class ClientStateMachine extends FSM {
 					try {
 						final File tmpDir = mContext.getDir("dex", 0);
 
-						final DexClassLoader classloader = new DexClassLoader(
-										dexInternalStoragePath.getAbsolutePath(),
-										tmpDir.getAbsolutePath(),
-										null,
-										this.getClass().getClassLoader());
-						final Class<Object> classToLoad = (Class<Object>) classloader.loadClass(className);
+						final Class<Object> classToLoad = (Class<Object>) mClassLoader.loadClass(className);
 						LOGGER.log(Level.INFO, String.format("Loaded class: %s", className));
 					}
 					catch (Exception ex) {
