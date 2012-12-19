@@ -39,7 +39,7 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 			System.out.println(d);
 			d.getStateMachine().process(
 							ServerStateMachine.ServerTrans.SEND_BINARY,
-							null);
+							(Object) null);
 		}
 		catch (StateMachineException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);

@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,15 +74,15 @@ public class TestDroid extends DroidData implements Runnable {
 						// Handle job
 						switch (m_in.getRequest()) {
 							case SEND_BINARY:
-								internalOos.writeObject(new Message(Instruction.ACK, null));
+								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
 								break;
 							case SEND_INITAL:
 								DistributedJobParameter initial = (DistributedJobParameter) m_in.getData(0);
 								task.setInitialParameter(initial);
-								internalOos.writeObject(new Message(Instruction.ACK, null));
+								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
 								break;
 							case SEND_JOB:
-								internalOos.writeObject(new Message(Instruction.ACK, null));
+								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
 								DistributedJobParameter parameters = (DistributedJobParameter) m_in.getData(0);
 								DistributedJobResult result = runTask(parameters);
 								Message m_result = new Message(Instruction.SEND_RESULT, result);

@@ -69,7 +69,7 @@ public class CommRequestBroker implements Runnable {
 							mFSM.process(((Message) o).getRequest());
 						}
 						else {
-							mFSM.process(((Message) o).getRequest(), ((Message) o).getData());
+							mFSM.process(((Message) o).getRequest(), (Object[]) ((Message) o).getData());
 						}
 						System.out.println("fsm.process() done");
 					}
