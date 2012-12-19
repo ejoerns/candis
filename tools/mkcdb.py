@@ -73,6 +73,8 @@ class JavaProject:
 			self.__loadNetbeans(path)
 		elif self.__isNbAndroid(path):
 			self.__loadNbAndroid(path)
+		else:
+			print "Warning: %s was not recognized as a project directory"
 	
 	def __loadNetbeans(self, path):
 		prop = JavaProperties(os.path.join(path, "nbproject", "project.properties"))
@@ -132,7 +134,7 @@ def mkcdb(cdbfile, serverproject, clientproject):
 	prop = "name=%s\n" % os.path.splitext(os.path.basename(cdbfile))[0]
 
 	# generate dex file
-	handle, path = tempfile.mkstemp(suffix=".dex")
+	handle, path = tempfile.mkstemp(suffix=".jar")
 	libs = [client_proj.main,]
 	libs.extend(client_proj.libs)
 	mkdex(path, libs)
@@ -140,9 +142,9 @@ def mkcdb(cdbfile, serverproject, clientproject):
 	zf = zipfile.ZipFile(cdbfile, mode="w")
 
 	# add dex to zip
-	print "Compressing %s.dex: %s" % (client_proj.name, os.path.relpath(path))
-	zf.write(path, "%s.dex" % client_proj.name)
-	properties["droid.binary"] = "%s.dex" % client_proj.name
+	print "Compressing %s.jar: %s" % (client_proj.name, os.path.relpath(path))
+	zf.write(path, "%s.jar" % client_proj.name)
+	properties["droid.binary"] = "%s.jar" % client_proj.name
 
 	# add main jar
 	print "Compressing %s.jar: %s" % (server_proj.name, os.path.relpath(server_proj.main))
