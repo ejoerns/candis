@@ -14,9 +14,9 @@ import java.util.logging.Logger;
  */
 public class State {
 
+	private static final Logger LOGGER = Logger.getLogger(State.class.getName());
 	private final StateEnum name;
 	private final Map<Transition, StateEnum> mTransitionMap = new HashMap<Transition, StateEnum>();
-//	private final Map<Transition, ActionHandler> mHandlerMap = new HashMap<Transition, ActionHandler>();
 	/**
 	 * Map of Transitions wiht List of listeners for registered transition.
 	 */
@@ -27,11 +27,10 @@ public class State {
 	}
 
 	public State addTransition(
-			final Transition trans,
-			final StateEnum dest,
-			final ActionHandler act) {
+					final Transition trans,
+					final StateEnum dest,
+					final ActionHandler act) {
 		mTransitionMap.put(trans, dest);
-//		mHandlerMap.put(trans, act);
 		if (act != null) {
 			addActionHandler(trans, act);
 		}
@@ -39,8 +38,8 @@ public class State {
 	}
 
 	public State addTransition(
-			final Transition trans,
-			final StateEnum dest) {
+					final Transition trans,
+					final StateEnum dest) {
 		return addTransition(trans, dest, null);
 	}
 
@@ -59,47 +58,26 @@ public class State {
 	}
 
 	/**
-	 * Returns action handler for transition.
-	 *
-	 * @param trans Transition
-	 * @return ActionHandler
-	 */
-//	public ActionHandler getActionHandler(final Transition trans) {
-//		return mHandlerMap.get(trans);
-//	}
-	/**
 	 * Processes transition.
 	 *
 	 * @param trans Transition
 	 * @return Resulting state
 	 */
-//	public StateEnum process(final Transition trans) {
-//		return process(trans, null);
-//	}
-//	public StateEnum process(final Transition trans, final Object obj) {
-//		if ((mHandlerMap.containsKey(trans)) && (mHandlerMap.get(trans) != null)) {
-//			mHandlerMap.get(trans).handle(obj);
-//		}
-//
-//		if (!mTransitionMap.containsKey(trans)) {
-//			return null;
-//		}
-//		return mTransitionMap.get(trans);
-//	}
-	void process(Transition trans, Object obj, AtomicReference<StateEnum> mCurrentState) throws StateMachineException {
+	void process(Transition trans, AtomicReference<StateEnum> mCurrentState, Object... obj) throws StateMachineException {
 
 		//String nametrans = trans.toString();
 		Logger.getLogger("FSM").log(Level.FINE, String.format(
-				"FSM: State: %s, Transition: %s, Object: %s", mCurrentState.get(), trans, obj));
+						"FSM: State: %s, Transition: %s, Object: %s", mCurrentState.get(), trans, obj));
 
 		if (!mTransitionMap.containsKey(trans)) {
 			throw new StateMachineException(name, trans);
 		}
 		else {
 			mCurrentState.set(mTransitionMap.get(trans));
+			LOGGER.log(Level.FINE, String.format("Updated state to %s", mCurrentState.toString()));
 		}
 		Logger.getLogger("FSM").log(Level.FINE, String.format(
-				"FSM: New State: %s", mCurrentState.get()));
+						"FSM: New State: %s", mCurrentState.get()));
 
 		notifyListeners(trans, obj);
 	}
@@ -122,7 +100,7 @@ public class State {
 	 *
 	 * @param trans Transition to notify for
 	 */
-	private void notifyListeners(Transition trans, Object obj) {
+	private void notifyListeners(Transition trans, Object... obj) {
 		if (mListeners.containsKey(trans)) {
 			for (ActionHandler l : mListeners.get(trans)) {
 				l.handle(obj);// TODO

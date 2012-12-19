@@ -6,7 +6,6 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
-import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
 import candis.client.service.BackgroundService;
 import candis.common.Instruction;
@@ -17,14 +16,6 @@ import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedParameter;
-import dalvik.system.DexClassLoader;
-import dalvik.system.DexFile;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,17 +24,17 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public final class ClientStateMachine extends FSM {
-
+	
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private final DroidContext mDroitContext;
 	private final SecureConnection mSConn;
 	private final Context mContext;
 	private final NotificationManager mNotificationManager;
-	private final ClassLoader mClassLoader;
-
+	private final JobCenter mJobCenter;
+	
 	private enum ClientStates implements StateEnum {
-
+		
 		UNCONNECTED,
 		WAIT_ACCEPT,
 		CHECKCODE_ENTER,
@@ -52,37 +43,37 @@ public final class ClientStateMachine extends FSM {
 		CONNECTED,
 		JOB_RECEIVED, BINARY_RECEIVED, INIT_RECEIVED;
 	}
-
+	
 	public enum ClientTrans implements Transition {
-
+		
 		SOCKET_CONNECTED,
 		CHECKCODE_ENTERED,
 		JOB_FINISHED,
 		DISCONNECT;
 	}
-
+	
 	private enum ClientHandlerID implements HandlerID {
-
+		
 		MY_ID;
 	}
-
+	
 	public ClientStateMachine(
 					SecureConnection sconn,
 					final DroidContext dcontext,
 					final Context context,
 					final FragmentManager fragmanager,
-					final ClassLoader cl) {
+					final JobCenter jobcenter) {
 		mDroitContext = dcontext;
 		mContext = context;
 		mSConn = sconn;
-		mClassLoader = cl;
-
+		mJobCenter = jobcenter;
+		
 		mNotificationManager =
 						(NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-
+		
 		init();
 	}
-
+	
 	protected void init() {
 		addState(ClientStates.UNCONNECTED)
 						.addTransition(
@@ -160,9 +151,9 @@ public final class ClientStateMachine extends FSM {
 	 * Shows Error Dialog with short message.
 	 */
 	private class ConnectionRejectedHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object obj) {
+		public void handle(final Object... obj) {
 			System.out.println("ConnectionRejectedHandler() called");
 			Notification noti = new Notification.Builder(mContext)
 							.setContentTitle("Connection Rejected")
@@ -178,9 +169,9 @@ public final class ClientStateMachine extends FSM {
 	 * Sends disconnect instruction to master.setAccessingle
 	 */
 	private class DisconnectHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object o) {
+		public void handle(final Object... o) {
 			System.out.println("DisconnectHandler() called");
 			mSConn.send(new Message(Instruction.DISCONNECT));
 		}
@@ -190,9 +181,9 @@ public final class ClientStateMachine extends FSM {
 	 * Requests connection to server.
 	 */
 	private class SocketConnectedHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object obj) {
+		public void handle(final Object... obj) {
 			System.out.println("SocketConnectedHandler() called");
 			mSConn.send(new Message(Instruction.REQUEST_CONNECTION, mDroitContext.getID()));
 		}
@@ -202,9 +193,9 @@ public final class ClientStateMachine extends FSM {
 	 * Sends Profile data to Server.
 	 */
 	private class ProfileRequestHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object obj) {
+		public void handle(final Object... obj) {
 			System.out.println("ProfileRequestHandler() called");
 			mSConn.send(new Message(Instruction.SEND_PROFILE, mDroitContext.getProfile()));
 		}
@@ -214,9 +205,9 @@ public final class ClientStateMachine extends FSM {
 	 * Shows input dialog to enter checkcode.
 	 */
 	private class CheckcodeInputHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object o) {
+		public void handle(final Object... o) {
 			System.out.println("CheckcodeInputHandler() called");
 			Intent newintent = new Intent(mContext, MainActivity.class);
 			newintent.setAction(BackgroundService.SHOW_CHECKCODE)
@@ -230,11 +221,11 @@ public final class ClientStateMachine extends FSM {
 	 * Sends entered checkcode to server.
 	 */
 	private class CheckcodeSendHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object o) {
+		public void handle(final Object... o) {
 			System.out.println("CheckcodeSendHandler() called");
-			mSConn.send(new Message(Instruction.SEND_CHECKCODE, (String) o));
+			mSConn.send(new Message(Instruction.SEND_CHECKCODE, (String) o[0]));
 		}
 	}
 
@@ -242,66 +233,13 @@ public final class ClientStateMachine extends FSM {
 	 *
 	 */
 	private class BinaryReceivedHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object o) {
+		public void handle(final Object... o) {
 			LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
-
-//			final File optimizedDexOutputPath = mContext.getDir("outdex", Context.MODE_PRIVATE);
-			final File dexInternalStoragePath = new File(mContext.getFilesDir(), "foo.jar");
-			BufferedOutputStream bos = null;
-
-			try {
-				//create an object of FileOutputStream
-				FileOutputStream fos = new FileOutputStream(dexInternalStoragePath);
-				//create an object of BufferedOutputStream
-				bos = new BufferedOutputStream(fos);
-				bos.write((byte[]) o);
-				System.out.println("File written");
-			}
-			catch (FileNotFoundException fnfe) {
-				System.out.println("Specified file not found" + fnfe);
-			}
-			catch (IOException ioe) {
-				System.out.println("Error while writing file" + ioe);
-			}
-			finally {
-				if (bos != null) {
-					try {
-						bos.flush();
-						bos.close();
-					}
-					catch (Exception e) {
-					}
-				}
-			}
-
-			// load all available classes
-			String path = dexInternalStoragePath.getPath();
-			try {
-				DexFile dx = DexFile.loadDex(
-								path,
-								File.createTempFile("opt", "dex", mContext.getCacheDir()).getPath(),
-								0);
-				for (Enumeration<String> classNames = dx.entries(); classNames.hasMoreElements();) {
-					String className = classNames.nextElement();
-					LOGGER.log(Level.INFO, String.format("found class: %s", className));
-					Class<?> aClass = null;
-					try {
-						final File tmpDir = mContext.getDir("dex", 0);
-
-						final Class<Object> classToLoad = (Class<Object>) mClassLoader.loadClass(className);
-						LOGGER.log(Level.INFO, String.format("Loaded class: %s", className));
-					}
-					catch (Exception ex) {
-						LOGGER.log(Level.SEVERE, null, ex);
-					}
-				}
-			}
-			catch (IOException e) {
-				System.out.println("Error opening " + path);
-			}
-
+			
+			mJobCenter.loadBinary((byte[]) o[0]);
+			
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
@@ -310,10 +248,13 @@ public final class ClientStateMachine extends FSM {
 	 *
 	 */
 	private class InitialParameterReceivedHandler extends DistributedParameter implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object o) {
+		public void handle(final Object... o) {
 			System.out.println("InitialParameterReceivedHandler() called");
+			
+			mJobCenter.loadInitialParameter(o);
+			
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
@@ -322,9 +263,9 @@ public final class ClientStateMachine extends FSM {
 	 *
 	 */
 	private class JobReceivedHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object o) {
+		public void handle(final Object... o) {
 			System.out.println("JobReceivedHandler() called");
 			mSConn.send(new Message(Instruction.ACK));
 		}
@@ -334,9 +275,9 @@ public final class ClientStateMachine extends FSM {
 	 *
 	 */
 	private class JobFinishedHandler implements ActionHandler {
-
+		
 		@Override
-		public void handle(Object o) {
+		public void handle(final Object... o) {
 			System.out.println("CheckcodeSendHandler() called");
 			mSConn.send(new Message(Instruction.SEND_RESULT, null));
 		}

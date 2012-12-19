@@ -7,6 +7,7 @@ import android.os.IBinder;
 import android.util.Log;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
+import candis.client.JobCenter;
 import candis.client.R;
 import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
@@ -119,12 +120,13 @@ public class BackgroundService extends Service {
 									BackgroundService.class.getClassLoader());
 
 //					classloader = Thread.currentThread().getContextClassLoader();
+					final JobCenter jobcenter = new JobCenter(mContext, classloader);
 					fsm = new ClientStateMachine(
 									secureConn,
 									mDroidContext,
 									mContext,
 									null,
-									classloader); // TODO: check handler usageIOException
+									jobcenter); // TODO: check handler usageIOException
 					crb = new CommRequestBroker(
 									secureConn.getInputStream(),
 									fsm,

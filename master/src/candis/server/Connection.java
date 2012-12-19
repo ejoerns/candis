@@ -46,7 +46,7 @@ public class Connection implements Runnable {
 	public void sendMessage(final Message msg) throws IOException {
 		oos.writeObject(msg);
 	}
-
+	
 	protected void initConnection() {
 		try {
 			LOGGER.log(Level.INFO, "Client {0} connected...", mSocket.getInetAddress());
@@ -89,7 +89,7 @@ public class Connection implements Runnable {
 				try {
 
 
-					Message rec_msg = (Message) ois.readObject();
+					final Message rec_msg = (Message) ois.readObject();
 
 					LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 					try {

@@ -10,5 +10,5 @@ public interface ActionHandler {
 	 *
 	 * @param obj
 	 */
-	void handle(Object obj);
+	void handle(Object... obj);
 }

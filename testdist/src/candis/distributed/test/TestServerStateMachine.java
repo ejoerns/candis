@@ -2,18 +2,10 @@ package candis.distributed.test;
 
 import candis.common.Instruction;
 import candis.common.fsm.ActionHandler;
-import candis.common.fsm.FSM;
-import candis.common.fsm.StateEnum;
-import candis.common.fsm.Transition;
-import candis.distributed.CommunicationIO;
-import candis.distributed.DistributedResult;
 import candis.server.Connection;
 import candis.server.DroidManager;
 import candis.server.ServerCommunicationIO;
 import candis.server.ServerStateMachine;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -96,8 +88,8 @@ public class TestServerStateMachine extends ServerStateMachine {
 	private class ClientConnectedHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
-			mCommunicationIO.onDroidConnected((String) o, mConnection);
+		public void handle(final Object... o) {
+			mCommunicationIO.onDroidConnected((String) o[0], mConnection);
 		}
 	}
 }

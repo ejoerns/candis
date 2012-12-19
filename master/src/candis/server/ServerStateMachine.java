@@ -15,7 +15,6 @@ import candis.distributed.droid.StaticProfile;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -204,13 +203,13 @@ public class ServerStateMachine extends FSM {
 	public class ConnectionRequestedHandler implements ActionHandler {
 
 		@Override
-		public void handle(Object obj) {
+		public void handle(Object... obj) {
 			System.out.println("ConnectionRequestedHandler called");
 			if (obj == null) {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
 			}
-			RandomID currentID = ((RandomID) obj);
+			RandomID currentID = ((RandomID) obj[0]);
 			Transition trans;
 			Instruction instr;
 			// catch invalid messages
@@ -269,15 +268,15 @@ public class ServerStateMachine extends FSM {
 	public class ReceivedProfileHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object obj) {
+		public void handle(final Object... obj) {
 			System.out.println("ReceivedProfileHandler called");
 			try {
 				// store profile data
-				if (!(obj instanceof StaticProfile)) {
+				if (!(obj[0] instanceof StaticProfile)) {
 					LOGGER.log(Level.WARNING, "EMPTY PROFILE DATA!");
 					process(ServerTrans.PROFILE_INVALID);
 				}
-				mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj);
+				mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[0]);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
 				process(ServerTrans.PROFILE_VALID);
 			}
@@ -296,7 +295,7 @@ public class ServerStateMachine extends FSM {
 	public class ClientConnectedHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			mDroidManager.connectDroid(mConnection.getDroidID(), mConnection);
 			LOGGER.log(Level.INFO, String.format("Client %s connected", mConnection.getDroidID()));
 			System.out.println("ClientConnectedHandler() called");
@@ -311,7 +310,7 @@ public class ServerStateMachine extends FSM {
 	public class ConnectionRejectedHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("ConnectionRejectedHandler() called");
 			try {
 				mConnection.sendMessage(new Message(Instruction.REJECT_CONNECTION));
@@ -328,7 +327,7 @@ public class ServerStateMachine extends FSM {
 	public class ClientDisconnectedHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("ClientDisconnectedHandler() called");
 			mDroidManager.disconnectDroid(mConnection.getDroidID());
 		}
@@ -340,10 +339,10 @@ public class ServerStateMachine extends FSM {
 	public class ValidateCheckcodeHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("ValidateCheckcodeHandler() called");
 			try {
-				if (mDroidManager.validateCheckCode((String) o)) {
+				if (mDroidManager.validateCheckCode((String) o[0])) {
 					process(ServerTrans.CHECKCODE_VALID);
 				}
 				else {
@@ -362,7 +361,7 @@ public class ServerStateMachine extends FSM {
 	public class ProfileRequestHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("ProfileRequestHandler() called");
 			try {
 				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
@@ -379,7 +378,7 @@ public class ServerStateMachine extends FSM {
 	public class CheckCodeRequestedHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("CheckCodeRequestedHandler() called");
 			// generate 6digit string
 			final SecureRandom random = new SecureRandom();
@@ -401,9 +400,9 @@ public class ServerStateMachine extends FSM {
 	public class ClientJobDonedHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("ClientJobDonedHandler() called");
-			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedResult) o);
+			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedResult) o[0]);
 		}
 	}
 
@@ -413,10 +412,10 @@ public class ServerStateMachine extends FSM {
 	public class SendBinaryHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object binary) {
+		public void handle(final Object... binary) {
 			System.out.println("SendBinaryHandler() called");
 			try {
-				final File file = (File) binary;
+				final File file = (File) binary[0];
 				int nRead;
 				byte[] data = new byte[16384];
 				byte[] outdata = new byte[(int) file.length()];
@@ -446,7 +445,7 @@ public class ServerStateMachine extends FSM {
 	public class ClientBinarySentHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("ClientBinarySentHandler() called");
 			mCommunicationIO.onBinarySent(mConnection.getDroidID());
 		}
@@ -458,7 +457,7 @@ public class ServerStateMachine extends FSM {
 	public class SendInitialParameterHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object param) {
+		public void handle(final Object... param) {
 			System.out.println("SendInitialParameterHandler() called");
 			try {
 				// TODO: test if empty
@@ -476,7 +475,7 @@ public class ServerStateMachine extends FSM {
 	public class ClientInitalParameterSentHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object o) {
+		public void handle(final Object... o) {
 			System.out.println("ClientInitalParameterSentHandler() called");
 			mCommunicationIO.onInitalParameterSent(mConnection.getDroidID());
 		}
@@ -488,7 +487,7 @@ public class ServerStateMachine extends FSM {
 	public class SendJobHandler implements ActionHandler {
 
 		@Override
-		public void handle(final Object param) {
+		public void handle(final Object... param) {
 			System.out.println("SendJobHandler() called");
 			try {
 				mConnection.sendMessage(new Message(Instruction.SEND_JOB, (Serializable) param));

@@ -76,13 +76,13 @@ public class TestDroid extends DroidData implements Runnable {
 								internalOos.writeObject(new Message(Instruction.ACK, null));
 								break;
 							case SEND_INITAL:
-								DistributedParameter initial = (DistributedParameter) m_in.getData();
+								DistributedParameter initial = (DistributedParameter) m_in.getData(0);
 								task.setInitialParameter(initial);
 								internalOos.writeObject(new Message(Instruction.ACK, null));
 								break;
 							case SEND_JOB:
 								internalOos.writeObject(new Message(Instruction.ACK, null));
-								DistributedParameter parameters = (DistributedParameter) m_in.getData();
+								DistributedParameter parameters = (DistributedParameter) m_in.getData(0);
 								DistributedResult result = runTask(parameters);
 								Message m_result = new Message(Instruction.SEND_RESULT, result);
 								internalOos.writeObject(m_result);
