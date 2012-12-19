@@ -1,6 +1,6 @@
 package candis.server;
 
-import candis.common.RandomID;
+import candis.common.DroidID;
 import candis.common.Utilities;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
@@ -116,8 +116,8 @@ public final class DroidManager {
 	 * @param rid ID of Droid to add
 	 * @param profile
 	 */
-	public void addDroid(final RandomID rid, final StaticProfile profile) {
-		addDroid(Utilities.toSHA1String(rid.getBytes()), profile);
+	public void addDroid(final DroidID rid, final StaticProfile profile) {
+		addDroid(rid.toString(), profile);
 	}
 
 	/**
@@ -142,8 +142,8 @@ public final class DroidManager {
 	 *
 	 * @param rid ID of Droid to remove
 	 */
-	public void deleteDroid(final RandomID rid) {
-		deleteDroid(Utilities.toSHA1String(rid.getBytes()));
+	public void deleteDroid(final DroidID rid) {
+		deleteDroid(rid.toString());
 	}
 
 	/**
@@ -166,8 +166,8 @@ public final class DroidManager {
 	 *
 	 * @param rid Droid to blacklist
 	 */
-	public void blacklistDroid(final RandomID rid) {
-		blacklistDroid(Utilities.toSHA1String(rid.getBytes()));
+	public void blacklistDroid(final DroidID rid) {
+		blacklistDroid(rid.toString());
 	}
 
 	/**
@@ -185,8 +185,8 @@ public final class DroidManager {
 		}
 	}
 
-	public void whitelistDroid(final RandomID rid) {
-		blacklistDroid(Utilities.toSHA1String(rid.getBytes()));
+	public void whitelistDroid(final DroidID rid) {
+		blacklistDroid(rid.toString());
 	}
 
 	/**
@@ -205,8 +205,8 @@ public final class DroidManager {
 	 * @param rid ID of Droid to check
 	 * @return true if Droid is known, otherwise false
 	 */
-	public boolean isDroidKnown(final RandomID rid) {
-		return isDroidKnown(Utilities.toSHA1String(rid.getBytes()));
+	public boolean isDroidKnown(final DroidID rid) {
+		return isDroidKnown(rid.toString());
 	}
 
 	/**
@@ -225,8 +225,8 @@ public final class DroidManager {
 	 * @param rid ID of Droid to check
 	 * @return true if Droid is connected, otherwise false
 	 */
-	public boolean isDroidConnected(final RandomID rid) {
-		return isDroidConnected(Utilities.toSHA1String(rid.getBytes()));
+	public boolean isDroidConnected(final DroidID rid) {
+		return isDroidConnected(rid.toString());
 	}
 
 	/**
@@ -248,8 +248,8 @@ public final class DroidManager {
 	 * @param rid ID of Droid to check
 	 * @return true if Droid is blacklisted, otherwise false (also if unknown)
 	 */
-	public boolean isDroidBlacklisted(final RandomID rid) {
-		return isDroidBlacklisted(Utilities.toSHA1String(rid.getBytes()));
+	public boolean isDroidBlacklisted(final DroidID rid) {
+		return isDroidBlacklisted(rid.toString());
 	}
 
 	public StaticProfile getStaticProfile(final String barray) {
@@ -271,8 +271,8 @@ public final class DroidManager {
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 	}
 
-	public void connectDroid(final RandomID rid, Connection con) {
-		connectDroid(Utilities.toSHA1String(rid.getBytes()), con);
+	public void connectDroid(final DroidID rid, Connection con) {
+		connectDroid(rid.toString(), con);
 	}
 
 	/**
@@ -291,8 +291,8 @@ public final class DroidManager {
 	 *
 	 * @param rid ID of droid that is disconnected
 	 */
-	public void disconnectDroid(final RandomID rid) {
-		disconnectDroid(Utilities.toSHA1String(rid.getBytes()));
+	public void disconnectDroid(final DroidID rid) {
+		disconnectDroid(rid.toString());
 	}
 
 	/**

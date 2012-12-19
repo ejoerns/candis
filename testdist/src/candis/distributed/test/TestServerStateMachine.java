@@ -4,7 +4,7 @@ import candis.common.Instruction;
 import candis.common.fsm.ActionHandler;
 import candis.server.Connection;
 import candis.server.DroidManager;
-import candis.server.ServerCommunicationIO;
+import candis.server.JobDistributionIOServer;
 import candis.server.ServerStateMachine;
 
 /**
@@ -15,7 +15,7 @@ public class TestServerStateMachine extends ServerStateMachine {
 
 	//private static final Logger LOGGER = Logger.getLogger(TestServerStateMachine.class.getName());
 
-	public TestServerStateMachine(final Connection connection, final DroidManager droidManager, final ServerCommunicationIO comIO) {
+	public TestServerStateMachine(final Connection connection, final DroidManager droidManager, final JobDistributionIOServer comIO) {
 		super(connection, droidManager, comIO);
 	}
 

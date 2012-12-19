@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import candis.client.JobCenterHandler;
 import candis.client.MainActivity;
-import java.util.UUID;
 
 /**
  *
@@ -24,26 +23,26 @@ public class ActivityLogger implements JobCenterHandler {
 						.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 	}
 
-	public void onBinaryReceived(UUID uuid) {
-		msg = String.format("Task with UUID %s received", uuid.toString());
+	public void onBinaryReceived(String runnableID) {
+		msg = String.format("Task with UUID %s received", runnableID);
 		intent.putExtra("Message", msg);
 		mContext.startActivity(intent);
 	}
 
-	public void onInitialParameterReceived(UUID uuid) {
-		msg = String.format("Initial Paramater for Task with UUID %s received", uuid.toString());
+	public void onInitialParameterReceived(String runnableID) {
+		msg = String.format("Initial Paramater for Task with UUID %s received", runnableID);
 		intent.putExtra("Message", msg);
 		mContext.startActivity(intent);
 	}
 
-	public void onJobExecutionStart(UUID uuid) {
-		msg = String.format("Job for Task with UUID %s started", uuid.toString());
+	public void onJobExecutionStart(String runnableID) {
+		msg = String.format("Job for Task with UUID %s started", runnableID);
 		intent.putExtra("Message", msg);
 		mContext.startActivity(intent);
 	}
 
-	public void onJobExecutionDone(UUID uuid) {
-		msg = String.format("Job for Task with UUID %s stopped", uuid.toString());
+	public void onJobExecutionDone(String runnableID) {
+		msg = String.format("Job for Task with UUID %s stopped", runnableID);
 		intent.putExtra("Message", msg);
 		mContext.startActivity(intent);
 	}

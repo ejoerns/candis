@@ -8,5 +8,5 @@ import java.io.Serializable;
  *
  * @author Sebastian Willenborg
  */
-public abstract class DistributedResult implements Serializable {
+public interface DistributedJobResult extends Serializable {
 }

@@ -4,7 +4,7 @@ import candis.common.Settings;
 import candis.distributed.SchedulerStillRuningException;
 import candis.server.DroidManager;
 import candis.server.Server;
-import candis.server.ServerCommunicationIO;
+import candis.server.JobDistributionIOServer;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -24,7 +24,7 @@ import javax.swing.filechooser.FileFilter;
 public class CandisMasterFrame extends javax.swing.JFrame {
 
 	private DroidManager mDroidManager;
-	private ServerCommunicationIO mCommIO;
+	private JobDistributionIOServer mCommIO;
 	private DroidlistTableModel mDroidlistTableModel;
 	private DroidInfoTableModel mDroidInfoTableModel;
 	private OptionsDialog mOptionDialog;
@@ -37,7 +37,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	 */
 	public CandisMasterFrame(
 					DroidManager droidmanager,
-					ServerCommunicationIO commIO,
+					JobDistributionIOServer commIO,
 					DroidlistTableModel droidlisttablemodel) {
 		mDroidManager = droidmanager;
 		mCommIO = commIO;
@@ -385,7 +385,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		//</editor-fold>
 
 		final DroidManager droidmanager = DroidManager.getInstance();
-		final ServerCommunicationIO scio = new ServerCommunicationIO(droidmanager);
+		final JobDistributionIOServer scio = new JobDistributionIOServer(droidmanager);
 		final DroidlistTableModel dltm = new DroidlistTableModel();
 		final CandisMasterFrame cmf = new CandisMasterFrame(droidmanager, scio, dltm);
 		/* Create and display the form */

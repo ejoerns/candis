@@ -1,12 +1,11 @@
 package candis.example.mini;
 
-import candis.distributed.DistributedParameter;
-import java.io.Serializable;
+import candis.distributed.DistributedJobParameter;
 
 /**
  * Serializable initial parameter for "global" settings.
  */
-public class MiniInitParameter extends DistributedParameter implements Serializable {
+public class MiniInitParameter implements DistributedJobParameter {
 
 	/// Some example Value
 	public final int offset;

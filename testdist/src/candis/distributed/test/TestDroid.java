@@ -6,9 +6,9 @@ package candis.distributed.test;
 
 import candis.common.Instruction;
 import candis.common.Message;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
-import candis.distributed.DistributedTask;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import candis.distributed.DistributedRunnable;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.io.IOException;
@@ -30,13 +30,13 @@ public class TestDroid extends DroidData implements Runnable {
 	private ObjectOutputStream internalOos;
 	private ObjectInputStream internalOis;
 	private static final Logger LOGGER = Logger.getLogger(TestDroid.class.getName());
-	private final DistributedTask task;
+	private final DistributedRunnable task;
 
 	public String getId() {
 		return mID;
 	}
 
-	public TestDroid(int id, DistributedTask task) {
+	public TestDroid(int id, DistributedRunnable task) {
 		super(false, new StaticProfile());
 		LOGGER.log(Level.INFO, String.format("New Droid %d", id));
 		this.task = task;
@@ -76,14 +76,14 @@ public class TestDroid extends DroidData implements Runnable {
 								internalOos.writeObject(new Message(Instruction.ACK, null));
 								break;
 							case SEND_INITAL:
-								DistributedParameter initial = (DistributedParameter) m_in.getData(0);
+								DistributedJobParameter initial = (DistributedJobParameter) m_in.getData(0);
 								task.setInitialParameter(initial);
 								internalOos.writeObject(new Message(Instruction.ACK, null));
 								break;
 							case SEND_JOB:
 								internalOos.writeObject(new Message(Instruction.ACK, null));
-								DistributedParameter parameters = (DistributedParameter) m_in.getData(0);
-								DistributedResult result = runTask(parameters);
+								DistributedJobParameter parameters = (DistributedJobParameter) m_in.getData(0);
+								DistributedJobResult result = runTask(parameters);
 								Message m_result = new Message(Instruction.SEND_RESULT, result);
 								internalOos.writeObject(m_result);
 								break;
@@ -115,8 +115,8 @@ public class TestDroid extends DroidData implements Runnable {
 
 	}
 
-	private DistributedResult runTask(DistributedParameter param) {
-		return task.run(param);
+	private DistributedJobResult runTask(DistributedJobParameter param) {
+		return task.runJob(param);
 	}
 
 	public ObjectInputStream getInputStream() {

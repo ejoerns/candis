@@ -1,13 +1,13 @@
 package candis.server;
 
-import candis.common.RandomID;
+import candis.common.DroidID;
 import candis.common.Utilities;
 import candis.common.fsm.StateMachineException;
-import candis.distributed.CommunicationIO;
 import candis.distributed.DistributedControl;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
 import candis.distributed.DroidData;
+import candis.distributed.JobDistributionIO;
 import candis.distributed.Scheduler;
 import candis.distributed.SchedulerStillRuningException;
 import java.io.File;
@@ -21,9 +21,9 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class ServerCommunicationIO implements CommunicationIO, Runnable {
+public class JobDistributionIOServer implements JobDistributionIO, Runnable { // TODO: rename!
 
-	private static final Logger LOGGER = Logger.getLogger(ServerCommunicationIO.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOServer.class.getName());
 	protected final DroidManager mDroidManager;
 	protected DistributedControl mDistributedControl;
 	protected Scheduler mScheduler;
@@ -31,8 +31,10 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	private final List<Runnable> mComIOQueue = new LinkedList<Runnable>();
 //	private byte[] mDroidBinary;
 	private CDBLoader mCDBLoader;
+	/// Holds all available classloaders.
+	private LinkedList<ClassLoader> mClassLoderList = new LinkedList<ClassLoader>();
 
-	public ServerCommunicationIO(final DroidManager manager) {
+	public JobDistributionIOServer(final DroidManager manager) {
 		mDroidManager = manager;
 
 	}
@@ -58,15 +60,14 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 //	public byte[] getDroidBinary() {
 //		return mDroidBinary;
 //	}
-
 	@Override
-	public void startJob(String id, DistributedParameter param) {
+	public void startJob(String id, DistributedJobParameter param) {
 		Connection d = getDroidConnection(id);
 		try {
 			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_JOB, param);
 		}
 		catch (StateMachineException ex) {
-			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(JobDistributionIOServer.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
 
@@ -85,14 +86,14 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	}
 
 	@Override
-	public void sendInitialParameter(String droidID, DistributedParameter parameter) {
+	public void sendInitialParameter(String droidID, DistributedJobParameter parameter) {
 		System.out.println(droidID);
 		Connection d = getDroidConnection(droidID);
 		try {
 			d.getStateMachine().process(ServerStateMachine.ServerTrans.SEND_INITAL, parameter);
 		}
 		catch (StateMachineException ex) {
-			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(JobDistributionIOServer.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
 
@@ -156,7 +157,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 	}
 
 	public void addToQueue(Runnable task) {
-		synchronized(mComIOQueue) {
+		synchronized (mComIOQueue) {
 			mComIOQueue.add(task);
 			mComIOQueue.notify();
 		}
@@ -177,7 +178,7 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		}
 	}
 
-	public void onJobDone(final String droidID, final DistributedResult result) {
+	public void onJobDone(final String droidID, final DistributedJobResult result) {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
@@ -186,7 +187,8 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		});
 
 	}
-	public void onDroidConnected(final RandomID rid, final Connection connection) {
+
+	public void onDroidConnected(final DroidID rid, final Connection connection) {
 		onDroidConnected(Utilities.toSHA1String(rid.getBytes()), connection);
 	}
 
@@ -217,10 +219,12 @@ public class ServerCommunicationIO implements CommunicationIO, Runnable {
 		});
 	}
 
-	public void loadCDB(final File cdbFile) throws Exception{
+	public void loadCDB(final File cdbFile) throws Exception {
 		mCDBLoader = new CDBLoader(cdbFile);
 		setDistributedControl(mCDBLoader.getDistributedControl());
 	}
 
-
+	public CDBLoader getCDBLoader() {
+		return mCDBLoader;
+	}
 }

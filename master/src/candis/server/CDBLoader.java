@@ -1,9 +1,9 @@
 package candis.server;
 
 import candis.distributed.DistributedControl;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
-import candis.distributed.DistributedTask;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import candis.distributed.DistributedRunnable;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,26 +29,27 @@ import java.util.zip.ZipFile;
 /**
  * Loads a CDB file.
  *
- * A CDB file is a project file for candis containing a droid binary,
- * a server binary and additional libraries.
+ * A CDB file is a project file for candis containing a droid binary, a server
+ * binary and additional libraries.
  *
- * File format: Zip-Compressed file with .cdb extendsion.
- * Filenames are described in a 'config.properties' file.
+ * File format: Zip-Compressed file with .cdb extendsion. Filenames are
+ * described in a 'config.properties' file.
  *
  * @author Enrico Joerns
  */
 public class CDBLoader {
 
-	private static final Logger LOGGER = Logger.getLogger(ServerCommunicationIO.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOServer.class.getName());
 	private DistributedControl mDistributedControl;
 	private CDBContext mCDBContext;
+	private URLClassLoader mClassLoader;
 
 	/**
 	 * Creates new CDB loader.
 	 *
 	 * @param cdbfile CDB file to load
 	 */
-	public CDBLoader(final File cdbfile) throws Exception{
+	public CDBLoader(final File cdbfile) throws Exception {
 		loadCandisDistributedBundle(cdbfile);
 	}
 
@@ -70,22 +71,26 @@ public class CDBLoader {
 		return mCDBContext.getDroidBin();
 	}
 
+	public ClassLoader getClassLoader() {
+		return mClassLoader;
+	}
+
 	/**
 	 * Loads classes from cdb file.
 	 *
 	 * @param cdbfile
 	 */
-	private void loadCandisDistributedBundle(final File cdbfile) throws Exception{
+	private void loadCandisDistributedBundle(final File cdbfile) throws Exception {
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
 		List<String> classList;
 
 		mCDBContext = new CDBContext(projectPath);
 		extractCandisDistributedBundle(cdbfile, mCDBContext);
 
-		URLClassLoader child;
 		try {
-			child = new URLClassLoader(
-							new URL[]{mCDBContext.getLib(0).toURI().toURL(), mCDBContext.getServerBin().toURI().toURL()},
+			mClassLoader = new URLClassLoader(
+							new URL[]{mCDBContext.getLib(0).toURI().toURL(),
+								mCDBContext.getServerBin().toURI().toURL()},
 							this.getClass().getClassLoader());
 
 			// load lib 0
@@ -94,10 +99,10 @@ public class CDBLoader {
 
 			for (String classname : classList) {
 				// finds the DistributedControl instance
-				Class classToLoad = child.loadClass(classname);
-				if ((!DistributedParameter.class.isAssignableFrom(classToLoad))
-								&& (!DistributedResult.class.isAssignableFrom(classToLoad))
-								&& (!DistributedTask.class.isAssignableFrom(classToLoad))) {
+				Class classToLoad = mClassLoader.loadClass(classname);
+				if ((!DistributedJobParameter.class.isAssignableFrom(classToLoad))
+								&& (!DistributedJobResult.class.isAssignableFrom(classToLoad))
+								&& (!DistributedRunnable.class.isAssignableFrom(classToLoad))) {
 					LOGGER.log(Level.INFO, "Loaded class with non-default interface: {0}", classToLoad.getName());
 				}
 				else {
@@ -111,7 +116,7 @@ public class CDBLoader {
 			for (String classname : classList) {
 				System.out.println("Trying to load class: " + classname);
 				// finds the DistributedControl instance
-				Class classToLoad = child.loadClass(classname);
+				Class classToLoad = mClassLoader.loadClass(classname);
 				if (DistributedControl.class.isAssignableFrom(classToLoad)) {
 					LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
 					try {
@@ -128,7 +133,7 @@ public class CDBLoader {
 
 		}
 		catch (MalformedURLException ex) {
-			Logger.getLogger(ServerCommunicationIO.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(JobDistributionIOServer.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		catch (SecurityException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -148,7 +153,7 @@ public class CDBLoader {
 	 * @param cdbfile Name of cdb-file
 	 * @param cdbContext
 	 */
-	private void extractCandisDistributedBundle(final File cdbfile, final CDBContext cdbContext) throws Exception{
+	private void extractCandisDistributedBundle(final File cdbfile, final CDBContext cdbContext) throws Exception {
 		ZipFile zipFile;
 		String server_binary;
 		String droid_binary;
@@ -246,9 +251,6 @@ public class CDBLoader {
 				if (jarEntry.getName().endsWith(".class")) {
 					LOGGER.log(Level.FINE, "Found class: " + jarEntry.getName().replaceAll("/", "\\."));
 					classes.add(removeFileExtension(jarEntry.getName().replaceAll("/", "\\.")));
-				}
-				else{
-					LOGGER.log(Level.FINE, "Not Found " + jarEntry.getName());
 				}
 			}
 		}

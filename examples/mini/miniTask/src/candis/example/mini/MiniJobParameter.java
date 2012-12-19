@@ -1,12 +1,11 @@
 package candis.example.mini;
 
-import candis.distributed.DistributedParameter;
-import java.io.Serializable;
+import candis.distributed.DistributedJobParameter;
 
 /**
  * Serializable task parameter for MiniTask.
  */
-public class MiniParameter extends DistributedParameter implements Serializable {
+public class MiniJobParameter implements DistributedJobParameter {
 
 	/// Some value
 	public final int foo;
@@ -19,7 +18,7 @@ public class MiniParameter extends DistributedParameter implements Serializable 
 	 * @param foo some integer value
 	 * @param bar some float value
 	 */
-	public MiniParameter(final int foo, final float bar) {
+	public MiniJobParameter(final int foo, final float bar) {
 		this.foo = foo;
 		this.bar = bar;
 	}

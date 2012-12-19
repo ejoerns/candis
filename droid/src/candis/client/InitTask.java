@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
-import candis.common.RandomID;
+import candis.common.DroidID;
 import candis.distributed.droid.StaticProfile;
 import candis.system.StaticProfiler;
 import java.io.File;
@@ -51,14 +51,14 @@ class InitTask extends AsyncTask<Void, Object, Void> {
 			publishProgress("Generating ID...", Toast.LENGTH_SHORT);
 		}
 		// load or generate ID
-		RandomID id = null;
+		DroidID id = null;
 		if (mGenerateID) {
-			id = RandomID.init(mIDFile);
+			id = DroidID.init(mIDFile);
 			publishProgress("ID (SHA-1): " + id.toSHA1(), Toast.LENGTH_LONG);
 		}
 		else {
 			try {
-				id = RandomID.readFromFile(mIDFile);
+				id = DroidID.readFromFile(mIDFile);
 			}
 			catch (FileNotFoundException ex) {
 				Log.e(TAG, ex.toString());

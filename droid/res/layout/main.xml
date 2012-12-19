@@ -44,5 +44,5 @@
 		android:padding="5dp"
 		android:background="#FFF"
 		android:textColor="#111"
-		android:text="Hello, I am a TextView" />    
+		android:text="" />    
 </LinearLayout>

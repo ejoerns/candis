@@ -8,5 +8,5 @@ import java.io.Serializable;
  *
  * @author Sebastian Willenborg
  */
-public abstract class DistributedParameter implements Serializable {
+public interface DistributedJobParameter extends Serializable {
 }

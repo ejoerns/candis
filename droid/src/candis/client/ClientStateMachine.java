@@ -16,8 +16,9 @@ import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import java.io.Serializable;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -231,7 +232,7 @@ public final class ClientStateMachine extends FSM {
 			mSConn.send(new Message(Instruction.SEND_CHECKCODE, (String) o[0]));
 		}
 	}
-	private UUID mCurrentUUID = null;
+	private String mCurrentRunnableID = null;
 
 	/**
 	 *
@@ -242,8 +243,8 @@ public final class ClientStateMachine extends FSM {
 		public void handle(final Object... o) {
 			LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
 
-			mCurrentUUID = (UUID) o[0];
-			mJobCenter.loadBinary((UUID) o[0], (byte[]) o[1]);
+			mCurrentRunnableID = (String) o[0];
+			mJobCenter.loadBinary((String) o[0], (byte[]) o[1]);
 
 			mSConn.send(new Message(Instruction.ACK));
 		}
@@ -252,13 +253,13 @@ public final class ClientStateMachine extends FSM {
 	/**
 	 *
 	 */
-	private class InitialParameterReceivedHandler extends DistributedParameter implements ActionHandler {
+	private class InitialParameterReceivedHandler implements DistributedJobParameter, ActionHandler {
 
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("InitialParameterReceivedHandler() called");
 
-			mJobCenter.loadInitialParameter(mCurrentUUID, o[0]);
+			mJobCenter.loadInitialParameter(mCurrentRunnableID, o[0]);
 
 			mSConn.send(new Message(Instruction.ACK));
 		}
@@ -272,7 +273,7 @@ public final class ClientStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("JobReceivedHandler() called");
-			final boolean result = mJobCenter.loadJob(mCurrentUUID, o[0]);
+			final boolean result = mJobCenter.loadJob(mCurrentRunnableID, o[0]);
 			if (result) {
 				mSConn.send(new Message(Instruction.ACK));
 			}
@@ -281,8 +282,8 @@ public final class ClientStateMachine extends FSM {
 			}
 
 			// TODO: still only testing and inconsistent parameter handling
-			final DistributedResult dresult = mJobCenter.executeTask(
-							mCurrentUUID, (DistributedParameter) o[0]);
+			final DistributedJobResult dresult = mJobCenter.executeTask(
+							mCurrentRunnableID, (DistributedJobParameter) o[0]);
 			try {
 				process(ClientTrans.JOB_FINISHED, dresult);
 			}
@@ -299,8 +300,8 @@ public final class ClientStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object... o) {
-			System.out.println("CheckcodeSendHandler() called");
-			mSConn.send(new Message(Instruction.SEND_RESULT, o));
+			System.out.println("JobFinishedHandler() called");
+			mSConn.send(new Message(Instruction.SEND_RESULT, (Serializable) o[0]));
 		}
 	}
 }

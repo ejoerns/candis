@@ -13,7 +13,7 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import candis.client.CertAcceptDialog;
+import candis.client.gui.CertAcceptDialog;
 import candis.client.R;
 import candis.distributed.droid.StaticProfile;
 import java.io.BufferedReader;
@@ -139,7 +139,8 @@ public class StaticProfiler {
 						}
 					}
 				});
-			} catch (Exception ex) {
+			}
+			catch (Exception ex) {
 				Logger.getLogger(CertAcceptDialog.class.getName()).log(Level.SEVERE, null, ex);
 			}
 			// Create the AlertDialog object and return it
@@ -163,7 +164,8 @@ public class StaticProfiler {
 			//total Memory
 			initial_memory = Integer.valueOf(arrayOfString[1]).intValue() * 1024;
 			localBufferedReader.close();
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			Log.e(TAG, "Failed to read memory size from /proc/meminfo");
 		}
 		return initial_memory;
@@ -196,7 +198,8 @@ public class StaticProfiler {
 			File[] files = dir.listFiles(new CpuFilter());
 			//Return the number of cores (virtual CPU devices)
 			return files.length;
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			Log.w(TAG, "Failed to get processor number of /sys/devices/sytstem/cpu");
 			//Default to return 1 core
 			return 1;
@@ -247,23 +250,30 @@ public class StaticProfiler {
 
 			if (obj instanceof StaticProfile) {
 				return (StaticProfile) obj;
-			} else {
+			}
+			else {
 				Log.e(TAG, "invalid profile file");
 				return null;
 			}
-		} catch (StreamCorruptedException ex) {
+		}
+		catch (StreamCorruptedException ex) {
 			Log.e(TAG, ex.toString());
-		} catch (FileNotFoundException ex) {
+		}
+		catch (FileNotFoundException ex) {
 			Log.e(TAG, "Profile file " + f + " not found!");
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			Log.e(TAG, ex.toString());
-		} catch (ClassNotFoundException ex) {
+		}
+		catch (ClassNotFoundException ex) {
 			Log.e(TAG, ex.toString());
-		} finally {
+		}
+		finally {
 			if (ois != null) {
 				try {
 					ois.close();
-				} catch (IOException ex) {
+				}
+				catch (IOException ex) {
 					Log.e(TAG, ex.toString());
 				}
 			}
@@ -282,15 +292,19 @@ public class StaticProfiler {
 		try {
 			oos = new ObjectOutputStream(new FileOutputStream(f));
 			oos.writeObject(p);
-		} catch (FileNotFoundException ex) {
+		}
+		catch (FileNotFoundException ex) {
 			Log.e(TAG, ex.toString());
-		} catch (IOException ex) {
+		}
+		catch (IOException ex) {
 			Log.e(TAG, ex.toString());
-		} finally {
+		}
+		finally {
 			if (oos != null) {
 				try {
 					oos.close();
-				} catch (IOException ex) {
+				}
+				catch (IOException ex) {
 					Log.e(TAG, ex.toString());
 				}
 			}

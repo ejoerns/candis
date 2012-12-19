@@ -6,7 +6,7 @@ import java.util.Set;
  *
  * @author Sebastian Willenborg
  */
-public interface CommunicationIO {
+public interface JobDistributionIO {
 
 	int getDroidCount();
 
@@ -14,9 +14,9 @@ public interface CommunicationIO {
 
 	void sendBinary(String droidID);
 
-	void sendInitialParameter(String droidID, DistributedParameter p);
+	void sendInitialParameter(String droidID, DistributedJobParameter p);
 
-	void startJob(String droidID, DistributedParameter p);
+	void startJob(String droidID, DistributedJobParameter p);
 
 	void stopJob(String droidID);
 

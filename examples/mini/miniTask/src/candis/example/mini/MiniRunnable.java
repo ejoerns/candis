@@ -1,14 +1,14 @@
 package candis.example.mini;
 
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
-import candis.distributed.DistributedTask;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import candis.distributed.DistributedRunnable;
 
 /**
  * Example Task.
  * Multiplies MiniParameter.foo with MiniParamter.bar
  */
-public class MiniTask extends DistributedTask {
+public class MiniRunnable implements DistributedRunnable {
 
 	private MiniInitParameter initial;
 
@@ -16,7 +16,7 @@ public class MiniTask extends DistributedTask {
 	 * Gets called when the Task should be aborted.
 	 */
 	@Override
-	public void stop() {
+	public void stopJob() {
 		// Nothing to do here
 	}
 
@@ -28,10 +28,10 @@ public class MiniTask extends DistributedTask {
 	 * @return The generated MiniResult, when the task is finished
 	 */
 	@Override
-	public DistributedResult run(DistributedParameter parameter) {
+	public DistributedJobResult runJob(DistributedJobParameter parameter) {
 		// Cast incomming Parameter
-		MiniParameter p = (MiniParameter) parameter;
-		return new MiniResult(p.foo * p.bar + initial.offset);
+		MiniJobParameter p = (MiniJobParameter) parameter;
+		return new MiniJobResult(p.foo * p.bar + initial.offset);
 	}
 
 	/**
@@ -40,7 +40,7 @@ public class MiniTask extends DistributedTask {
 	 * @param parameter Transfered initial parameter
 	 */
 	@Override
-	public void setInitialParameter(DistributedParameter parameter) {
+	public void setInitialParameter(DistributedJobParameter parameter) {
 		initial = (MiniInitParameter) parameter;
 	}
 }

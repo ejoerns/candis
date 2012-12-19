@@ -2,7 +2,7 @@ package candis.server;
 
 import candis.common.Instruction;
 import candis.common.Message;
-import candis.common.RandomID;
+import candis.common.DroidID;
 import candis.common.Settings;
 import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
@@ -10,8 +10,8 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
 import candis.distributed.droid.StaticProfile;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,7 +34,7 @@ public class ServerStateMachine extends FSM {
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	protected final Connection mConnection;
 	protected final DroidManager mDroidManager;
-	protected final ServerCommunicationIO mCommunicationIO;
+	protected final JobDistributionIOServer mCommunicationIO;
 	//private RandomID mCurrentID;
 
 	protected enum ServerStates implements StateEnum {
@@ -75,7 +75,7 @@ public class ServerStateMachine extends FSM {
 	public ServerStateMachine(
 					final Connection connection,
 					final DroidManager droidManager,
-					final ServerCommunicationIO comIO) {
+					final JobDistributionIOServer comIO) {
 		super();
 		mConnection = connection;
 		mDroidManager = droidManager;
@@ -211,7 +211,7 @@ public class ServerStateMachine extends FSM {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
 			}
-			RandomID currentID = ((RandomID) obj[0]);
+			DroidID currentID = ((DroidID) obj[0]);
 			Transition trans;
 			Instruction instr;
 			// catch invalid messages
@@ -404,7 +404,7 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("ClientJobDonedHandler() called");
-			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedResult) o[0]);
+			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedJobResult) o[0]);
 		}
 	}
 

@@ -24,23 +24,23 @@ public class SimpleScheduler extends Scheduler {
 	}
 
 	private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
-	private CommunicationIO comIO;
-	private DistributedParameter initalParameter = null;
-	private Stack<DistributedParameter> params = new Stack<DistributedParameter>();
-	private final Map<String, DistributedParameter> running = new HashMap<String, DistributedParameter>();
-	private final Map<DistributedParameter, DistributedResult> done = new HashMap<DistributedParameter, DistributedResult>();
+	private JobDistributionIO comIO;
+	private DistributedJobParameter initalParameter = null;
+	private Stack<DistributedJobParameter> params = new Stack<DistributedJobParameter>();
+	private final Map<String, DistributedJobParameter> running = new HashMap<String, DistributedJobParameter>();
+	private final Map<DistributedJobParameter, DistributedJobResult> done = new HashMap<DistributedJobParameter, DistributedJobResult>();
 	private final Map<String, DroidState> droidStates = new HashMap<String, DroidState>();
 	private boolean started = false;
 
 	public SimpleScheduler() {
 	}
 
-	public void setCommunicationIO(CommunicationIO io) {
+	public void setCommunicationIO(JobDistributionIO io) {
 		comIO = io;
 	}
 
 	@Override
-	public Map<DistributedParameter, DistributedResult> getResults() {
+	public Map<DistributedJobParameter, DistributedJobResult> getResults() {
 		return done;
 	}
 	
@@ -75,7 +75,7 @@ public class SimpleScheduler extends Scheduler {
 				comIO.sendInitialParameter(droidID, initalParameter);
 				break;
 			case INITIAL:
-				DistributedParameter param = params.pop();
+				DistributedJobParameter param = params.pop();
 				comIO.startJob(droidID, param);
 				running.put(droidID, param);
 				break;
@@ -100,9 +100,9 @@ public class SimpleScheduler extends Scheduler {
 		assignTask(droidID);
 	}
 
-	public void onJobDone(String droidID, DistributedResult result) {
+	public void onJobDone(String droidID, DistributedJobResult result) {
 		if (running.containsKey(droidID)) {
-			DistributedParameter p = running.remove(droidID);
+			DistributedJobParameter p = running.remove(droidID);
 			done.put(p, result);
 			releaseResult(p, result);
 			LOGGER.log(Level.INFO, "Param {0} on {1} done with {2}", new Object[]{p, droidID, result});
@@ -110,24 +110,24 @@ public class SimpleScheduler extends Scheduler {
 		assignTask(droidID);
 	}
 
-	public void onDroidError(String id, DistributedError error) {
+	public void onDroidError(String id, DistributedJobError error) {
 		LOGGER.log(Level.SEVERE, "Droid {0}, Error {1}", new Object[]{id, error});
 
 		// removed Droids won't stay in the id List
 		// therefore it is not neccesary to check, for DROID_LOST in error
 		if (running.containsKey(id)) {
-			DistributedParameter p = running.get(id);
+			DistributedJobParameter p = running.get(id);
 			params.push(p);
 		}
 		assignTasks();
 	}
 
-	public void addParameter(DistributedParameter param) {
+	public void addParameter(DistributedJobParameter param) {
 		params.push(param);
 	}
 
-	public void addParameters(DistributedParameter[] params) {
-		for (DistributedParameter p : params) {
+	public void addParameters(DistributedJobParameter[] params) {
+		for (DistributedJobParameter p : params) {
 			this.params.push(p);
 		}
 	}
@@ -137,7 +137,7 @@ public class SimpleScheduler extends Scheduler {
 		return (running.size() + params.size()) == 0;
 	}
 
-	public void setInitialParameter(DistributedParameter param) {
+	public void setInitialParameter(DistributedJobParameter param) {
 		initalParameter = param;
 	}
 

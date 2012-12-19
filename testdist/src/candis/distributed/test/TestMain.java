@@ -2,8 +2,8 @@ package candis.distributed.test;
 
 import candis.distributed.DistributedControl;
 import candis.distributed.SchedulerStillRuningException;
-import candis.example.mini.MiniTask;
 import candis.example.mini.MiniControl;
+import candis.example.mini.MiniRunnable;
 import candis.server.DroidManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,7 +23,7 @@ public class TestMain{
 
 		DistributedControl t = new MiniControl();
 
-		TestCommunicationIO comio = new TestCommunicationIO<MiniTask>(new MiniTaskFactory(), DroidManager.getInstance());
+		JobDistributionIOTestServer comio = new JobDistributionIOTestServer<MiniRunnable>(new MiniTaskFactory(), DroidManager.getInstance());
 		comio.initDroids();
 		try {
 			comio.setDistributedControl(t);

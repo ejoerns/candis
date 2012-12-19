@@ -1,12 +1,11 @@
 package candis.example.mini;
 
-import candis.distributed.DistributedResult;
-import java.io.Serializable;
+import candis.distributed.DistributedJobResult;
 
 /**
  * Serializable result for MiniTask.
  */
-public class MiniResult extends DistributedResult implements Serializable {
+public class MiniJobResult implements DistributedJobResult {
 
 	/// Some value
 	public final float foobar;
@@ -16,7 +15,7 @@ public class MiniResult extends DistributedResult implements Serializable {
 	 *
 	 * @param foobar
 	 */
-	public MiniResult(final float foobar) {
+	public MiniJobResult(final float foobar) {
 		this.foobar = foobar;
 	}
 }

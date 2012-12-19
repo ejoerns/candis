@@ -1,8 +1,8 @@
 package candis.example.mini;
 
 import candis.distributed.DistributedControl;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
@@ -29,7 +29,7 @@ public class MiniControl implements DistributedControl, ResultReceiver {
 
 		// Create some tasks
 		for (int i = 0; i < 10; i++) {
-			scheduler.addParameter(new MiniParameter(i, 3.5f));
+			scheduler.addParameter(new MiniJobParameter(i, 3.5f));
 		}
 
 		return scheduler;
@@ -42,9 +42,9 @@ public class MiniControl implements DistributedControl, ResultReceiver {
 	}
 
 	@Override
-	public void onReceiveResult(DistributedParameter param, DistributedResult result) {
+	public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
 		/// One result is finished and we can use it, somehow ...
-		MiniResult miniResult = (MiniResult) result;
+		MiniJobResult miniResult = (MiniJobResult) result;
 		System.out.println(String.format("%.3f", miniResult.foobar));
 
 	}

@@ -23,7 +23,7 @@ public class Server implements Runnable {
 	private static final int mPort = 9999;
 	private final ExecutorService mExecutorService;
 	private final DroidManager mDroidManager;
-	private final ServerCommunicationIO mCommunicationIO;
+	private final JobDistributionIOServer mCommunicationIO;
 	private ServerSocket ssocket;
 	private boolean mDoStop = false;
 
@@ -41,10 +41,10 @@ public class Server implements Runnable {
 	}
 
 	public Server(DroidManager droidmanager) throws IOException {
-		this(droidmanager, new ServerCommunicationIO(droidmanager));
+		this(droidmanager, new JobDistributionIOServer(droidmanager));
 	}
 
-	public Server(DroidManager droidmanager, ServerCommunicationIO scomio) throws IOException {
+	public Server(DroidManager droidmanager, JobDistributionIOServer scomio) throws IOException {
 
 		// load properties if available or load default properties
 		try {

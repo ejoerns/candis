@@ -1,15 +1,15 @@
 package candis.distributed.test;
 
-import candis.example.mini.MiniTask;
+import candis.example.mini.MiniRunnable;
 
 /**
  *
  * @author Sebastian Willenborg
  */
-public class MiniTaskFactory implements TaskFactory<MiniTask> {
+public class MiniTaskFactory implements TaskFactory<MiniRunnable> {
 
 	@Override
-	public MiniTask createTask() {
-		return new MiniTask();
+	public MiniRunnable createTask() {
+		return new MiniRunnable();
 	}
 }

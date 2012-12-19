@@ -15,19 +15,19 @@ public abstract class Scheduler {
 		mReceivers.add(receiver);
 	}
 
-	protected void releaseResult(DistributedParameter param, DistributedResult result) {
+	protected void releaseResult(DistributedJobParameter param, DistributedJobResult result) {
 		for(ResultReceiver receiver: mReceivers) {
 			receiver.onReceiveResult(param, result);
 		}
 	}
 
-	public abstract void setInitialParameter(DistributedParameter param);
+	public abstract void setInitialParameter(DistributedJobParameter param);
 
-	public abstract void addParameter(DistributedParameter param);
+	public abstract void addParameter(DistributedJobParameter param);
 
-	public abstract void addParameters(DistributedParameter[] params);
+	public abstract void addParameters(DistributedJobParameter[] params);
 
-	public abstract void setCommunicationIO(CommunicationIO io);
+	public abstract void setCommunicationIO(JobDistributionIO io);
 
 	public abstract void start();
 
@@ -41,7 +41,7 @@ public abstract class Scheduler {
 	 * @param droidID
 	 * @param result
 	 */
-	public abstract void onJobDone(String droidID, DistributedResult result);
+	public abstract void onJobDone(String droidID, DistributedJobResult result);
 
 	public abstract void onBinaryRecieved(String droidID);
 
@@ -53,9 +53,9 @@ public abstract class Scheduler {
 	 * @param droidID
 	 * @param error
 	 */
-	public abstract void onDroidError(String droidID, DistributedError error);
+	public abstract void onDroidError(String droidID, DistributedJobError error);
 
 	public abstract boolean isDone();
 
-	public abstract Map<DistributedParameter, DistributedResult> getResults();
+	public abstract Map<DistributedJobParameter, DistributedJobResult> getResults();
 }

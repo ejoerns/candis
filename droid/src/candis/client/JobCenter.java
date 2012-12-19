@@ -2,9 +2,9 @@ package candis.client;
 
 import android.content.Context;
 import android.util.Log;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
-import candis.distributed.DistributedTask;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import candis.distributed.DistributedRunnable;
 import dalvik.system.DexFile;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -33,8 +33,8 @@ public class JobCenter {
 	private final Map<String, List<Class>> mTaskClassesMap = new HashMap<String, List<Class>>();
 	private final Map<String, Class> mTaskMap = new HashMap<String, Class>();
 	private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
-	private Map<String, DistributedParameter> mInitialParameterMap =
-					new HashMap<String, DistributedParameter>();
+	private Map<String, DistributedJobParameter> mInitialParameterMap =
+					new HashMap<String, DistributedJobParameter>();
 
 	public JobCenter(final Context context, final ClassLoader cl) {
 		mContext = context;
@@ -45,35 +45,35 @@ public class JobCenter {
 	 *
 	 * @param binary
 	 */
-	public void loadBinary(final UUID task_id, final byte[] binary) {
-		String filename = task_id.toString().concat(".jar");
+	public void loadBinary(final String runnableID, final byte[] binary) {
+		String filename = runnableID.concat(".jar");
 		Log.v(TAG, String.format("Saving jar to file %s", filename));
 		final File dexInternalStoragePath = new File(mContext.getFilesDir(), filename);
 
 		writeByteArrayToFile(binary, dexInternalStoragePath);
 
-		loadClassesFromJar(task_id, dexInternalStoragePath);
+		loadClassesFromJar(runnableID, dexInternalStoragePath);
 
 	}
 
-	public DistributedResult executeTask(final UUID task_id, final DistributedParameter param) {
-		DistributedResult result = null;
+	public DistributedJobResult executeTask(final String runnableID, final DistributedJobParameter param) {
+		DistributedJobResult result = null;
 
-		if (!mTaskMap.containsKey(task_id.toString())) {
-			Log.e(TAG, String.format("Task with UUID %s not found", task_id.toString()));
+		if (!mTaskMap.containsKey(runnableID)) {
+			Log.e(TAG, String.format("Task with UUID %s not found", runnableID));
 			return null;
 		}
 
 		// notify handlers about start
 		for (JobCenterHandler handler : mHandlerList) {
-			handler.onJobExecutionStart(task_id);
+			handler.onJobExecutionStart(runnableID);
 		}
 
 		// try to instanciate class
 		try {
-			DistributedTask currentTask = (DistributedTask) mTaskMap.get(task_id.toString()).newInstance();
-			currentTask.setInitialParameter(mInitialParameterMap.get(task_id.toString()));
-			result = currentTask.run(param);
+			DistributedRunnable currentTask = (DistributedRunnable) mTaskMap.get(runnableID).newInstance();
+			currentTask.setInitialParameter(mInitialParameterMap.get(runnableID));
+			result = currentTask.runJob(param);
 		}
 		catch (InstantiationException ex) {
 			Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
@@ -84,7 +84,7 @@ public class JobCenter {
 
 		// notify handlers about end
 		for (JobCenterHandler handler : mHandlerList) {
-			handler.onJobExecutionDone(task_id);
+			handler.onJobExecutionDone(runnableID);
 		}
 
 		return result;
@@ -127,16 +127,16 @@ public class JobCenter {
 	/**
 	 * As it name claims, it loads classes from the given jar.
 	 *
-	 * @param task_id
+	 * @param runnableID
 	 * @param jarfile
 	 */
-	private void loadClassesFromJar(final UUID task_id, final File jarfile) {
+	private void loadClassesFromJar(final String runnableID, final File jarfile) {
 
-		if (mTaskClassesMap.containsKey(task_id.toString())) {
-			Log.w(TAG, String.format("Warning: Task with UUID %s already loaded", task_id));
+		if (mTaskClassesMap.containsKey(runnableID)) {
+			Log.w(TAG, String.format("Warning: Task with UUID %s already loaded", runnableID));
 		}
 		else {
-			mTaskClassesMap.put(task_id.toString(), new LinkedList<Class>());
+			mTaskClassesMap.put(runnableID, new LinkedList<Class>());
 		}
 
 
@@ -158,10 +158,10 @@ public class JobCenter {
 					final Class<Object> loadedClass = (Class<Object>) mClassLoader.loadClass(className);
 					Log.i(TAG, String.format("Loaded class: %s", className));
 					// add associated classes to task class list
-					mTaskClassesMap.get(task_id.toString()).add(loadedClass);
+					mTaskClassesMap.get(runnableID).add(loadedClass);
 					// add task class to task list
-					if (DistributedTask.class.isAssignableFrom(loadedClass)) {
-						mTaskMap.put(task_id.toString(), loadedClass);
+					if (DistributedRunnable.class.isAssignableFrom(loadedClass)) {
+						mTaskMap.put(runnableID, loadedClass);
 					}
 				}
 				catch (Exception ex) {
@@ -178,17 +178,17 @@ public class JobCenter {
 	 *
 	 * @param o
 	 */
-	public boolean loadInitialParameter(final UUID task_id, final Object o) {
-		if (!(o instanceof DistributedParameter)) {
+	public boolean loadInitialParameter(final String runnableID, final Object o) {
+		if (!(o instanceof DistributedJobParameter)) {
 			Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
 			Log.e(TAG, String.format("Is of class %s", o.getClass().getName()));
 			return false;
 		}
-		mInitialParameterMap.put(task_id.toString(), (DistributedParameter) o);
+		mInitialParameterMap.put(runnableID, (DistributedJobParameter) o);
 		Log.i(TAG, "Initial Parameter loaded");
 
 		for (JobCenterHandler handler : mHandlerList) {
-			handler.onInitialParameterReceived(task_id);
+			handler.onInitialParameterReceived(runnableID);
 		}
 
 		return true;
@@ -199,8 +199,8 @@ public class JobCenter {
 	 * @todo: needed?
 	 * @param o
 	 */
-	public boolean loadJob(final UUID task_id, final Object o) {
-		if (!(o instanceof DistributedParameter)) {
+	public boolean loadJob(final String runnableID, final Object o) {
+		if (!(o instanceof DistributedJobParameter)) {
 			Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
 			return false;
 		}

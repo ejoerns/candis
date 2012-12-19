@@ -1,12 +1,12 @@
 package candis.distributed.test;
 
-import candis.distributed.DistributedTask;
+import candis.distributed.DistributedRunnable;
 
 /**
  *
  * @author Sebastian Willenborg
  */
-public interface TaskFactory<T extends DistributedTask> {
+public interface TaskFactory<T extends DistributedRunnable> {
 
 	T createTask();
 }

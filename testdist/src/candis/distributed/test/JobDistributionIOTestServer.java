@@ -1,10 +1,10 @@
 package candis.distributed.test;
 
 import candis.common.fsm.StateMachineException;
-import candis.distributed.DistributedTask;
+import candis.distributed.DistributedRunnable;
 import candis.server.Connection;
 import candis.server.DroidManager;
-import candis.server.ServerCommunicationIO;
+import candis.server.JobDistributionIOServer;
 import candis.server.ServerStateMachine;
 import candis.server.ServerStateMachine.ServerTrans;
 import java.io.IOException;
@@ -16,9 +16,9 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class TestCommunicationIO<T extends DistributedTask> extends ServerCommunicationIO {
+public class JobDistributionIOTestServer<T extends DistributedRunnable> extends JobDistributionIOServer {
 
-	private static final Logger LOGGER = Logger.getLogger(TestCommunicationIO.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOTestServer.class.getName());
 	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	private final TaskFactory<T> factory;
@@ -26,7 +26,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 	private static final int DEFAULT_DROIDAMOUNT = 1;
 	private boolean isClosed = false;
 
-	public TestCommunicationIO(TaskFactory<T> fact, DroidManager manager) {
+	public JobDistributionIOTestServer(TaskFactory<T> fact, DroidManager manager) {
 		super(manager);
 		factory = fact;
 	}
@@ -92,7 +92,7 @@ public class TestCommunicationIO<T extends DistributedTask> extends ServerCommun
 		private TestDroid droid;
 		private final Logger LOGGER = Logger.getLogger(TestConnection.class.getName());
 
-		public TestConnection(TestDroid droid, final DroidManager manager, final ServerCommunicationIO comIO) {
+		public TestConnection(TestDroid droid, final DroidManager manager, final JobDistributionIOServer comIO) {
 			super(null, manager, comIO);
 			this.droid = droid;
 		}

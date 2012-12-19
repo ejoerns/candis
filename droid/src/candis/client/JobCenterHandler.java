@@ -8,12 +8,12 @@ import java.util.UUID;
  */
 public interface JobCenterHandler {
 	
-	public void onBinaryReceived(UUID uuid);
+	public void onBinaryReceived(String runnableID);
 	
-	public void onInitialParameterReceived(UUID uuid);
+	public void onInitialParameterReceived(String runnableID);
 	
-	public void onJobExecutionStart(UUID uuid);
+	public void onJobExecutionStart(String runnableID);
 	
-	public void onJobExecutionDone(UUID uuid);
+	public void onJobExecutionDone(String runnableID);
 
 }

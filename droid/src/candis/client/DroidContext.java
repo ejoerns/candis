@@ -1,6 +1,6 @@
 package candis.client;
 
-import candis.common.RandomID;
+import candis.common.DroidID;
 import candis.distributed.droid.StaticProfile;
 import java.io.Serializable;
 
@@ -14,7 +14,7 @@ import java.io.Serializable;
  */
 public class DroidContext implements Serializable {
 
-	private RandomID mID;
+	private DroidID mID;
 	private StaticProfile mProfile;
 	private static DroidContext mInstance = null;
 
@@ -33,11 +33,11 @@ public class DroidContext implements Serializable {
 		mProfile = dcontext.mProfile;
 	}
 
-	public void setID(final RandomID rid) {
+	public void setID(final DroidID rid) {
 		mID = rid;
 	}
 
-	public RandomID getID() {
+	public DroidID getID() {
 		return mID;
 	}
 

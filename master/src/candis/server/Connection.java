@@ -5,9 +5,11 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,7 +27,7 @@ public class Connection implements Runnable {
 	// each connection has its own state machine
 	protected FSM mStateMachine = null;
 	protected final DroidManager mDroidManager;
-	protected final ServerCommunicationIO mCommunicationIO;
+	protected final JobDistributionIOServer mCommunicationIO;
 	protected ObjectOutputStream oos = null;
 	protected ObjectInputStream ois = null;
 	private String droidID;
@@ -33,7 +35,7 @@ public class Connection implements Runnable {
 	public Connection(
 					final Socket socket,
 					final DroidManager droidmanager,
-					final ServerCommunicationIO comIO) {
+					final JobDistributionIOServer comIO) {
 		mSocket = socket;
 		mDroidManager = droidmanager;
 		mCommunicationIO = comIO;
@@ -46,12 +48,12 @@ public class Connection implements Runnable {
 	public void sendMessage(final Message msg) throws IOException {
 		oos.writeObject(msg);
 	}
-	
+
 	protected void initConnection() {
 		try {
 			LOGGER.log(Level.INFO, "Client {0} connected...", mSocket.getInetAddress());
 			oos = new ObjectOutputStream(mSocket.getOutputStream());
-			ois = new ObjectInputStream(mSocket.getInputStream());
+			ois = new ObjectInputStream(mSocket.getInputStream());// TODO..., mCommunicationIO.getCDBLoader().getClassLoader());
 			mStateMachine = new ServerStateMachine(this, mDroidManager, mCommunicationIO);
 			if (ois == null) {
 				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream! (null)");
@@ -87,7 +89,6 @@ public class Connection implements Runnable {
 		try {
 			while ((!isStopped) && (!isSocketClosed())) {
 				try {
-
 
 					final Message rec_msg = (Message) ois.readObject();
 
@@ -141,6 +142,29 @@ public class Connection implements Runnable {
 		}
 		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	private class ClassLoaderObjectInputStream extends ObjectInputStream {
+
+		private final ClassLoader mClassLoader;
+
+		@Override
+		public Class resolveClass(ObjectStreamClass desc) throws IOException,
+						ClassNotFoundException {
+
+			try {
+				return mClassLoader.loadClass(desc.getName());
+			}
+			catch (Exception e) {
+			}
+
+			return super.resolveClass(desc);
+		}
+
+		public ClassLoaderObjectInputStream(InputStream in, ClassLoader cloader) throws IOException {
+			super(in);
+			mClassLoader = cloader;
 		}
 	}
 }
