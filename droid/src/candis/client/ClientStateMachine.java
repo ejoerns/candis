@@ -14,8 +14,11 @@ import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
+import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedParameter;
+import candis.distributed.DistributedResult;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,7 +27,7 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public final class ClientStateMachine extends FSM {
-	
+
 	private static final String TAG = "ClientStateMachine";
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private final DroidContext mDroitContext;
@@ -32,9 +35,9 @@ public final class ClientStateMachine extends FSM {
 	private final Context mContext;
 	private final NotificationManager mNotificationManager;
 	private final JobCenter mJobCenter;
-	
+
 	private enum ClientStates implements StateEnum {
-		
+
 		UNCONNECTED,
 		WAIT_ACCEPT,
 		CHECKCODE_ENTER,
@@ -43,20 +46,20 @@ public final class ClientStateMachine extends FSM {
 		CONNECTED,
 		JOB_RECEIVED, BINARY_RECEIVED, INIT_RECEIVED;
 	}
-	
+
 	public enum ClientTrans implements Transition {
-		
+
 		SOCKET_CONNECTED,
 		CHECKCODE_ENTERED,
 		JOB_FINISHED,
 		DISCONNECT;
 	}
-	
+
 	private enum ClientHandlerID implements HandlerID {
-		
+
 		MY_ID;
 	}
-	
+
 	public ClientStateMachine(
 					SecureConnection sconn,
 					final DroidContext dcontext,
@@ -67,13 +70,13 @@ public final class ClientStateMachine extends FSM {
 		mContext = context;
 		mSConn = sconn;
 		mJobCenter = jobcenter;
-		
+
 		mNotificationManager =
 						(NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-		
+
 		init();
 	}
-	
+
 	protected void init() {
 		addState(ClientStates.UNCONNECTED)
 						.addTransition(
@@ -151,7 +154,7 @@ public final class ClientStateMachine extends FSM {
 	 * Shows Error Dialog with short message.
 	 */
 	private class ConnectionRejectedHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... obj) {
 			System.out.println("ConnectionRejectedHandler() called");
@@ -169,7 +172,7 @@ public final class ClientStateMachine extends FSM {
 	 * Sends disconnect instruction to master.setAccessingle
 	 */
 	private class DisconnectHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("DisconnectHandler() called");
@@ -181,7 +184,7 @@ public final class ClientStateMachine extends FSM {
 	 * Requests connection to server.
 	 */
 	private class SocketConnectedHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... obj) {
 			System.out.println("SocketConnectedHandler() called");
@@ -193,7 +196,7 @@ public final class ClientStateMachine extends FSM {
 	 * Sends Profile data to Server.
 	 */
 	private class ProfileRequestHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... obj) {
 			System.out.println("ProfileRequestHandler() called");
@@ -205,7 +208,7 @@ public final class ClientStateMachine extends FSM {
 	 * Shows input dialog to enter checkcode.
 	 */
 	private class CheckcodeInputHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("CheckcodeInputHandler() called");
@@ -221,25 +224,27 @@ public final class ClientStateMachine extends FSM {
 	 * Sends entered checkcode to server.
 	 */
 	private class CheckcodeSendHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("CheckcodeSendHandler() called");
 			mSConn.send(new Message(Instruction.SEND_CHECKCODE, (String) o[0]));
 		}
 	}
+	private UUID mCurrentUUID = null;
 
 	/**
 	 *
 	 */
 	private class BinaryReceivedHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... o) {
 			LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
-			
-			mJobCenter.loadBinary((byte[]) o[0]);
-			
+
+			mCurrentUUID = (UUID) o[0];
+			mJobCenter.loadBinary((UUID) o[0], (byte[]) o[1]);
+
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
@@ -248,13 +253,13 @@ public final class ClientStateMachine extends FSM {
 	 *
 	 */
 	private class InitialParameterReceivedHandler extends DistributedParameter implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("InitialParameterReceivedHandler() called");
-			
-			mJobCenter.loadInitialParameter(o);
-			
+
+			mJobCenter.loadInitialParameter(mCurrentUUID, o[0]);
+
 			mSConn.send(new Message(Instruction.ACK));
 		}
 	}
@@ -263,11 +268,27 @@ public final class ClientStateMachine extends FSM {
 	 *
 	 */
 	private class JobReceivedHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("JobReceivedHandler() called");
-			mSConn.send(new Message(Instruction.ACK));
+			final boolean result = mJobCenter.loadJob(mCurrentUUID, o[0]);
+			if (result) {
+				mSConn.send(new Message(Instruction.ACK));
+			}
+			else {
+				mSConn.send(new Message(Instruction.NACK));
+			}
+
+			// TODO: still only testing and inconsistent parameter handling
+			final DistributedResult dresult = mJobCenter.executeTask(
+							mCurrentUUID, (DistributedParameter) o[0]);
+			try {
+				process(ClientTrans.JOB_FINISHED, dresult);
+			}
+			catch (StateMachineException ex) {
+				Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
 		}
 	}
 
@@ -275,11 +296,11 @@ public final class ClientStateMachine extends FSM {
 	 *
 	 */
 	private class JobFinishedHandler implements ActionHandler {
-		
+
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("CheckcodeSendHandler() called");
-			mSConn.send(new Message(Instruction.SEND_RESULT, null));
+			mSConn.send(new Message(Instruction.SEND_RESULT, o));
 		}
 	}
 }

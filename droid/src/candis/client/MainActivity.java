@@ -16,7 +16,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 import candis.client.comm.SecureConnection;
 import candis.client.gui.CertAcceptDialog;
 import candis.client.gui.CheckcodeInputDialog;
@@ -36,6 +35,7 @@ public class MainActivity extends Activity
 
 	private static final String TAG = MainActivity.class.getName();
 	private Button mServiceButton;
+	private TextView mLogView;
 	private InitTask mInitTask;
 	private DroidContext mDroidContext;
 	private boolean mToggleServiceButton = true;
@@ -95,8 +95,12 @@ public class MainActivity extends Activity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
+		// init button
 		mServiceButton = (Button) findViewById(R.id.service_button);
 		mServiceButton.setOnClickListener(this);
+
+		// init text view
+		mLogView = (TextView) findViewById(R.id.logtext);
 
 		mDroidContext = DroidContext.getInstance();
 		// Init droid
@@ -118,6 +122,8 @@ public class MainActivity extends Activity
 		else if (intent.getAction().equals(BackgroundService.SHOW_CHECKCODE)) {
 			DialogFragment checkDialog = new CheckcodeInputDialog(this);
 			checkDialog.show(getFragmentManager(), TAG);
+		} else if (intent.getAction().equals(BackgroundService.JOB_CENTER_HANDLER)) {
+			mLogView.append(intent.getStringExtra("Message").concat("\n"));
 		}
 	}
 

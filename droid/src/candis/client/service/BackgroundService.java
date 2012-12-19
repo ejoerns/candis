@@ -8,6 +8,7 @@ import android.util.Log;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
+import candis.client.JobCenterHandler;
 import candis.client.R;
 import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
@@ -37,6 +38,7 @@ public class BackgroundService extends Service {
 	public static final String RESULT_CHECK_SERVERCERT = "RESULT_CHECK_SERVERCERT";
 	public static final String SHOW_CHECKCODE = "SHOW_CHECKCODE";
 	public static final String RESULT_SHOW_CHECKCODE = "RESULT_SHOW_CHECKCODE";
+	public static final String JOB_CENTER_HANDLER = "JOB_CENTER_HANDLER";
 	private Context mContext;
 	private final DroidContext mDroidContext;
 	private final AtomicBoolean mCertCheckResult = new AtomicBoolean(false);
@@ -119,8 +121,9 @@ public class BackgroundService extends Service {
 									null,
 									BackgroundService.class.getClassLoader());
 
-//					classloader = Thread.currentThread().getContextClassLoader();
+					JobCenterHandler jobCenterHandler = new ActivityLogger(mContext);
 					final JobCenter jobcenter = new JobCenter(mContext, classloader);
+					jobcenter.addHandler(jobCenterHandler);
 					fsm = new ClientStateMachine(
 									secureConn,
 									mDroidContext,

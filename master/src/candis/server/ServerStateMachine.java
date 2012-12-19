@@ -10,6 +10,7 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
+import candis.distributed.DistributedParameter;
 import candis.distributed.DistributedResult;
 import candis.distributed.droid.StaticProfile;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.security.SecureRandom;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -429,9 +431,13 @@ public class ServerStateMachine extends FSM {
 				}
 				buffer.flush();
 				outdata = buffer.toByteArray();
+				
+				// Create dummy uuid for test cases
+				// TODO: generate id in task management
+				final UUID taskID = UUID.randomUUID();
 
 				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY, outdata));
+								new Message(Instruction.SEND_BINARY, taskID, outdata));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -461,7 +467,7 @@ public class ServerStateMachine extends FSM {
 			System.out.println("SendInitialParameterHandler() called");
 			try {
 				// TODO: test if empty
-				mConnection.sendMessage(new Message(Instruction.SEND_INITAL, (Serializable) param));
+				mConnection.sendMessage(new Message(Instruction.SEND_INITAL, (Serializable) param[0]));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -490,7 +496,7 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object... param) {
 			System.out.println("SendJobHandler() called");
 			try {
-				mConnection.sendMessage(new Message(Instruction.SEND_JOB, (Serializable) param));
+				mConnection.sendMessage(new Message(Instruction.SEND_JOB, (Serializable) param[0]));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

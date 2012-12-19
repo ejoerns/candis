@@ -24,6 +24,8 @@ public enum Instruction implements Transition {
 	ERROR(1),
 	/// Ack
 	ACK(2),
+	/// Nack
+	NACK(3),
 	/// Request information - unused
 	GET_INFO(10),
 	/// Send information - unused
