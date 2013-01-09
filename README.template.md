@@ -10,42 +10,46 @@ This is an example, how to implement a distributed Task with candis.
 
 ### Data exchange
 
-To transfer data between management server and the remote App you implement your own serializable container classes.
+To transfer data between management server and the remote app you implement your own serializable container classes.
 
 #### Initial Parameter
-Initial Parameters are used to set Task parameters which are same for all tasks (Implementation of `DistributedParameter`).
+Initial parameters are used to submit task parameters which are same for all task executions. (implementation of `DistributedJobParameter`).
 
 ```java
 {include:examples/mini/miniTask/src/candis/example/mini/MiniInitParameter.java}
 ```
 
-#### Task Parameter
-Each task is specified by its own Parameters (implementation of `DistributedParameter`).
+#### Job Parameter
+Each job is specified by its own job parameters (implementation of `DistributedJobParameter`).
 
 ```java
-{include:examples/mini/miniTask/src/candis/example/mini/MiniParameter.java}
+{include:examples/mini/miniTask/src/candis/example/mini/MiniJobParameter.java}
 ```
 
 #### Result Data
-The result of a successful done task will be transferred back in it's result container (implementation of `DistributedResult`).
+The result of a successful done task will be transferred back in it's result container (implementation of `DistributedJobResult`).
 
 ```java
-{include:examples/mini/miniTask/src/candis/example/mini/MiniResult.java}
+{include:examples/mini/miniTask/src/candis/example/mini/MiniJobResult.java}
 ```
 
 
 ### Distributed Code
 
-The task is an implementation of `DistributedTask`.
+The runnable code of a task is an implementation of `DistributedRunnable`.
  
 ```java
-{include:examples/mini/miniTask/src/candis/example/mini/MiniTask.java}
+{include:examples/mini/miniTask/src/candis/example/mini/MiniRunnable.java}
 ```
 
 ### Task Management
 
-Simple serverside Task management using `SimpleScheduler`. It is possible to write own scheduler by implementing/extending `Scheduler`.
+The task distribution management will be done serverside. It is possible to write an own scheduler by implementing/extending `Scheduler`.
 This is also the class which receives the results of the distributed tasks.
+An simple Scheduler is already provided by `SimpleScheduler`.
+
+The setup of a scheduler is done by an implementation of `DistributedControl`. To get each calculated job result directly after it's send to the server additionally implement
+ `ResultReceiver`.
 
 ```java
 {include:examples/mini/miniControl/src/candis/example/mini/MiniControl.java}
