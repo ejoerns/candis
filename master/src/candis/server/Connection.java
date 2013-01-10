@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.ClassLoaderWrapper;
 import candis.common.Message;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
@@ -56,7 +57,7 @@ public class Connection implements Runnable {
 			oos = new ObjectOutputStream(mSocket.getOutputStream());
 			ois = new ClassLoaderObjectInputStream(
 							mSocket.getInputStream(),
-							mCommunicationIO.getCDBLoader().getClassLoader());
+							mCommunicationIO.getCDBLoader().getClassLoaderWrapper());
 			mStateMachine = new ServerStateMachine(this, mDroidManager, mCommunicationIO);
 			if (ois == null) {
 				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream! (null)");
@@ -153,23 +154,23 @@ public class Connection implements Runnable {
 	 */
 	private class ClassLoaderObjectInputStream extends ObjectInputStream {
 		
-		private final ClassLoader mClassLoader;
+		private final ClassLoaderWrapper mClassLoaderWrapper;
 		
 		@Override
 		public Class resolveClass(ObjectStreamClass desc) throws IOException,
 						ClassNotFoundException {
 			
 			try {
-				return mClassLoader.loadClass(desc.getName());
+				return mClassLoaderWrapper.get().loadClass(desc.getName());
 			}
 			catch (Exception e) {
 				return super.resolveClass(desc);
 			}
 		}
 		
-		public ClassLoaderObjectInputStream(InputStream in, ClassLoader cloader) throws IOException {
+		public ClassLoaderObjectInputStream(InputStream in, ClassLoaderWrapper cloaderwrap) throws IOException {
 			super(in);
-			mClassLoader = cloader;
+			mClassLoaderWrapper = cloaderwrap;
 		}
 	}
 }

@@ -29,11 +29,12 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	protected Scheduler mScheduler;
 	private Thread mQueueThread;
 	private final List<Runnable> mComIOQueue = new LinkedList<Runnable>();
-	private CDBLoader mCDBLoader;
+	private final CDBLoader mCDBLoader;
 	/// Holds all available classloaders.
 	private LinkedList<ClassLoader> mClassLoderList = new LinkedList<ClassLoader>();
 
 	public JobDistributionIOServer(final DroidManager manager) {
+		mCDBLoader = new CDBLoader();
 		mDroidManager = manager;
 	}
 
@@ -215,11 +216,14 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	}
 
 	public void loadCDB(final File cdbFile) throws Exception {
-		mCDBLoader = new CDBLoader(cdbFile);
+		mCDBLoader.loadCDB(cdbFile);
 		setDistributedControl(mCDBLoader.getDistributedControl());
 	}
 
 	public CDBLoader getCDBLoader() {
+		if (mCDBLoader == null) {
+			
+		}
 		return mCDBLoader;
 	}
 }

@@ -404,7 +404,15 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("ClientJobDonedHandler() called");
-			mCommunicationIO.onJobDone(mConnection.getDroidID(), (DistributedJobResult) o[0]);
+			DistributedJobResult result = null;
+			if (o == null) {
+				LOGGER.log(Level.WARNING, "Received Result: null");
+			}
+			else {
+				LOGGER.log(Level.INFO, "Received Result");
+				result = (DistributedJobResult) o[0];
+			}
+			mCommunicationIO.onJobDone(mConnection.getDroidID(), result);
 		}
 	}
 
@@ -431,7 +439,7 @@ public class ServerStateMachine extends FSM {
 				}
 				buffer.flush();
 				outdata = buffer.toByteArray();
-				
+
 				// Create dummy uuid for test cases
 				// TODO: generate id in task management
 				final UUID taskID = UUID.randomUUID();
@@ -466,8 +474,13 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object... param) {
 			System.out.println("SendInitialParameterHandler() called");
 			try {
-				// TODO: test if empty
-				mConnection.sendMessage(new Message(Instruction.SEND_INITAL, (Serializable) param[0]));
+				if (param[0] == null) {
+					LOGGER.info("Sending empty initial parameter");
+					mConnection.sendMessage(new Message(Instruction.SEND_INITAL));
+				}
+				else {
+					mConnection.sendMessage(new Message(Instruction.SEND_INITAL, (Serializable) param[0]));
+				}
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

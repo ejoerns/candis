@@ -64,17 +64,15 @@ public class CommRequestBroker implements Runnable {
 				Object o = readObject();
 				if (o instanceof Message) {
 					LOGGER.log(Level.INFO, String.format(
-									"Read new Message: %s", ((Message) o).getRequest().toString()));
+									"Received server Message: %s", ((Message) o).getRequest().toString()));
 					try {
-						System.out.println("fsm.process() " + ((Message) o).getRequest());
 						if (((Message) o).getData() == null) {
 							mFSM.process(((Message) o).getRequest());
 						}
 						else {
 							mFSM.process(((Message) o).getRequest(), (Object[]) ((Message) o).getData());
 						}
-						System.out.println("fsm.process() done");
-					}
+  					}
 					catch (StateMachineException ex) {
 						LOGGER.log(Level.SEVERE, null, ex);
 					}
@@ -108,7 +106,7 @@ public class CommRequestBroker implements Runnable {
       ex.printStackTrace();
 		}
 		catch (EOFException ex) {
-			LOGGER.log(Level.WARNING, "Connection to server was terminated.");
+			LOGGER.log(Level.WARNING, "Connection to server was terminated unexpected.");
 			isStopped = true;
 			mObjInstream.close();
 			// todo quit loop!

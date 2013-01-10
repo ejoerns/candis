@@ -1,9 +1,9 @@
 package candis.client;
 
-import candis.common.ClassLoaderWrapper;
 import android.content.Context;
 import android.util.Log;
 import candis.client.service.BackgroundService;
+import candis.common.ClassLoaderWrapper;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
@@ -76,6 +76,10 @@ public class JobCenter {
       DistributedRunnable currentTask = (DistributedRunnable) mTaskMap.get(runnableID).newInstance();
       currentTask.setInitialParameter(mInitialParameterMap.get(runnableID));
       result = currentTask.runJob(param);
+      
+      if (result == null) {
+        Log.e(TAG, "Process returned null");
+      }
     }
     catch (InstantiationException ex) {
       Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
@@ -106,7 +110,7 @@ public class JobCenter {
       //create an object of BufferedOutputStream
       bos = new BufferedOutputStream(fos);
       bos.write((byte[]) data);
-      System.out.println("File written");
+      System.out.println(String.format("File '%s' written", filename));
     }
     catch (FileNotFoundException fnfe) {
       System.out.println("Specified file not found" + fnfe);

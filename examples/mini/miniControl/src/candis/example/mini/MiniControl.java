@@ -45,7 +45,7 @@ public class MiniControl implements DistributedControl, ResultReceiver {
 	public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
 		/// One result is finished and we can use it, somehow ...
 		MiniJobResult miniResult = (MiniJobResult) result;
-		System.out.println(String.format("%.3f", miniResult.foobar));
+		System.out.println(String.format("Got Result: %.3f", miniResult.foobar));
 
 	}
 }

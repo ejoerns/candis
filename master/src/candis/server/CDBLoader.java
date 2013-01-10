@@ -1,7 +1,6 @@
 package candis.server;
 
 import candis.common.ClassLoaderWrapper;
-import candis.common.Message;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -44,7 +43,7 @@ public class CDBLoader {
 	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOServer.class.getName());
 	private DistributedControl mDistributedControl;
 	private CDBContext mCDBContext;
-	private ClassLoader mClassLoader = null;
+	private final ClassLoaderWrapper mClassLoaderWrapper;
 
 	/**
 	 * Creates new CDB loader.
@@ -52,8 +51,8 @@ public class CDBLoader {
 	 * @param cdbfile CDB file to load
 	 * @param cloader Parent ClassLoader
 	 */
-	public CDBLoader(final File cdbfile) throws Exception {
-		loadCandisDistributedBundle(cdbfile);
+	public CDBLoader() {
+		mClassLoaderWrapper = new ClassLoaderWrapper();
 	}
 
 	/**
@@ -80,8 +79,8 @@ public class CDBLoader {
 	 *
 	 * @return ClassLoader the CDB classes were loaded with
 	 */
-	public ClassLoader getClassLoader() {
-		return mClassLoader;
+	public ClassLoaderWrapper getClassLoaderWrapper() {
+		return mClassLoaderWrapper;
 	}
 
 	/**
@@ -89,7 +88,7 @@ public class CDBLoader {
 	 *
 	 * @param cdbfile
 	 */
-	private void loadCandisDistributedBundle(final File cdbfile) throws Exception {
+	public void loadCDB(final File cdbfile) throws Exception {
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
 		List<String> classList;
 
@@ -97,11 +96,11 @@ public class CDBLoader {
 		extractCandisDistributedBundle(cdbfile, mCDBContext);
 
 		try {
-			mClassLoader =
+			mClassLoaderWrapper.set(
 							new URLClassLoader(
 							new URL[]{mCDBContext.getLib(0).toURI().toURL(),
 								mCDBContext.getServerBin().toURI().toURL()},
-							this.getClass().getClassLoader());
+							this.getClass().getClassLoader()));
 
 			// load lib 0
 			// TODO: allow for multiple libs
@@ -109,7 +108,7 @@ public class CDBLoader {
 
 			for (String classname : classList) {
 				// finds the DistributedControl instance
-				Class classToLoad = mClassLoader.loadClass(classname);
+				Class classToLoad = mClassLoaderWrapper.get().loadClass(classname);
 				if ((!DistributedJobParameter.class.isAssignableFrom(classToLoad))
 								&& (!DistributedJobResult.class.isAssignableFrom(classToLoad))
 								&& (!DistributedRunnable.class.isAssignableFrom(classToLoad))) {
@@ -126,7 +125,7 @@ public class CDBLoader {
 			for (String classname : classList) {
 				System.out.println("Trying to load class: " + classname);
 				// finds the DistributedControl instance
-				Class classToLoad = mClassLoader.loadClass(classname);
+				Class classToLoad = mClassLoaderWrapper.get().loadClass(classname);
 				if (DistributedControl.class.isAssignableFrom(classToLoad)) {
 					LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
 					try {
