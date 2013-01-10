@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.ClassLoaderWrapper;
 import candis.common.Message;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
@@ -23,22 +24,25 @@ public class Connection implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(Connection.class.getName());
 	private final Socket mSocket;
-	private boolean isStopped;
 	// each connection has its own state machine
-	protected FSM mStateMachine = null;
 	protected final DroidManager mDroidManager;
 	protected final JobDistributionIOServer mCommunicationIO;
+	private final ClassLoaderWrapper mClassLoaderWrapper;
+	protected FSM mStateMachine = null;
 	protected ObjectOutputStream oos = null;
 	protected ObjectInputStream ois = null;
 	private String droidID;
+	private boolean isStopped;
 
 	public Connection(
 					final Socket socket,
 					final DroidManager droidmanager,
-					final JobDistributionIOServer comIO) {
+					final JobDistributionIOServer comIO,
+					final ClassLoaderWrapper clw) {
 		mSocket = socket;
 		mDroidManager = droidmanager;
 		mCommunicationIO = comIO;
+		mClassLoaderWrapper = clw;
 	}
 
 	public FSM getStateMachine() {
@@ -53,7 +57,7 @@ public class Connection implements Runnable {
 		try {
 			LOGGER.log(Level.INFO, "Client {0} connected...", mSocket.getInetAddress());
 			oos = new ObjectOutputStream(mSocket.getOutputStream());
-			ois = new ObjectInputStream(mSocket.getInputStream());// TODO..., mCommunicationIO.getCDBLoader().getClassLoader());
+			ois = new ClassLoaderObjectInputStream(mSocket.getInputStream(), mClassLoaderWrapper.get());// TODO..., mCommunicationIO.getCDBLoader().getClassLoader());
 			mStateMachine = new ServerStateMachine(this, mDroidManager, mCommunicationIO);
 			if (ois == null) {
 				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream! (null)");
@@ -94,7 +98,7 @@ public class Connection implements Runnable {
 
 					LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 					try {
-						mStateMachine.process(rec_msg.getRequest(), rec_msg.getData());
+						mStateMachine.process(rec_msg.getRequest(), (Object[]) rec_msg.getData());
 					}
 					catch (StateMachineException ex) {
 						LOGGER.log(Level.SEVERE, null, ex);
@@ -157,9 +161,8 @@ public class Connection implements Runnable {
 				return mClassLoader.loadClass(desc.getName());
 			}
 			catch (Exception e) {
+				return super.resolveClass(desc);
 			}
-
-			return super.resolveClass(desc);
 		}
 
 		public ClassLoaderObjectInputStream(InputStream in, ClassLoader cloader) throws IOException {

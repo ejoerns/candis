@@ -437,7 +437,7 @@ public class ServerStateMachine extends FSM {
 				final UUID taskID = UUID.randomUUID();
 
 				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY, taskID, outdata));
+								new Message(Instruction.SEND_BINARY, taskID.toString(), outdata));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

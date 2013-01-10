@@ -1,14 +1,14 @@
 package candis.server.gui;
 
+import candis.common.ClassLoaderWrapper;
 import candis.common.Settings;
 import candis.distributed.SchedulerStillRuningException;
 import candis.server.DroidManager;
-import candis.server.Server;
 import candis.server.JobDistributionIOServer;
+import candis.server.Server;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.BindException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -23,14 +23,15 @@ import javax.swing.filechooser.FileFilter;
  */
 public class CandisMasterFrame extends javax.swing.JFrame {
 
-	private DroidManager mDroidManager;
-	private JobDistributionIOServer mCommIO;
-	private DroidlistTableModel mDroidlistTableModel;
-	private DroidInfoTableModel mDroidInfoTableModel;
-	private OptionsDialog mOptionDialog;
-	private CheckCodeShowDialog mCheckCodeShowDialog;
-	private CandisLoggerHandler mLoggerHandler;
 	private static Logger LOGGER = Logger.getLogger(CandisMasterFrame.class.getName());
+	private final DroidManager mDroidManager;
+	private final JobDistributionIOServer mCommIO;
+	private final DroidlistTableModel mDroidlistTableModel;
+	private final DroidInfoTableModel mDroidInfoTableModel;
+	private final OptionsDialog mOptionDialog;
+	private final CheckCodeShowDialog mCheckCodeShowDialog;
+	private final ClassLoaderWrapper mClassLoaderWrapper;
+	private CandisLoggerHandler mLoggerHandler;
 
 	/**
 	 * Creates new form CandisMasterFrame.
@@ -38,7 +39,9 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	public CandisMasterFrame(
 					DroidManager droidmanager,
 					JobDistributionIOServer commIO,
-					DroidlistTableModel droidlisttablemodel) {
+					DroidlistTableModel droidlisttablemodel,
+					ClassLoaderWrapper clw) {
+		mClassLoaderWrapper = clw;
 		mDroidManager = droidmanager;
 		mCommIO = commIO;
 		mDroidlistTableModel = droidlisttablemodel;
@@ -46,7 +49,6 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		mOptionDialog = new OptionsDialog(this, false);
 		mCheckCodeShowDialog = new CheckCodeShowDialog(this, false);
 		mDroidManager.addListener(mCheckCodeShowDialog);
-//		initComponents();
 	}
 
 	/**
@@ -295,7 +297,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		int returnVal = fileChooser.showOpenDialog(this);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				mCommIO.loadCDB(fileChooser.getSelectedFile());
+				mCommIO.loadCDB(fileChooser.getSelectedFile(), mClassLoaderWrapper);
 			}
 			catch (Exception ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -384,10 +386,11 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		}
 		//</editor-fold>
 
+		final ClassLoaderWrapper clw = new ClassLoaderWrapper();
 		final DroidManager droidmanager = DroidManager.getInstance();
 		final JobDistributionIOServer scio = new JobDistributionIOServer(droidmanager);
 		final DroidlistTableModel dltm = new DroidlistTableModel();
-		final CandisMasterFrame cmf = new CandisMasterFrame(droidmanager, scio, dltm);
+		final CandisMasterFrame cmf = new CandisMasterFrame(droidmanager, scio, dltm, clw);
 		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			@Override
@@ -400,7 +403,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
 		// try to create new server
 		try {
-			new Server(droidmanager, scio).connect();
+			new Server(droidmanager, scio, clw).connect();
 		}
 		catch (final IOException ex) {
 			// show error and exit if port already bound

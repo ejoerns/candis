@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.ClassLoaderWrapper;
 import candis.common.DroidID;
 import candis.common.Utilities;
 import candis.common.fsm.StateMachineException;
@@ -29,14 +30,12 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable { //
 	protected Scheduler mScheduler;
 	private Thread mQueueThread;
 	private final List<Runnable> mComIOQueue = new LinkedList<Runnable>();
-//	private byte[] mDroidBinary;
 	private CDBLoader mCDBLoader;
 	/// Holds all available classloaders.
 	private LinkedList<ClassLoader> mClassLoderList = new LinkedList<ClassLoader>();
 
 	public JobDistributionIOServer(final DroidManager manager) {
 		mDroidManager = manager;
-
 	}
 
 	public void setDistributedControl(DistributedControl dc) throws SchedulerStillRuningException {
@@ -219,8 +218,8 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable { //
 		});
 	}
 
-	public void loadCDB(final File cdbFile) throws Exception {
-		mCDBLoader = new CDBLoader(cdbFile);
+	public void loadCDB(final File cdbFile, final ClassLoaderWrapper clw) throws Exception {
+		mCDBLoader = new CDBLoader(cdbFile, clw);
 		setDistributedControl(mCDBLoader.getDistributedControl());
 	}
 

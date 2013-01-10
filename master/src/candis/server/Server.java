@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.ClassLoaderWrapper;
 import candis.common.Settings;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,13 +27,16 @@ public class Server implements Runnable {
 	private final JobDistributionIOServer mCommunicationIO;
 	private ServerSocket ssocket;
 	private boolean mDoStop = false;
+	private final ClassLoaderWrapper mClassLoaderWrapper;
 
 	/**
 	 * @param args the command line arguments
 	 */
 	public static void main(final String[] args) {
 		try {
-			new Server(DroidManager.getInstance()).connect();
+			new Server(
+							DroidManager.getInstance(),
+							new ClassLoaderWrapper()).connect();
 			//		CandisMasterFrame win = new CandisMasterFrame();
 		}
 		catch (IOException ex) {
@@ -40,11 +44,16 @@ public class Server implements Runnable {
 		}
 	}
 
-	public Server(DroidManager droidmanager) throws IOException {
-		this(droidmanager, new JobDistributionIOServer(droidmanager));
+	public Server(
+					final DroidManager droidmanager,
+					final ClassLoaderWrapper clw) throws IOException {
+		this(droidmanager, new JobDistributionIOServer(droidmanager), clw);
 	}
 
-	public Server(DroidManager droidmanager, JobDistributionIOServer scomio) throws IOException {
+	public Server(
+					final DroidManager droidmanager,
+					final JobDistributionIOServer scomio,
+					final ClassLoaderWrapper clw) throws IOException {
 
 		// load properties if available or load default properties
 		try {
@@ -55,6 +64,7 @@ public class Server implements Runnable {
 			Settings.load(Server.class.getResourceAsStream("defaultsettings.properties"));
 		}
 		mDroidManager = droidmanager;
+		mClassLoaderWrapper = clw;
 		mCommunicationIO = scomio;
 		// try to load drodmanager
 		try {
@@ -87,7 +97,7 @@ public class Server implements Runnable {
 							"Waiting for connection on port %d", ssocket.getLocalPort()));
 
 			socket = ssocket.accept();
-			mExecutorService.execute(new Connection(socket, mDroidManager, mCommunicationIO));
+			mExecutorService.execute(new Connection(socket, mDroidManager, mCommunicationIO, mClassLoaderWrapper));
 		}
 		LOGGER.log(Level.INFO, "Server terminated");
 		ssocket.close();
