@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
+import candis.common.ClassLoaderWrapper;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
@@ -45,6 +46,7 @@ public class BackgroundService extends Service {
 	/// Used to avoid double-call of service initialization
 	private boolean mRunning = false;
 	private FSM fsm;
+  private ClassLoaderWrapper mClassloader;
 
 	public BackgroundService() {
 		mDroidContext = DroidContext.getInstance();
@@ -112,17 +114,12 @@ public class BackgroundService extends Service {
 
 				// init fsm
 				try {
-					final File tmpDir = mContext.getDir("dex", 0);
 
-					final File dexInternalStoragePath = new File(mContext.getFilesDir(), "foo.jar");
-					final DexClassLoader classloader = new DexClassLoader(
-									dexInternalStoragePath.getAbsolutePath(),
-									tmpDir.getAbsolutePath(),
-									null,
-									BackgroundService.class.getClassLoader());
+					final File dexInternalStoragePath = new File(mContext.getFilesDir(), "tmp.jar");
+					mClassloader = new ClassLoaderWrapper();// init empty
 
 					JobCenterHandler jobCenterHandler = new ActivityLogger(mContext);
-					final JobCenter jobcenter = new JobCenter(mContext, classloader);
+					final JobCenter jobcenter = new JobCenter(mContext, mClassloader);
 					jobcenter.addHandler(jobCenterHandler);
 					fsm = new ClientStateMachine(
 									secureConn,
@@ -133,7 +130,7 @@ public class BackgroundService extends Service {
 					crb = new CommRequestBroker(
 									secureConn.getInputStream(),
 									fsm,
-									classloader);
+									mClassloader);
 					new Thread(crb).start();
 					System.out.println("[THREAD DONE]");
 				}

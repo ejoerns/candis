@@ -1,5 +1,7 @@
 package candis.client.comm;
 
+import android.util.Log;
+import candis.common.ClassLoaderWrapper;
 import candis.client.ClientStateMachine;
 import candis.common.Message;
 import candis.common.fsm.FSM;
@@ -27,11 +29,11 @@ public class CommRequestBroker implements Runnable {
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	private boolean isStopped;
 	private final FSM mFSM;
-	private final ClassLoader mClassLoader;
+	private final ClassLoaderWrapper mClassLoader;
 	private ObjectInputStream mObjInstream = null;
 	private InputStream mInstream;
 
-	public CommRequestBroker(final InputStream instream, final FSM fsm, final ClassLoader cl) {
+	public CommRequestBroker(final InputStream instream, final FSM fsm, final ClassLoaderWrapper cl) {
 		mInstream = instream;
 		mFSM = fsm;
 		mClassLoader = cl;
@@ -103,6 +105,7 @@ public class CommRequestBroker implements Runnable {
 		catch (ClassNotFoundException ex) {
 			LOGGER.log(Level.WARNING,
 								 String.format("ClassNotFoundException: %s", ex.getMessage()));
+      ex.printStackTrace();
 		}
 		catch (EOFException ex) {
 			LOGGER.log(Level.WARNING, "Connection to server was terminated.");
@@ -127,7 +130,7 @@ public class CommRequestBroker implements Runnable {
 						ClassNotFoundException {
 
 			try {
-				return mClassLoader.loadClass(desc.getName());
+				return mClassLoader.get().loadClass(desc.getName());
 			}
 			catch (Exception e) {
 			}
