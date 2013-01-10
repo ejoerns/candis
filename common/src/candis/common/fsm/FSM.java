@@ -120,7 +120,7 @@ public class FSM {
    * @param obj Data payload to provide to a possibly registered ActionHandler
    * @throws StateMachineException Something went wrong
    */
-  public final void process(final Transition trans, Object... obj) throws StateMachineException {
+  public final synchronized void process(final Transition trans, Object... obj) throws StateMachineException {
     CandisLog.v(TAG, String.format(
             "process() Trans: %s, Obj: %s", trans, obj));
     // Check if transition is empty
@@ -155,7 +155,7 @@ public class FSM {
    * @param obj Data payload to provide to a possibly registered ActionHandler
    * @throws StateMachineException Something went wrong
    */
-  public final void process(final Transition trans) throws StateMachineException {
+  public final synchronized void process(final Transition trans) throws StateMachineException {
     process(trans, (Serializable) null);
   }
 }
