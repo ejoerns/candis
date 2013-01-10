@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
+ * Implementation of a state for the FSM.
+ *
+ * It holds all associated Transitions and ActionHanlers.
  *
  * @author Enrico Joerns
  */
@@ -15,16 +18,29 @@ public class State {
 
   private static final String TAG = State.class.getName();
   private final StateEnum name;
+  /// Map of Transitions with its target States.
   private final Map<Transition, StateEnum> mTransitionMap = new HashMap<Transition, StateEnum>();
-  /**
-   * Map of Transitions wiht List of listeners for registered transition.
-   */
+  /// Map of Transitions wiht List of listeners for registered transition.
   Map<Transition, List<ActionHandler>> mListeners = new HashMap<Transition, List<ActionHandler>>();
 
+  /**
+   * Creates State from given StateEnum.
+   *
+   * @param s
+   */
   public State(final StateEnum s) {
     name = s;
   }
 
+  /**
+   * Adds a transition to this state.
+   *
+   * @param trans Transition to add
+   * @param dest Target state
+   * @param act ActionHandler to execut
+   * @return Returns itself to allow concatenation of multiple addTransition()
+   * commands to ease FSM creation.
+   */
   public State addTransition(
           final Transition trans,
           final StateEnum dest,
