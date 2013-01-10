@@ -1,6 +1,5 @@
 package candis.server;
 
-import candis.common.ClassLoaderWrapper;
 import candis.common.Message;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
@@ -21,43 +20,43 @@ import java.util.logging.Logger;
  * @author enrico
  */
 public class Connection implements Runnable {
-
+	
 	private static final Logger LOGGER = Logger.getLogger(Connection.class.getName());
 	private final Socket mSocket;
 	// each connection has its own state machine
 	protected final DroidManager mDroidManager;
 	protected final JobDistributionIOServer mCommunicationIO;
-	private final ClassLoaderWrapper mClassLoaderWrapper;
 	protected FSM mStateMachine = null;
 	protected ObjectOutputStream oos = null;
 	protected ObjectInputStream ois = null;
 	private String droidID;
 	private boolean isStopped;
-
+	
 	public Connection(
 					final Socket socket,
 					final DroidManager droidmanager,
-					final JobDistributionIOServer comIO,
-					final ClassLoaderWrapper clw) {
+					final JobDistributionIOServer comIO) {
 		mSocket = socket;
 		mDroidManager = droidmanager;
 		mCommunicationIO = comIO;
-		mClassLoaderWrapper = clw;
 	}
-
+	
 	public FSM getStateMachine() {
 		return mStateMachine;
 	}
-
+	
 	public void sendMessage(final Message msg) throws IOException {
+		LOGGER.info("##SEND: " + msg.getRequest());
 		oos.writeObject(msg);
 	}
-
+	
 	protected void initConnection() {
 		try {
 			LOGGER.log(Level.INFO, "Client {0} connected...", mSocket.getInetAddress());
 			oos = new ObjectOutputStream(mSocket.getOutputStream());
-			ois = new ClassLoaderObjectInputStream(mSocket.getInputStream(), mClassLoaderWrapper.get());// TODO..., mCommunicationIO.getCDBLoader().getClassLoader());
+			ois = new ClassLoaderObjectInputStream(
+							mSocket.getInputStream(),
+							mCommunicationIO.getCDBLoader().getClassLoader());
 			mStateMachine = new ServerStateMachine(this, mDroidManager, mCommunicationIO);
 			if (ois == null) {
 				LOGGER.log(Level.SEVERE, "Failed creating Input/Output stream! (null)");
@@ -67,23 +66,23 @@ public class Connection implements Runnable {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
-
+	
 	protected boolean isSocketClosed() {
 		return mSocket.isClosed();
 	}
-
+	
 	protected void closeSocket() throws IOException {
 		mSocket.close();
 	}
-
+	
 	public void setDroidID(final String droidID) {
 		this.droidID = droidID;
 	}
-
+	
 	public String getDroidID() {
 		return droidID;
 	}
-
+	
 	@Override
 	public void run() {
 		initConnection();
@@ -93,9 +92,9 @@ public class Connection implements Runnable {
 		try {
 			while ((!isStopped) && (!isSocketClosed())) {
 				try {
-
+					
 					final Message rec_msg = (Message) ois.readObject();
-
+					
 					LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 					try {
 						mStateMachine.process(rec_msg.getRequest(), (Object[]) rec_msg.getData());
@@ -130,7 +129,7 @@ public class Connection implements Runnable {
 						LOGGER.log(Level.SEVERE, null, ex);
 					}
 				}
-
+				
 			}
 		}
 		catch (IOException ex) {
@@ -149,14 +148,17 @@ public class Connection implements Runnable {
 		}
 	}
 
+	/**
+	 * ObjectInputStream that allows to specify custom ClassLoader.
+	 */
 	private class ClassLoaderObjectInputStream extends ObjectInputStream {
-
+		
 		private final ClassLoader mClassLoader;
-
+		
 		@Override
 		public Class resolveClass(ObjectStreamClass desc) throws IOException,
 						ClassNotFoundException {
-
+			
 			try {
 				return mClassLoader.loadClass(desc.getName());
 			}
@@ -164,7 +166,7 @@ public class Connection implements Runnable {
 				return super.resolveClass(desc);
 			}
 		}
-
+		
 		public ClassLoaderObjectInputStream(InputStream in, ClassLoader cloader) throws IOException {
 			super(in);
 			mClassLoader = cloader;

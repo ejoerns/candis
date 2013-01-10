@@ -1,6 +1,5 @@
 package candis.server;
 
-import candis.common.ClassLoaderWrapper;
 import candis.common.DroidID;
 import candis.common.Utilities;
 import candis.common.fsm.StateMachineException;
@@ -22,7 +21,7 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class JobDistributionIOServer implements JobDistributionIO, Runnable { // TODO: rename!
+public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOServer.class.getName());
 	protected final DroidManager mDroidManager;
@@ -56,9 +55,6 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable { //
 		return mDroidManager.getConnectedDroids().get(droidID);
 	}
 
-//	public byte[] getDroidBinary() {
-//		return mDroidBinary;
-//	}
 	@Override
 	public void startJob(String id, DistributedJobParameter param) {
 		Connection d = getDroidConnection(id);
@@ -218,8 +214,8 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable { //
 		});
 	}
 
-	public void loadCDB(final File cdbFile, final ClassLoaderWrapper clw) throws Exception {
-		mCDBLoader = new CDBLoader(cdbFile, clw);
+	public void loadCDB(final File cdbFile) throws Exception {
+		mCDBLoader = new CDBLoader(cdbFile);
 		setDistributedControl(mCDBLoader.getDistributedControl());
 	}
 
