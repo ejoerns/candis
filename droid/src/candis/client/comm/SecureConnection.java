@@ -9,6 +9,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -30,6 +32,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
   private ObjectOutputStream mObjOutstream;
   private InputStream mInstream;
   private X509TrustManager mTrustManager;
+  private SendHandler mSendHandler;
 
   /**
    * Creates new SecureConnection.
@@ -38,6 +41,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
    */
   public SecureConnection(final X509TrustManager tstore) {
     mTrustManager = tstore;
+    mSendHandler = new SendHandler();
   }
 
   /**
@@ -97,6 +101,8 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
       LOGGER.log(Level.SEVERE, "Failed creating input/output streams");
     }
 
+    // start message worker queue;
+    new Thread(mSendHandler).start();
     mConnected = true;
   }
 
@@ -142,17 +148,56 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
    * @param msg
    */
   public void sendMessage(final Message msg) {
-    new Thread(new Runnable() {
-      public void run() {
-        try {
-          LOGGER.info("##SEND: " + msg.getRequest());
-          mObjOutstream.writeObject(msg);
-          mObjOutstream.flush();
-        }
-        catch (IOException ex) {
-          LOGGER.log(Level.SEVERE, null, ex);
+    mSendHandler.addToQueue(msg);
+  }
+
+  private class SendHandler implements Runnable {
+
+    private final List<Message> mMessageQueue = new LinkedList<Message>();
+    private boolean mStop = false;// TODO: use? :)
+
+    private boolean isQueueEmpty() {
+      synchronized (mMessageQueue) {
+        return mMessageQueue.isEmpty();
+      }
+    }
+
+    @Override
+    public void run() {
+      try {
+        while (!(isQueueEmpty() && (mStop))) {
+
+          while (!isQueueEmpty()) {
+            synchronized (mMessageQueue) {
+              // send it
+              try {
+                mObjOutstream.writeObject(mMessageQueue.remove(0));
+                mObjOutstream.flush();
+              }
+              catch (IOException ex) {
+                Logger.getLogger(SecureConnection.class.getName()).log(Level.SEVERE, null, ex);
+              }
+            }
+          }
+          if (!mStop) {
+            synchronized (mMessageQueue) {
+              if (mMessageQueue.isEmpty()) {
+                mMessageQueue.wait();
+              }
+            }
+          }
         }
       }
-    }).start();
+      catch (InterruptedException ex) {
+        LOGGER.log(Level.SEVERE, null, ex);
+      }
+    }
+
+    public void addToQueue(Message msg) {
+      synchronized (mMessageQueue) {
+        mMessageQueue.add(msg);
+        mMessageQueue.notify();
+      }
+    }
   }
 }
