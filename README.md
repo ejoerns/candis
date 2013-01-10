@@ -10,21 +10,20 @@ This is an example, how to implement a distributed Task with candis.
 
 ### Data exchange
 
-To transfer data between management server and the remote App you implement your own serializable container classes.
+To transfer data between management server and the remote app you implement your own serializable container classes.
 
 #### Initial Parameter
-Initial Parameters are used to set Task parameters which are same for all tasks (Implementation of `DistributedParameter`).
+Initial parameters are used to submit task parameters which are same for all task executions. (implementation of `DistributedJobParameter`).
 
 ```java
 package candis.example.mini;
 
-import candis.distributed.DistributedParameter;
-import java.io.Serializable;
+import candis.distributed.DistributedJobParameter;
 
 /**
  * Serializable initial parameter for "global" settings.
  */
-public class MiniInitParameter extends DistributedParameter implements Serializable {
+public class MiniInitParameter implements DistributedJobParameter {
 
 	/// Some example Value
 	public final int offset;
@@ -41,19 +40,18 @@ public class MiniInitParameter extends DistributedParameter implements Serializa
 
 ```
 
-#### Task Parameter
-Each task is specified by its own Parameters (implementation of `DistributedParameter`).
+#### Job Parameter
+Each job is specified by its own job parameters (implementation of `DistributedJobParameter`).
 
 ```java
 package candis.example.mini;
 
-import candis.distributed.DistributedParameter;
-import java.io.Serializable;
+import candis.distributed.DistributedJobParameter;
 
 /**
  * Serializable task parameter for MiniTask.
  */
-public class MiniParameter extends DistributedParameter implements Serializable {
+public class MiniJobParameter implements DistributedJobParameter {
 
 	/// Some value
 	public final int foo;
@@ -66,7 +64,7 @@ public class MiniParameter extends DistributedParameter implements Serializable 
 	 * @param foo some integer value
 	 * @param bar some float value
 	 */
-	public MiniParameter(final int foo, final float bar) {
+	public MiniJobParameter(final int foo, final float bar) {
 		this.foo = foo;
 		this.bar = bar;
 	}
@@ -74,18 +72,17 @@ public class MiniParameter extends DistributedParameter implements Serializable 
 ```
 
 #### Result Data
-The result of a successful done task will be transferred back in it's result container (implementation of `DistributedResult`).
+The result of a successful done task will be transferred back in it's result container (implementation of `DistributedJobResult`).
 
 ```java
 package candis.example.mini;
 
-import candis.distributed.DistributedResult;
-import java.io.Serializable;
+import candis.distributed.DistributedJobResult;
 
 /**
  * Serializable result for MiniTask.
  */
-public class MiniResult extends DistributedResult implements Serializable {
+public class MiniJobResult implements DistributedJobResult {
 
 	/// Some value
 	public final float foobar;
@@ -95,7 +92,7 @@ public class MiniResult extends DistributedResult implements Serializable {
 	 *
 	 * @param foobar
 	 */
-	public MiniResult(final float foobar) {
+	public MiniJobResult(final float foobar) {
 		this.foobar = foobar;
 	}
 }
@@ -104,20 +101,20 @@ public class MiniResult extends DistributedResult implements Serializable {
 
 ### Distributed Code
 
-The task is an implementation of `DistributedTask`.
+The runnable code of a task is an implementation of `DistributedRunnable`.
  
 ```java
 package candis.example.mini;
 
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
-import candis.distributed.DistributedTask;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import candis.distributed.DistributedRunnable;
 
 /**
  * Example Task.
  * Multiplies MiniParameter.foo with MiniParamter.bar
  */
-public class MiniTask extends DistributedTask {
+public class MiniRunnable implements DistributedRunnable {
 
 	private MiniInitParameter initial;
 
@@ -125,7 +122,7 @@ public class MiniTask extends DistributedTask {
 	 * Gets called when the Task should be aborted.
 	 */
 	@Override
-	public void stop() {
+	public void stopJob() {
 		// Nothing to do here
 	}
 
@@ -137,10 +134,10 @@ public class MiniTask extends DistributedTask {
 	 * @return The generated MiniResult, when the task is finished
 	 */
 	@Override
-	public DistributedResult run(DistributedParameter parameter) {
+	public DistributedJobResult runJob(DistributedJobParameter parameter) {
 		// Cast incomming Parameter
-		MiniParameter p = (MiniParameter) parameter;
-		return new MiniResult(p.foo * p.bar + initial.offset);
+		MiniJobParameter p = (MiniJobParameter) parameter;
+		return new MiniJobResult(p.foo * p.bar + initial.offset);
 	}
 
 	/**
@@ -149,7 +146,7 @@ public class MiniTask extends DistributedTask {
 	 * @param parameter Transfered initial parameter
 	 */
 	@Override
-	public void setInitialParameter(DistributedParameter parameter) {
+	public void setInitialParameter(DistributedJobParameter parameter) {
 		initial = (MiniInitParameter) parameter;
 	}
 }
@@ -157,15 +154,19 @@ public class MiniTask extends DistributedTask {
 
 ### Task Management
 
-Simple serverside Task management using `SimpleScheduler`. It is possible to write own scheduler by implementing/extending `Scheduler`.
+The task distribution management will be done serverside. It is possible to write an own scheduler by implementing/extending `Scheduler`.
 This is also the class which receives the results of the distributed tasks.
+An simple Scheduler is already provided by `SimpleScheduler`.
+
+The setup of a scheduler is done by an implementation of `DistributedControl`. To get each calculated job result directly after it's send to the server additionally implement
+ `ResultReceiver`.
 
 ```java
 package candis.example.mini;
 
 import candis.distributed.DistributedControl;
-import candis.distributed.DistributedParameter;
-import candis.distributed.DistributedResult;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
@@ -192,7 +193,7 @@ public class MiniControl implements DistributedControl, ResultReceiver {
 
 		// Create some tasks
 		for (int i = 0; i < 10; i++) {
-			scheduler.addParameter(new MiniParameter(i, 3.5f));
+			scheduler.addParameter(new MiniJobParameter(i, 3.5f));
 		}
 
 		return scheduler;
@@ -205,9 +206,9 @@ public class MiniControl implements DistributedControl, ResultReceiver {
 	}
 
 	@Override
-	public void onReceiveResult(DistributedParameter param, DistributedResult result) {
+	public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
 		/// One result is finished and we can use it, somehow ...
-		MiniResult miniResult = (MiniResult) result;
+		MiniJobResult miniResult = (MiniJobResult) result;
 		System.out.println(String.format("%.3f", miniResult.foobar));
 
 	}

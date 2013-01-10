@@ -123,7 +123,11 @@ class JavaProject:
 		return os.path.exists(os.path.join(path, "nbproject", "project.properties"))
 
 	def __isNbAndroid(self, path):
-		return os.path.exists(os.path.join(path, "nbandroid"))
+		nbandroidfolder = os.path.exists(os.path.join(path, "nbandroid"))
+		if nbandroidfolder:
+			return True
+		else:
+			return os.path.exists(os.path.join(path, "AndroidManifest.xml"))
 
 
 def mkcdb(cdbfile, serverproject, clientproject):
