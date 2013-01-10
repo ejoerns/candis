@@ -21,31 +21,31 @@ public class CandisLog {
   }
 
   public static void e(String tag, String msg) {
-    if (mLevel >= ERROR) {
+    if (mLevel <= ERROR) {
       log(tag, "ERROR", msg);
     }
   }
 
   public static void w(String tag, String msg) {
-    if (mLevel >= WARNING) {
+    if (mLevel <= WARNING) {
       log(tag, "WARNING", msg);
     }
   }
 
   public static void i(String tag, String msg) {
-    if (mLevel >= INFO) {
+    if (mLevel <= INFO) {
       log(tag, "INFO", msg);
     }
   }
 
   public static void d(String tag, String msg) {
-    if (mLevel >= DEBUG) {
+    if (mLevel <= DEBUG) {
       log(tag, "DEBUG", msg);
     }
   }
 
   public static void v(String tag, String msg) {
-    if (mLevel >= VERBOSE) {
+    if (mLevel <= VERBOSE) {
       log(tag, "VERBOSE", msg);
     }
   }

@@ -1,6 +1,7 @@
 package candis.common;
 
 /**
+ * Used to pass ClassLoader parameters by reference.
  *
  * @author Enrico Joerns
  */
