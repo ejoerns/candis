@@ -40,7 +40,7 @@ import java.util.zip.ZipFile;
  */
 public class CDBLoader {
 
-	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOServer.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(CDBLoader.class.getName());
 	private DistributedControl mDistributedControl;
 	private CDBContext mCDBContext;
 	private final ClassLoaderWrapper mClassLoaderWrapper;
@@ -142,7 +142,7 @@ public class CDBLoader {
 
 		}
 		catch (MalformedURLException ex) {
-			Logger.getLogger(JobDistributionIOServer.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(CDBLoader.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		catch (SecurityException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);

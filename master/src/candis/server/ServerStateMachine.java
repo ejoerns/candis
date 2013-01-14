@@ -10,7 +10,6 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
-import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.droid.StaticProfile;
 import java.io.ByteArrayOutputStream;
@@ -35,7 +34,7 @@ public class ServerStateMachine extends FSM {
 	protected final Connection mConnection;
 	protected final DroidManager mDroidManager;
 	protected final JobDistributionIOServer mCommunicationIO;
-	//private RandomID mCurrentID;
+	protected Integer taskID = 0;
 
 	protected enum ServerStates implements StateEnum {
 
@@ -440,12 +439,11 @@ public class ServerStateMachine extends FSM {
 				buffer.flush();
 				outdata = buffer.toByteArray();
 
-				// Create dummy uuid for test cases
-				// TODO: generate id in task management
-				final UUID taskID = UUID.randomUUID();
+				// ID is currently just a serial number
+				taskID++;
 
 				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY, taskID.toString(), outdata));
+								new Message(Instruction.SEND_BINARY, String.format("%05d",taskID), outdata));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

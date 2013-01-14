@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  * @author enrico
  */
 public class Connection implements Runnable {
-	
+
 	private static final Logger LOGGER = Logger.getLogger(Connection.class.getName());
 	private final Socket mSocket;
 	// each connection has its own state machine
@@ -32,7 +32,7 @@ public class Connection implements Runnable {
 	protected ObjectInputStream ois = null;
 	private String droidID;
 	private boolean isStopped;
-	
+
 	public Connection(
 					final Socket socket,
 					final DroidManager droidmanager,
@@ -41,16 +41,20 @@ public class Connection implements Runnable {
 		mDroidManager = droidmanager;
 		mCommunicationIO = comIO;
 	}
-	
+
 	public FSM getStateMachine() {
 		return mStateMachine;
 	}
-	
+
 	public void sendMessage(final Message msg) throws IOException {
-		LOGGER.info("##SEND: " + msg.getRequest());
+		LOGGER.fine(String.format("##SEND to %s:%s: %s",
+															mSocket.getInetAddress(),
+															mSocket.getPort(),
+															msg.getRequest()));
 		oos.writeObject(msg);
+		oos.flush();
 	}
-	
+
 	protected void initConnection() {
 		try {
 			LOGGER.log(Level.INFO, "Client {0} connected...", mSocket.getInetAddress());
@@ -67,23 +71,23 @@ public class Connection implements Runnable {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
-	
+
 	protected boolean isSocketClosed() {
 		return mSocket.isClosed();
 	}
-	
+
 	protected void closeSocket() throws IOException {
 		mSocket.close();
 	}
-	
+
 	public void setDroidID(final String droidID) {
 		this.droidID = droidID;
 	}
-	
+
 	public String getDroidID() {
 		return droidID;
 	}
-	
+
 	@Override
 	public void run() {
 		initConnection();
@@ -93,9 +97,9 @@ public class Connection implements Runnable {
 		try {
 			while ((!isStopped) && (!isSocketClosed())) {
 				try {
-					
+
 					final Message rec_msg = (Message) ois.readObject();
-					
+
 					LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
 					try {
 						mStateMachine.process(rec_msg.getRequest(), (Object[]) rec_msg.getData());
@@ -130,7 +134,7 @@ public class Connection implements Runnable {
 						LOGGER.log(Level.SEVERE, null, ex);
 					}
 				}
-				
+
 			}
 		}
 		catch (IOException ex) {
@@ -153,13 +157,13 @@ public class Connection implements Runnable {
 	 * ObjectInputStream that allows to specify custom ClassLoader.
 	 */
 	private class ClassLoaderObjectInputStream extends ObjectInputStream {
-		
+
 		private final ClassLoaderWrapper mClassLoaderWrapper;
-		
+
 		@Override
 		public Class resolveClass(ObjectStreamClass desc) throws IOException,
 						ClassNotFoundException {
-			
+
 			try {
 				return mClassLoaderWrapper.get().loadClass(desc.getName());
 			}
@@ -167,7 +171,7 @@ public class Connection implements Runnable {
 				return super.resolveClass(desc);
 			}
 		}
-		
+
 		public ClassLoaderObjectInputStream(InputStream in, ClassLoaderWrapper cloaderwrap) throws IOException {
 			super(in);
 			mClassLoaderWrapper = cloaderwrap;

@@ -1,7 +1,6 @@
 package candis.server;
 
 import candis.common.DroidID;
-import candis.common.Utilities;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.io.File;
