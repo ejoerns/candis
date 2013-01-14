@@ -1,8 +1,7 @@
 package candis.client.comm;
 
-import android.util.Log;
-import candis.common.ClassLoaderWrapper;
 import candis.client.ClientStateMachine;
+import candis.common.ClassLoaderWrapper;
 import candis.common.Message;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
@@ -106,7 +105,8 @@ public class CommRequestBroker implements Runnable {
       ex.printStackTrace();
 		}
 		catch (EOFException ex) {
-			LOGGER.log(Level.WARNING, "Connection to server was terminated unexpected.");
+			LOGGER.log(Level.WARNING, "Connection to server was terminated unexpected. (EOFException)");
+      LOGGER.log(Level.WARNING, null, ex);
 			isStopped = true;
 			mObjInstream.close();
 			// todo quit loop!

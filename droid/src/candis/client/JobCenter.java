@@ -185,6 +185,12 @@ public class JobCenter {
     catch (IOException e) {
       System.out.println("Error opening " + path);
     }
+  
+    // notify listeners
+    for (JobCenterHandler handler : mHandlerList) {
+      handler.onBinaryReceived(runnableID);
+    }
+  
   }
 
   /**

@@ -46,5 +46,7 @@
 		android:textColor="#111"
     android:maxLines="100"
     android:scrollbars="vertical"
+    android:typeface="monospace"
+    android:textSize="10sp"
     android:text="" />    
 </LinearLayout>
