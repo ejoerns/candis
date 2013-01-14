@@ -152,7 +152,9 @@ public class BackgroundService extends Service {
 	// NOTE: not an override!
 	public void onNewIntent(Intent intent) {
 		System.out.println("onNewIntent() " + intent.getAction());
-		if (intent.getAction().equals(RESULT_CHECK_SERVERCERT)) {
+    if (intent.getAction() == null) {
+      Log.w(TAG, "Intent Action is null");
+    } else if (intent.getAction().equals(RESULT_CHECK_SERVERCERT)) {
 			synchronized (mCertCheckResult) {
 				mCertCheckResult.set(intent.getBooleanExtra("RESULT", false));// TODO...
 				mCertCheckResult.notifyAll();
