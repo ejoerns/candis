@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -75,6 +76,14 @@ public class MainActivity extends Activity
   public void onCreate(Bundle savedInstanceState) {
     CandisLog.level(CandisLog.DEBUG);
     System.out.println("onCreate()");
+    
+    // Check if saved bundle can be found...
+    if (savedInstanceState == null) {
+      Log.i(TAG, "No savedInstanceState found!");
+    } else {
+      Log.i(TAG, "Found savedInstanceState!");
+    }
+    
     mHandler = new Handler();
 
     // Load settings from R.raw.settings
@@ -103,6 +112,7 @@ public class MainActivity extends Activity
 
     // init text view
     mLogView = (TextView) findViewById(R.id.logtext);
+    mLogView.setMovementMethod(new ScrollingMovementMethod());
 
     mDroidContext = DroidContext.getInstance();
     // Init droid

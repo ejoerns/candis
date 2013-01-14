@@ -44,5 +44,7 @@
 		android:padding="5dp"
 		android:background="#FFF"
 		android:textColor="#111"
-		android:text="" />    
+    android:maxLines="100"
+    android:scrollbars="vertical"
+    android:text="" />    
 </LinearLayout>
