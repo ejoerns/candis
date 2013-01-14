@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
-import candis.common.ClassLoaderWrapper;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
@@ -13,10 +12,10 @@ import candis.client.JobCenterHandler;
 import candis.client.R;
 import candis.client.comm.CommRequestBroker;
 import candis.client.comm.SecureConnection;
+import candis.common.ClassLoaderWrapper;
 import candis.common.Settings;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
-import dalvik.system.DexClassLoader;
 import java.io.File;
 import java.io.IOException;
 import java.io.StreamCorruptedException;
@@ -82,7 +81,6 @@ public class BackgroundService extends Service {
 		final ConnectTask connectTask;
 		connectTask = new ConnectTask(
 						mCertCheckResult,
-						mDroidContext,
 						getApplicationContext(),
 						new File(getApplicationContext().getFilesDir(), Settings.getString("truststore")));
 
@@ -104,6 +102,9 @@ public class BackgroundService extends Service {
 				// wait for connection to finish
 				try {
 					secureConn = connectTask.get();
+          if (secureConn == null) {
+            return;
+          }
 				}
 				catch (InterruptedException ex) {
 					Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
@@ -115,7 +116,6 @@ public class BackgroundService extends Service {
 				// init fsm
 				try {
 
-					final File dexInternalStoragePath = new File(mContext.getFilesDir(), "tmp.jar");
 					mClassloader = new ClassLoaderWrapper();// init empty
 
 					JobCenterHandler jobCenterHandler = new ActivityLogger(mContext);
@@ -178,7 +178,9 @@ public class BackgroundService extends Service {
 	@Override
 	public void onDestroy() {
 		try {
-			fsm.process(ClientStateMachine.ClientTrans.DISCONNECT);
+      if (fsm != null) {
+        fsm.process(ClientStateMachine.ClientTrans.DISCONNECT);
+      }
 		}
 		catch (StateMachineException ex) {
 			Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
