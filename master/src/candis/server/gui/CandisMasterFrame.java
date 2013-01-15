@@ -8,6 +8,8 @@ import candis.server.Server;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -30,6 +32,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private final OptionsDialog mOptionDialog;
 	private final CheckCodeShowDialog mCheckCodeShowDialog;
 	private CandisLoggerHandler mLoggerHandler;
+	private Map<String, TaskPanel> mTaskPanels = new HashMap<String, TaskPanel>();
 
 	/**
 	 * Creates new form CandisMasterFrame.
@@ -73,6 +76,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     jButton1 = new javax.swing.JButton();
     jLabel1 = new javax.swing.JLabel();
     mClearlogButton = new javax.swing.JButton();
+    mTaskPanel = new javax.swing.JPanel();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
     setTitle("Candis Master");
@@ -172,7 +176,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     mUploadButton.setText("Open");
     mUploadButton.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        mUploadButtonActionPerformed(evt);
+        mOpenButtonActionPerformed(evt);
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
@@ -251,6 +255,17 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.gridy = 5;
     getContentPane().add(mClearlogButton, gridBagConstraints);
 
+    mTaskPanel.setLayout(new javax.swing.BoxLayout(mTaskPanel, javax.swing.BoxLayout.PAGE_AXIS));
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 3;
+    gridBagConstraints.gridy = 1;
+    gridBagConstraints.gridwidth = 3;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.PAGE_START;
+    gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+    getContentPane().add(mTaskPanel, gridBagConstraints);
+    mTaskPanel.add(new TaskPanel());
+
     pack();
   }// </editor-fold>//GEN-END:initComponents
 
@@ -284,16 +299,23 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		mOptionDialog.setVisible(true);
   }//GEN-LAST:event_mOptionButtonActionPerformed
 
-  private void mUploadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mUploadButtonActionPerformed
-		// TODO add your handling code here:
+  private void mOpenButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOpenButtonActionPerformed
+		// open file chooser to load cdb file
 		JFileChooser fileChooser = new JFileChooser();
 		FileFilter filter = new ExtensionFilter(".cdb file", ".cdb");
 		fileChooser.addChoosableFileFilter(filter);
 		fileChooser.setFileFilter(filter);
 		int returnVal = fileChooser.showOpenDialog(this);
+		// load cdb file if any selected
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				mCommIO.loadCDB(fileChooser.getSelectedFile());
+				int cdbID = mCommIO.loadCDB(fileChooser.getSelectedFile());
+				String id = String.format("%05d", cdbID);
+				TaskPanel panel = new TaskPanel(id);
+				mTaskPanels.put(id, panel);
+				mTaskPanel.add(panel);
+				mTaskPanel.revalidate();
+				this.pack();
 			}
 			catch (Exception ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -301,7 +323,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 			}
 
 		}
-  }//GEN-LAST:event_mUploadButtonActionPerformed
+  }//GEN-LAST:event_mOpenButtonActionPerformed
 
   private void mBlacklistButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mBlacklistButtonActionPerformed
 		// TODO add your handling code here:
@@ -428,6 +450,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private javax.swing.JTextArea mLogTextArea;
   private javax.swing.JButton mOptionButton;
   private javax.swing.JButton mStopButton;
+  private javax.swing.JPanel mTaskPanel;
   private javax.swing.JButton mUploadButton;
   // End of variables declaration//GEN-END:variables
 }

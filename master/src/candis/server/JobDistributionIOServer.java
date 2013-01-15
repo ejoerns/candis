@@ -215,9 +215,10 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		});
 	}
 
-	public void loadCDB(final File cdbFile) throws Exception {
-		mCDBLoader.loadCDB(cdbFile);
+	public int loadCDB(final File cdbFile) throws Exception {
+		int cdbID = mCDBLoader.loadCDB(cdbFile);
 		setDistributedControl(mCDBLoader.getDistributedControl());
+		return cdbID;
 	}
 
 	public CDBLoader getCDBLoader() {

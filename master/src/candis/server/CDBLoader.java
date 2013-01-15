@@ -44,6 +44,7 @@ public class CDBLoader {
 	private DistributedControl mDistributedControl;
 	private CDBContext mCDBContext;
 	private final ClassLoaderWrapper mClassLoaderWrapper;
+	private static int mCDBid = 0;
 
 	/**
 	 * Creates new CDB loader.
@@ -87,8 +88,9 @@ public class CDBLoader {
 	 * Loads classes from cdb file.
 	 *
 	 * @param cdbfile
+	 * @return ID for the CDB file.
 	 */
-	public void loadCDB(final File cdbfile) throws Exception {
+	public int loadCDB(final File cdbfile) throws Exception {
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
 		List<String> classList;
 
@@ -151,6 +153,7 @@ public class CDBLoader {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
+		return mCDBid++;
 	}
 
 	/**
