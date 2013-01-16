@@ -6,7 +6,22 @@ import re
 import subprocess
 import tempfile
 import zipfile
+import sys
 
+def execute(cmd, shell=True, cwd=None):
+	p = subprocess.Popen(cmd, shell=shell, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	while True:
+		line = p.stdout.readline()
+		if line == "" and p.poll() != None:
+			break
+		sys.stdout.write(line)
+		sys.stdout.flush()
+	output = p.communicate()[0]
+	exit_code = p.returncode
+	if exit_code == 0:
+		return output
+	else:
+		print (cmd, exit_code, output)
 
 def mkdex(dexfile, infiles):
 	android_home = os.environ.get("ANDROID_HOME")
@@ -16,8 +31,13 @@ def mkdex(dexfile, infiles):
 		raise EnvironmentError("Path \"%s\" not found" % android_home)
 	cmd = "%s/platform-tools/dx --dex --verbose --output=\"%s\" %s" % (android_home, dexfile, " ".join(map(lambda f: "\"%s\"" % f, infiles)))
 	print ">>", cmd
-	p = subprocess.Popen(cmd, shell=True,stdout=subprocess.PIPE)
-	print p.communicate()[0]
+	execute(cmd)
+
+def ant(directory, targets):
+	"""Run ant in a specified directory with some targets"""
+	cmd = "ant %s" % " ".join(targets)
+	print ">>", cmd
+	execute(cmd, cwd=directory)
 
 
 class JavaProperties:
@@ -69,10 +89,13 @@ class JavaProject:
 		self.libs = []
 		self.main = None
 		self.name = None
+		self.path = path
 		if self.__isNetbeans(path):
 			self.__loadNetbeans(path)
+			self.targets = ["jar", "jar"]
 		elif self.__isNbAndroid(path):
 			self.__loadNbAndroid(path)
+			self.targets = ["debug", "release"]
 		else:
 			print "Warning: %s was not recognized as a project directory"
 	
@@ -129,11 +152,31 @@ class JavaProject:
 		else:
 			return os.path.exists(os.path.join(path, "AndroidManifest.xml"))
 
+	def ant(self, debug):
+		targets = []
+		if debug:
+			targets.append(self.targets[0])
+		else:
+			targets.append(self.targets[1])
+		ant(self.path, targets)
+	
+	def ant_clean(self):
+		ant(self.path, ["clean",])
 
-def mkcdb(cdbfile, serverproject, clientproject):
+def mkcdb(cdbfile, serverproject, clientproject, useant=True, debug=False, clean=False):
 
-	server_proj = JavaProject(serverproject)
 	client_proj = JavaProject(clientproject)
+	if useant:
+		if clean:
+			client_proj.ant_clean()
+		client_proj.ant(debug)
+	
+	server_proj = JavaProject(serverproject)
+	if useant:
+		if clean:
+			server_proj.ant_clean()
+		server_proj.ant(debug)
+	
 	properties = {}
 	prop = "name=%s\n" % os.path.splitext(os.path.basename(cdbfile))[0]
 
@@ -161,6 +204,7 @@ def mkcdb(cdbfile, serverproject, clientproject):
 		zf.write(lib, "lib%d.jar" % i)
 		properties["server.lib.%d" % i] = "lib%d.jar" % i
 		i += 1
+	
 	#create
 	keys = properties.keys()
 	keys.sort()
@@ -174,8 +218,11 @@ def mkcdb(cdbfile, serverproject, clientproject):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Create cdb[Candis Distributed Bundle]-File with Java-Project files")
+	parser.add_argument("--noant", action="store_true")
+	parser.add_argument("-d", "--debug", action="store_true")
+	parser.add_argument("-c", "--clean", action="store_true")
 	parser.add_argument("CDB", help="Path of the new cdb-file")
 	parser.add_argument("CONTROL", help="Path to the control project")
 	parser.add_argument("ANDROID", help="Path to the android project")
 	args = parser.parse_args()
-	mkcdb(args.CDB, args.CONTROL, args.ANDROID)
+	mkcdb(args.CDB, args.CONTROL, args.ANDROID, not args.noant, args.debug, args.clean)
