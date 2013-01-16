@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.security.SecureRandom;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,7 +67,8 @@ public class ServerStateMachine extends FSM {
 		CLIENT_DISCONNECTED,
 		SEND_INITAL,
 		SEND_BINARY,
-		SEND_JOB;
+		SEND_JOB,
+		STOP_JOB;// TODO...
 	}
 
 	public ServerStateMachine(
