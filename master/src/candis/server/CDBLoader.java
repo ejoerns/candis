@@ -17,6 +17,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.jar.JarEntry;
@@ -42,6 +43,7 @@ public class CDBLoader {
 
 	private static final Logger LOGGER = Logger.getLogger(CDBLoader.class.getName());
 	private DistributedControl mDistributedControl;
+	private Class mDistributedRunnable;
 	private CDBContext mCDBContext;
 	private final ClassLoaderWrapper mClassLoaderWrapper;
 	private static int mCDBid = 0;
@@ -63,6 +65,20 @@ public class CDBLoader {
 	 */
 	public final DistributedControl getDistributedControl() {
 		return mDistributedControl;
+	}
+
+	public final DistributedRunnable getDistributedRunnable() {
+		try {
+			return (DistributedRunnable) mDistributedRunnable.newInstance();
+		}
+		catch (InstantiationException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		catch (IllegalAccessException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		return null;
+
 	}
 
 	/**
@@ -98,26 +114,38 @@ public class CDBLoader {
 		extractCandisDistributedBundle(cdbfile, mCDBContext);
 
 		try {
+			List<URL> urls = new LinkedList<URL>();
+			for(int i=0; i < mCDBContext.getLibCount(); i++) {
+				urls.add(mCDBContext.getLib(i).toURI().toURL());
+			}
+			urls.add(mCDBContext.getServerBin().toURI().toURL());
 			mClassLoaderWrapper.set(
 							new URLClassLoader(
-							new URL[]{mCDBContext.getLib(0).toURI().toURL(),
-								mCDBContext.getServerBin().toURI().toURL()},
+							/*new URL[]{mCDBContext.getLib(0).toURI().toURL(),
+								mCDBContext.getServerBin().toURI().toURL()}*/
+							urls.toArray(new URL[]{}),
 							this.getClass().getClassLoader()));
 
-			// load lib 0
-			// TODO: allow for multiple libs
-			classList = getClassNamesInJar(mCDBContext.getLib(0).getPath());
 
-			for (String classname : classList) {
-				// finds the DistributedControl instance
-				Class classToLoad = mClassLoaderWrapper.get().loadClass(classname);
-				if ((!DistributedJobParameter.class.isAssignableFrom(classToLoad))
-								&& (!DistributedJobResult.class.isAssignableFrom(classToLoad))
-								&& (!DistributedRunnable.class.isAssignableFrom(classToLoad))) {
-					LOGGER.log(Level.INFO, "Loaded class with non-default interface: {0}", classToLoad.getName());
-				}
-				else {
-					LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
+			for(int i=0; i < mCDBContext.getLibCount(); i++) {
+				classList = getClassNamesInJar(mCDBContext.getLib(i).getPath());
+
+				for (String classname : classList) {
+					// finds the DistributedControl instance
+					//System.out.println(classname);
+					Class classToLoad = mClassLoaderWrapper.get().loadClass(classname);
+					if ((!DistributedJobParameter.class.isAssignableFrom(classToLoad))
+									&& (!DistributedJobResult.class.isAssignableFrom(classToLoad))
+									&& (!DistributedRunnable.class.isAssignableFrom(classToLoad))) {
+						LOGGER.log(Level.INFO, "Loaded class with non-default interface: {0}", classToLoad.getName());
+					}
+					else if (DistributedRunnable.class.isAssignableFrom(classToLoad))
+					{
+						mDistributedRunnable = classToLoad;
+					}
+					else {
+						LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
+					}
 				}
 			}
 
@@ -213,9 +241,11 @@ public class CDBLoader {
 			// load libs
 			String lib;
 			while ((lib = p.getProperty(String.format("server.lib.%d", libNumber))) != null) {
+				File libName = cdbContext.getLibByNumber(libNumber);
+				cdbContext.addLib(libName);
 				entry = zipFile.getEntry(lib);
 				copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
-								new FileOutputStream(cdbContext.getLib(libNumber))));
+								new FileOutputStream(libName)));
 				LOGGER.log(Level.FINE, "Extracted lib: {0}", entry.getName());
 				libNumber++;
 			}
@@ -320,7 +350,7 @@ public class CDBLoader {
 		private String mPath;
 		private File mDroidBin;
 		private File mServerBin;
-		private int mLibCount;
+		private List<File> mLibs;
 
 		/**
 		 * Creates CDB context for the given path.
@@ -331,7 +361,15 @@ public class CDBLoader {
 			mPath = path;
 			mDroidBin = new File(mPath, "droid.binary.dex");
 			mServerBin = new File(mPath, "server.binary.jar");
-			mLibCount = 0;
+			mLibs = new LinkedList<File>();
+		}
+
+		public int getLibCount() {
+			return mLibs.size();
+		}
+
+		public void addLib(File lib) {
+			mLibs.add(lib);
 		}
 
 		public File getProjectDir() {
@@ -345,9 +383,13 @@ public class CDBLoader {
 		public File getServerBin() {
 			return mServerBin;
 		}
+		public File getLibByNumber(final int n) {
+			return new File(mPath, String.format("server.lib.%d.jar", n));
+		}
 
 		public File getLib(final int n) {
-			return new File(mPath, String.format("server.lib.%d.jar", n));
+			//return new File(mPath, String.format("server.lib.%d.jar", n));
+			return mLibs.get(n);
 		}
 	}
 }
