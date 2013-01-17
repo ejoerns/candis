@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Main-Class: candis.distributed.test.TestMain
+Class-Path: ../../distributed/bin/classes.jar ./commons-cli-1.2/commons-cli-1.2.jar commons-cli-1.2.jar candis.distributed.jar ../../master/dist/master.jar
