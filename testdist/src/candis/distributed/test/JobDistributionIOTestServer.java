@@ -2,7 +2,6 @@ package candis.distributed.test;
 
 import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedRunnable;
-import candis.server.CDBLoader;
 import candis.server.Connection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
@@ -22,18 +21,15 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOTestServer.class.getName());
 	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
-	//private final TaskFactory<T> factory;
-	//private final CDBLoader mLoader;
 	/// Default number of droids generated if not specified otherwise
 	private static final int DEFAULT_DROIDAMOUNT = 1;
 	private boolean isClosed = false;
 
 	public JobDistributionIOTestServer(DroidManager manager) {
 		super(manager);
-		//mLoader = loader;
 	}
 
-		// Called by Scheduler.
+	// Called by Scheduler.
 	@Override
 	public void sendBinary(String droidID) {
 		Connection d = getDroidConnection(droidID);
@@ -50,6 +46,7 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 
 		}
 	}
+
 	public void initDroids() {
 		initDroids(DEFAULT_DROIDAMOUNT);
 	}
