@@ -121,8 +121,6 @@ public class CDBLoader {
 			urls.add(mCDBContext.getServerBin().toURI().toURL());
 			mClassLoaderWrapper.set(
 							new URLClassLoader(
-							/*new URL[]{mCDBContext.getLib(0).toURI().toURL(),
-								mCDBContext.getServerBin().toURI().toURL()}*/
 							urls.toArray(new URL[]{}),
 							this.getClass().getClassLoader()));
 
