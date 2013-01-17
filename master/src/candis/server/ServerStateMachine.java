@@ -156,7 +156,7 @@ public class ServerStateMachine extends FSM {
 						.addTransition(
 						ServerTrans.SEND_BINARY,
 						ServerStates.BINARY_SENT,
-						null);
+						new SendBinaryHandler());
 		addState(ServerStates.INIT_SENT)
 						.addTransition(
 						Instruction.ACK,
@@ -170,11 +170,11 @@ public class ServerStateMachine extends FSM {
 						.addTransition(
 						ServerTrans.SEND_BINARY,
 						ServerStates.BINARY_SENT,
-						null)
+						new SendBinaryHandler())
 						.addTransition(
 						ServerTrans.SEND_INITAL,
 						ServerStates.INIT_SENT,
-						null);
+						new SendInitialParameterHandler());
 		addState(ServerStates.JOB_SENT)
 						.addTransition(
 						Instruction.ACK,
