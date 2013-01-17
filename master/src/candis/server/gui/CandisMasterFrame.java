@@ -1,6 +1,10 @@
 package candis.server.gui;
 
 import candis.common.Settings;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import candis.distributed.JobDistributionIOHandler;
+import candis.distributed.ResultReceiver;
 import candis.distributed.SchedulerStillRuningException;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
@@ -26,7 +30,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
 	private static Logger LOGGER = Logger.getLogger(CandisMasterFrame.class.getName());
 	private final DroidManager mDroidManager;
-	private final JobDistributionIOServer mCommIO;
+	private final JobDistributionIOServer mJobDistIO;
 	private final DroidlistTableModel mDroidlistTableModel;
 	private final DroidInfoTableModel mDroidInfoTableModel;
 	private final OptionsDialog mOptionDialog;
@@ -42,12 +46,13 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 					JobDistributionIOServer commIO,
 					DroidlistTableModel droidlisttablemodel) {
 		mDroidManager = droidmanager;
-		mCommIO = commIO;
+		mJobDistIO = commIO;
 		mDroidlistTableModel = droidlisttablemodel;
 		mDroidInfoTableModel = new DroidInfoTableModel();
 		mOptionDialog = new OptionsDialog(this, false);
 		mCheckCodeShowDialog = new CheckCodeShowDialog(this, false);
 		mDroidManager.addListener(mCheckCodeShowDialog);
+		mJobDistIO.addHandler(new JobDistIOHandler());
 	}
 
 	/**
@@ -129,6 +134,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     getContentPane().add(mBlacklistButton, gridBagConstraints);
 
     mExecuteButton.setText("Execute");
+    mExecuteButton.setEnabled(false);
     mExecuteButton.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         mExecuteButtonActionPerformed(evt);
@@ -188,6 +194,12 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     getContentPane().add(mUploadButton, gridBagConstraints);
 
     mStopButton.setText("Stop");
+    mStopButton.setEnabled(false);
+    mStopButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mStopButtonActionPerformed(evt);
+      }
+    });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 5;
     gridBagConstraints.gridy = 3;
@@ -271,8 +283,9 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
   private void mExecuteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mExecuteButtonActionPerformed
 		try {
-			// TODO add your handling code here:
-			mCommIO.startScheduler();
+			mJobDistIO.startScheduler();
+			mExecuteButton.setEnabled(false);
+			mStopButton.setEnabled(true);
 		}
 		catch (SchedulerStillRuningException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -309,13 +322,15 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		// load cdb file if any selected
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				int cdbID = mCommIO.loadCDB(fileChooser.getSelectedFile());
+				int cdbID = mJobDistIO.loadCDB(fileChooser.getSelectedFile());
 				String id = String.format("%05d", cdbID);
 				TaskPanel panel = new TaskPanel(id);
 				mTaskPanels.put(id, panel);
 				mTaskPanel.add(panel);
 				mTaskPanel.revalidate();
+				mExecuteButton.setEnabled(true);
 				this.pack();
+				mJobDistIO.initScheduler();
 			}
 			catch (Exception ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -372,6 +387,12 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		// TODO add your handling code here:
 		mLogTextArea.setText("");
   }//GEN-LAST:event_mClearlogButtonActionPerformed
+
+  private void mStopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mStopButtonActionPerformed
+		// TODO add your handling code here:
+		mStopButton.setEnabled(false);
+		mJobDistIO.stopScheduler();
+  }//GEN-LAST:event_mStopButtonActionPerformed
 
 	/**
 	 * @param args the command line arguments
@@ -453,4 +474,19 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private javax.swing.JPanel mTaskPanel;
   private javax.swing.JButton mUploadButton;
   // End of variables declaration//GEN-END:variables
+
+	private class JobDistIOHandler implements JobDistributionIOHandler {
+
+		@Override
+		public void onEvent(Event event) {
+			switch (event) {
+				case SCHEDULER_DONE:
+					mExecuteButton.setEnabled(true);
+					mStopButton.setEnabled(false);
+					break;
+				default:
+					break;
+			}
+		}
+	}
 }
