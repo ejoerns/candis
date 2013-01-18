@@ -3,6 +3,7 @@ package candis.client;
 import android.content.Context;
 import android.util.Log;
 import candis.client.service.BackgroundService;
+import candis.common.CandisLog;
 import candis.common.ClassLoaderWrapper;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -39,6 +40,7 @@ public class JobCenter {
           new HashMap<String, DistributedJobParameter>();
 
   public JobCenter(final Context context, final ClassLoaderWrapper cl) {
+    CandisLog.level(CandisLog.VERBOSE);
     mContext = context;
     mClassLoader = cl;
   }
@@ -66,6 +68,11 @@ public class JobCenter {
       return null;
     }
 
+    // Check if task can be executed
+    if (!checkExecution()) {
+      return null;
+    }
+
     // notify handlers about start
     for (JobCenterHandler handler : mHandlerList) {
       handler.onJobExecutionStart(runnableID);
@@ -76,7 +83,7 @@ public class JobCenter {
       DistributedRunnable currentTask = (DistributedRunnable) mTaskMap.get(runnableID).newInstance();
       currentTask.setInitialParameter(mInitialParameterMap.get(runnableID));
       result = currentTask.runJob(param);
-      
+
       if (result == null) {
         Log.e(TAG, "Process returned null");
       }
@@ -94,6 +101,39 @@ public class JobCenter {
     }
 
     return result;
+  }
+
+  /**
+   * Checks if the execution is ok.
+   *
+   * @return
+   */
+  private boolean checkExecution() {
+    if (!checkPhoneStatusOK()) {
+      return false;
+    }
+    if (!checkBatteryLevelOK()) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Checks if battery level is ok for execution.
+   *
+   * @return
+   */
+  private boolean checkBatteryLevelOK() {
+    return true;
+  }
+
+  /**
+   * Checks if phone status is ok for execution.
+   *
+   * @return
+   */
+  private boolean checkPhoneStatusOK() {
+    return true;
   }
 
   /**
@@ -145,6 +185,7 @@ public class JobCenter {
       mTaskClassesMap.put(runnableID, new LinkedList<Class>());
     }
 
+    Log.i(TAG, "XXX: Calling DexClassLoader with jarfile: " + jarfile.getName());
     final File tmpDir = mContext.getDir("dex", 0);
     mClassLoader.set(new DexClassLoader(
             jarfile.getAbsolutePath(),
@@ -185,12 +226,12 @@ public class JobCenter {
     catch (IOException e) {
       System.out.println("Error opening " + path);
     }
-  
+
     // notify listeners
     for (JobCenterHandler handler : mHandlerList) {
       handler.onBinaryReceived(runnableID);
     }
-  
+
   }
 
   /**
@@ -204,7 +245,7 @@ public class JobCenter {
       return false;
     }
     mInitialParameterMap.put(runnableID, (DistributedJobParameter) o);
-    Log.w(TAG, "Initial Parameter loaded");
+    Log.i(TAG, "Initial Parameter for ID " + runnableID + " loaded with classloader " + ((DistributedJobParameter) o).getClass().getClassLoader());
 
     for (JobCenterHandler handler : mHandlerList) {
       handler.onInitialParameterReceived(runnableID);

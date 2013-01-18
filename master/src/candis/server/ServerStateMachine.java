@@ -443,7 +443,7 @@ public class ServerStateMachine extends FSM {
 				taskID++;
 
 				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY, String.format("%05d",taskID), outdata));
+								new Message(Instruction.SEND_BINARY, String.format("%05d", taskID), outdata));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -474,10 +474,11 @@ public class ServerStateMachine extends FSM {
 			try {
 				if (param[0] == null) {
 					LOGGER.info("Sending empty initial parameter");
-					mConnection.sendMessage(new Message(Instruction.SEND_INITAL));
+					mConnection.sendMessage(new Message(Instruction.SEND_INITIAL));
 				}
 				else {
-					mConnection.sendMessage(new Message(Instruction.SEND_INITAL, (Serializable) param[0]));
+					System.out.println("param[0]: " + param[0].getClass());
+					mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, (Serializable) param[0]));
 				}
 			}
 			catch (IOException ex) {

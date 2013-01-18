@@ -235,6 +235,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	public void initScheduler() throws SchedulerStillRuningException {
 		if ((mScheduler == null) || (mScheduler.isDone())) {
 			// init scheduler and set self as callback
+			mDistributedControl = mCDBLoader.getDistributedControl();
 			mScheduler = mDistributedControl.initScheduler();
 			mScheduler.setJobDistributionIO(this);
 		}
@@ -289,7 +290,6 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	public int loadCDB(final File cdbFile) throws Exception {
 		int cdbID = mCDBLoader.loadCDB(cdbFile);
 		// TODO: merge...
-		mDistributedControl = mCDBLoader.getDistributedControl();
 //		initScheduler();
 		return cdbID;
 	}

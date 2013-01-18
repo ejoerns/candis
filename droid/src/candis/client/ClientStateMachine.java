@@ -123,7 +123,7 @@ public final class ClientStateMachine extends FSM {
             new BinaryReceivedHandler());
     addState(ClientStates.BINARY_RECEIVED)
             .addTransition(
-            Instruction.SEND_INITAL,
+            Instruction.SEND_INITIAL,
             ClientStates.INIT_RECEIVED,
             new InitialParameterReceivedHandler())
             .addTransition(
@@ -241,7 +241,7 @@ public final class ClientStateMachine extends FSM {
 
     @Override
     public void handle(final Object... o) {
-      LOGGER.log(Level.FINE, "BinaryReceivedHandler() called");
+      System.out.println("BinaryReceivedHandler() called");
 
       mCurrentRunnableID = (String) o[0];
       mJobCenter.loadBinary((String) o[0], (byte[]) o[1]);

@@ -42,17 +42,18 @@ public class TaskPanel extends javax.swing.JPanel {
     mParametersValue = new javax.swing.JLabel();
     mResultsValue = new javax.swing.JLabel();
     mRunningValue = new javax.swing.JLabel();
+    mTaskLabel = new javax.swing.JLabel();
+    mTaskValue = new javax.swing.JLabel();
 
     setBorder(javax.swing.BorderFactory.createEtchedBorder());
     setLayout(new java.awt.GridBagLayout());
 
     jPanel1.setLayout(new java.awt.GridBagLayout());
 
-    mTaskIDLabel.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
     mTaskIDLabel.setText("Task ID:");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 0;
+    gridBagConstraints.gridy = 1;
     gridBagConstraints.gridwidth = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
     gridBagConstraints.insets = new java.awt.Insets(0, 0, 5, 0);
@@ -61,22 +62,21 @@ public class TaskPanel extends javax.swing.JPanel {
     mParametersLabel.setText("Parameters:");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 1;
+    gridBagConstraints.gridy = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
     jPanel1.add(mParametersLabel, gridBagConstraints);
 
     mResultsLabel.setText("Results:");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 2;
+    gridBagConstraints.gridy = 3;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
     jPanel1.add(mResultsLabel, gridBagConstraints);
 
-    mTaskIDValue.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
     mTaskIDValue.setText("00000");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 0;
+    gridBagConstraints.gridy = 1;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
     gridBagConstraints.weightx = 0.1;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 5, 0);
@@ -85,7 +85,7 @@ public class TaskPanel extends javax.swing.JPanel {
     mParametersValue.setText("0");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 1;
+    gridBagConstraints.gridy = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 0);
     jPanel1.add(mParametersValue, gridBagConstraints);
@@ -93,7 +93,7 @@ public class TaskPanel extends javax.swing.JPanel {
     mResultsValue.setText("0");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 2;
+    gridBagConstraints.gridy = 3;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 0);
     jPanel1.add(mResultsValue, gridBagConstraints);
@@ -101,11 +101,28 @@ public class TaskPanel extends javax.swing.JPanel {
     mRunningValue.setText("stopped");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 0;
+    gridBagConstraints.gridy = 1;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
     gridBagConstraints.weightx = 0.1;
     gridBagConstraints.insets = new java.awt.Insets(0, 10, 5, 0);
     jPanel1.add(mRunningValue, gridBagConstraints);
+
+    mTaskLabel.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
+    mTaskLabel.setText("Task:");
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 0;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+    jPanel1.add(mTaskLabel, gridBagConstraints);
+
+    mTaskValue.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
+    mTaskValue.setText("unknown");
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridy = 0;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+    gridBagConstraints.insets = new java.awt.Insets(0, 6, 5, 0);
+    jPanel1.add(mTaskValue, gridBagConstraints);
 
     mTaskIDValue.setText(mID);
 
@@ -127,5 +144,7 @@ public class TaskPanel extends javax.swing.JPanel {
   private javax.swing.JLabel mRunningValue;
   private javax.swing.JLabel mTaskIDLabel;
   private javax.swing.JLabel mTaskIDValue;
+  private javax.swing.JLabel mTaskLabel;
+  private javax.swing.JLabel mTaskValue;
   // End of variables declaration//GEN-END:variables
 }

@@ -283,6 +283,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
   private void mExecuteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mExecuteButtonActionPerformed
 		try {
+			mJobDistIO.initScheduler();
+
 			mJobDistIO.startScheduler();
 			mExecuteButton.setEnabled(false);
 			mStopButton.setEnabled(true);
@@ -330,7 +332,6 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 				mTaskPanel.revalidate();
 				mExecuteButton.setEnabled(true);
 				this.pack();
-				mJobDistIO.initScheduler();
 			}
 			catch (Exception ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

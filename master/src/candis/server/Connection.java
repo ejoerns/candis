@@ -1,10 +1,12 @@
 package candis.server;
 
 import candis.common.ClassLoaderWrapper;
+import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.EOFException;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -52,6 +54,7 @@ public class Connection implements Runnable {
 															mSocket.getPort(),
 															msg.getRequest()));
 		oos.writeObject(msg);
+		oos.reset();
 		oos.flush();
 	}
 

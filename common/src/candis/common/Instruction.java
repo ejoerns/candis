@@ -49,7 +49,7 @@ public enum Instruction implements Transition {
 	/// Master sends Job binary
 	SEND_BINARY(95),
 	/// Master sends Inital Parameter
-	SEND_INITAL(96),
+	SEND_INITIAL(96),
 	/// Master sends job
 	SEND_JOB(100),
 	/// Droid sends result to master
