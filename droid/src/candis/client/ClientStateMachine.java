@@ -19,7 +19,6 @@ import candis.common.fsm.Transition;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import java.io.Serializable;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,8 +43,13 @@ public final class ClientStateMachine extends FSM {
     CHECKCODE_ENTER,
     CHECKCODE_SENT,
     PROFILE_SENT,
-    CONNECTED,
-    JOB_RECEIVED, BINARY_RECEIVED, INIT_RECEIVED;
+    WAIT_FOR_JOB,
+    JOB_RECEIVED,
+    JOB_BINARY_REQUESTED,
+    JOB_INIT_REQUESTED,
+    JOB_PROCESSING,
+    INIT_RECEIVED,
+    INIT_BINARY_REQUESTED;
   }
 
   public enum ClientTrans implements Transition {
@@ -53,7 +57,9 @@ public final class ClientStateMachine extends FSM {
     SOCKET_CONNECTED,
     CHECKCODE_ENTERED,
     JOB_FINISHED,
-    DISCONNECT;
+    DISCONNECT,
+    KNOWN,
+    UNKNOWN;
   }
 
   private enum ClientHandlerID implements HandlerID {
@@ -91,7 +97,7 @@ public final class ClientStateMachine extends FSM {
             new ProfileRequestHandler())
             .addTransition(
             Instruction.ACCEPT_CONNECTION,
-            ClientStates.CONNECTED,
+            ClientStates.WAIT_FOR_JOB,
             null)
             .addTransition(
             Instruction.REJECT_CONNECTION,
@@ -114,36 +120,56 @@ public final class ClientStateMachine extends FSM {
     addState(ClientStates.PROFILE_SENT)
             .addTransition(
             Instruction.ACCEPT_CONNECTION,
-            ClientStates.CONNECTED,
+            ClientStates.WAIT_FOR_JOB,
             null);
-    addState(ClientStates.CONNECTED)
-            .addTransition(
-            Instruction.SEND_BINARY,
-            ClientStates.BINARY_RECEIVED,
-            new BinaryReceivedHandler());
-    addState(ClientStates.BINARY_RECEIVED)
-            .addTransition(
-            Instruction.SEND_INITIAL,
-            ClientStates.INIT_RECEIVED,
-            new InitialParameterReceivedHandler())
-            .addTransition(
-            Instruction.SEND_BINARY,
-            ClientStates.BINARY_RECEIVED,
-            new BinaryReceivedHandler());
-    addState(ClientStates.INIT_RECEIVED)
+    addState(ClientStates.WAIT_FOR_JOB)
             .addTransition(
             Instruction.SEND_JOB,
             ClientStates.JOB_RECEIVED,
-            new JobReceivedHandler())
+            new CheckJobHandler())
             .addTransition(
-            Instruction.SEND_BINARY,
-            ClientStates.BINARY_RECEIVED,
-            new BinaryReceivedHandler());
+            Instruction.SEND_INITIAL,
+            ClientStates.INIT_RECEIVED,
+            new CheckInitialParameterHandler());
     addState(ClientStates.JOB_RECEIVED)
             .addTransition(
+            ClientTrans.KNOWN,
+            ClientStates.JOB_PROCESSING,
+            new ProcessJobHandler())
+            .addTransition(
+            ClientTrans.UNKNOWN,
+            ClientStates.JOB_BINARY_REQUESTED,
+            new RequestBinaryHandler());
+    addState(ClientStates.JOB_BINARY_REQUESTED)
+            .addTransition(
+            Instruction.SEND_BINARY,
+            ClientStates.JOB_INIT_REQUESTED,
+            new AddBinaryHandler());
+    addState(ClientStates.JOB_INIT_REQUESTED)
+            .addTransition(
+            Instruction.SEND_INITIAL,
+            ClientStates.JOB_PROCESSING,
+            new AddInitialAndProcessHandler());
+    addState(ClientStates.INIT_RECEIVED)
+            .addTransition(
+            ClientTrans.KNOWN,
+            ClientStates.WAIT_FOR_JOB,
+            new AddInitialParameterHandler())
+            .addTransition(
+            ClientTrans.UNKNOWN,
+            ClientStates.INIT_BINARY_REQUESTED,
+            new RequestBinaryHandler());
+    addState(ClientStates.INIT_BINARY_REQUESTED)
+            .addTransition(
+            Instruction.SEND_BINARY,
+            ClientStates.WAIT_FOR_JOB,
+            new AddBinaryHandler());
+    addState(ClientStates.JOB_PROCESSING)
+            .addTransition(
             ClientTrans.JOB_FINISHED,
-            ClientStates.INIT_RECEIVED,
+            ClientStates.WAIT_FOR_JOB,
             new JobFinishedHandler());
+
     addGlobalTransition(
             ClientTrans.DISCONNECT,
             ClientStates.UNCONNECTED,
@@ -151,6 +177,7 @@ public final class ClientStateMachine extends FSM {
     setState(ClientStates.UNCONNECTED);
   }
 
+  /*--------------------------------------------------------------------------*/
   /**
    * Shows Error Dialog with short message.
    */
@@ -232,67 +259,27 @@ public final class ClientStateMachine extends FSM {
       mSConn.sendMessage(new Message(Instruction.SEND_CHECKCODE, (String) o[0]));
     }
   }
-  private String mCurrentRunnableID = null;
 
+  /*--------------------------------------------------------------------------*/
   /**
    *
    */
-  private class BinaryReceivedHandler implements ActionHandler {
+  private class CheckJobHandler implements ActionHandler {
 
-    @Override
-    public void handle(final Object... o) {
-      System.out.println("BinaryReceivedHandler() called");
-
-      mCurrentRunnableID = (String) o[0];
-      mJobCenter.loadBinary((String) o[0], (byte[]) o[1]);
-
-      mSConn.sendMessage(new Message(Instruction.ACK));
-    }
-  }
-
-  /**
-   *
-   */
-  private class InitialParameterReceivedHandler implements DistributedJobParameter, ActionHandler {
-
-    @Override
-    public void handle(final Object... o) {
-      System.out.println("InitialParameterReceivedHandler() called");
-
-      mJobCenter.loadInitialParameter(mCurrentRunnableID, o[0]);
-
-      mSConn.sendMessage(new Message(Instruction.ACK));
-    }
-  }
-
-  /**
-   *
-   */
-  private class JobReceivedHandler implements ActionHandler {
-
-    @Override
-    public void handle(final Object... o) {
-      System.out.println("JobReceivedHandler() called");
-      final boolean result = mJobCenter.loadJob(mCurrentRunnableID, o[0]);
-      if (result) {
-        mSConn.sendMessage(new Message(Instruction.ACK));
-      }
-      else {
-        mSConn.sendMessage(new Message(Instruction.NACK));
-      }
-
-      // TODO: still only testing and inconsistent parameter handling
-      final DistributedJobResult dresult = mJobCenter.executeTask(
-              mCurrentRunnableID, (DistributedJobParameter) o[0]);
-      if (dresult != null) {
-        LOGGER.info("#-- NICE, result is NOT null");
-      }
+    public void handle(Object... obj) {
+      System.out.println("CheckJobHandler...");
       try {
-        process(ClientTrans.JOB_FINISHED, dresult);
+        if (mJobCenter.isTaskAvailable((String) obj[0])) {
+          process(ClientTrans.KNOWN, obj);
+        }
+        else {
+          process(ClientTrans.UNKNOWN, obj);
+        }
       }
       catch (StateMachineException ex) {
         Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
       }
+      System.out.println("done.");
     }
   }
 
@@ -311,6 +298,90 @@ public final class ClientStateMachine extends FSM {
       else {
         mSConn.sendMessage(new Message(Instruction.SEND_RESULT, (Serializable) obj[0]));
       }
+    }
+  }
+
+  /**
+   * Checks if a binary for this parameter is already available.
+   *
+   * param[0]: id (String)
+   * param[1]: parameter
+   */
+  private class CheckInitialParameterHandler implements ActionHandler {
+
+    public void handle(Object... obj) {
+      try {
+        if (mJobCenter.isTaskAvailable((String) obj[0])) {
+          process(ClientTrans.KNOWN, obj[0], obj[1]);
+        }
+        else {
+          process(ClientTrans.UNKNOWN, obj[0], obj[1]);
+        }
+      }
+      catch (StateMachineException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+  }
+
+  /**
+   * Executes the job with given ID.
+   */
+  private class ProcessJobHandler implements ActionHandler {
+
+    public void handle(Object... obj) {
+      mSConn.sendMessage(new Message(Instruction.ACK));
+      mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
+    }
+  }
+
+  /**
+   *
+   */
+  private class AddBinaryHandler implements ActionHandler {
+
+    public void handle(Object... obj) {
+
+      mJobCenter.loadBinary((String) obj[0], (byte[]) obj[1]);
+
+      mSConn.sendMessage(new Message(Instruction.ACK));
+    }
+  }
+
+  /*
+   * 
+   */
+  private class AddInitialParameterHandler implements ActionHandler {
+
+    public void handle(Object... obj) {
+      mJobCenter.loadInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
+      mSConn.sendMessage(new Message(Instruction.ACK));
+    }
+  }
+
+  /**
+   *
+   */
+  private class AddInitialAndProcessHandler implements ActionHandler {
+
+    public void handle(Object... obj) {
+      new AddInitialParameterHandler().handle(obj);
+      new ProcessJobHandler().handle(obj);
+    }
+  }
+
+  /**
+   * Simply sends a request command.
+   * param[0] - id (String)
+   */
+  private class RequestBinaryHandler implements ActionHandler {
+
+    public void handle(Object... obj) {
+      assert obj[0] instanceof String;
+
+      System.out.println("Sending request for a shit fucking binary...");
+      mSConn.sendMessage(new Message(Instruction.REQUEST_BINARY, (Serializable) obj[0]));
+      System.out.println("Request for a shit fucking binary done...");
     }
   }
 }

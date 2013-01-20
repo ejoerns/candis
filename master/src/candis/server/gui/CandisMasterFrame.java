@@ -37,6 +37,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private final CheckCodeShowDialog mCheckCodeShowDialog;
 	private CandisLoggerHandler mLoggerHandler;
 	private Map<String, TaskPanel> mTaskPanels = new HashMap<String, TaskPanel>();
+	private String mCurrentTaskID = "";
 
 	/**
 	 * Creates new form CandisMasterFrame.
@@ -283,7 +284,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
   private void mExecuteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mExecuteButtonActionPerformed
 		try {
-			mJobDistIO.initScheduler();
+			mJobDistIO.initScheduler(mCurrentTaskID);
 
 			mJobDistIO.startScheduler();
 			mExecuteButton.setEnabled(false);
@@ -324,10 +325,9 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		// load cdb file if any selected
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				int cdbID = mJobDistIO.loadCDB(fileChooser.getSelectedFile());
-				String id = String.format("%05d", cdbID);
-				TaskPanel panel = new TaskPanel(id);
-				mTaskPanels.put(id, panel);
+				mCurrentTaskID = mJobDistIO.getCDBLoader().loadCDB(fileChooser.getSelectedFile());
+				TaskPanel panel = new TaskPanel(mCurrentTaskID);
+				mTaskPanels.put(mCurrentTaskID, panel);
 				mTaskPanel.add(panel);
 				mTaskPanel.revalidate();
 				mExecuteButton.setEnabled(true);

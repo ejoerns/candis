@@ -38,8 +38,10 @@ public class SendHandler implements Runnable {
           synchronized (mMessageQueue) {
             // send it
             try {
+              System.out.println("$$$$ sending data...");
               mObjOutstream.writeObject(mMessageQueue.remove(0));
               mObjOutstream.flush();
+              System.out.println("$$$$ done...");
             }
             catch (IOException ex) {
               LOGGER.log(Level.SEVERE, null, ex);

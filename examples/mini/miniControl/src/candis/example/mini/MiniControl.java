@@ -34,7 +34,7 @@ public class MiniControl implements DistributedControl, ResultReceiver {
 
 		return scheduler;
 	}
-
+  
 	@Override
 	public void onSchedulerDone() {
 		// Now all tasks are completed successfully

@@ -31,7 +31,7 @@ public interface JobDistributionIO extends Runnable {
    *
    * @param droidID ID of Droid to send to
    */
-  void sendBinary(String droidID);
+//  void sendBinary(String droidID);
 
   /**
    * Called by Scheduler to send the initial parameter.
@@ -39,7 +39,7 @@ public interface JobDistributionIO extends Runnable {
    * @param droidID ID of Droid to send to
    * @param p Initial Parameter to set for the Droid.
    */
-  void sendInitialParameter(String droidID, DistributedJobParameter p);
+//  void sendInitialParameter(String droidID, DistributedJobParameter p);
 
   /**
    * Called by Scheduler to start a Job.

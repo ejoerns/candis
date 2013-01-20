@@ -46,6 +46,10 @@ public abstract class Scheduler {
     mInitalParameter = param;
   }
 
+  public DistributedJobParameter getInitialParameter() {
+    return mInitalParameter;
+  }
+
   /**
    * Adds a listener for Results.
    *
@@ -140,7 +144,11 @@ public abstract class Scheduler {
     LOGGER.log(Level.INFO, "Got new Droid {0}", droidID);
     // Send Binary
     mKnownDroids.add(droidID);
-    mJobDistIO.sendBinary(droidID);
+    synchronized (mSchedulabeDroids) {
+      mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
+      mSchedulabeDroids.notifyAll();
+    }
+    //    mJobDistIO.sendBinary(droidID);
   }
 
   /**
@@ -158,26 +166,24 @@ public abstract class Scheduler {
    *
    * @param droidID
    */
-  public void onBinarySent(String droidID) {
-    System.out.println("SS: onBinaryRecieved()");
-    // Send inital Parameter
-    mJobDistIO.sendInitialParameter(droidID, mInitalParameter);
-  }
-
+//  public void onBinarySent(String droidID) {
+//    System.out.println("SS: onBinaryRecieved()");
+//    // Send inital Parameter
+//    mJobDistIO.sendInitialParameter(droidID, mInitalParameter);
+//  }
   /**
    * Called when droid received initial parameter.
    *
    * @param droidID
    */
-  public void onInitParameterSent(String droidID) {
-    System.out.println("SS: onInitParameterRecieved()");
-    // add to list of schedulable tasks
-    synchronized (mSchedulabeDroids) {
-      mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
-      mSchedulabeDroids.notifyAll();
-    }
-  }
-
+//  public void onInitParameterSent(String droidID) {
+//    System.out.println("SS: onInitParameterRecieved()");
+//    // add to list of schedulable tasks
+//    synchronized (mSchedulabeDroids) {
+//      mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
+//      mSchedulabeDroids.notifyAll();
+//    }
+//  }
   /**
    * Is called when a job is done.
    *
