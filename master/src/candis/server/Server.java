@@ -90,7 +90,7 @@ public class Server implements Runnable {
 							"Waiting for connection on port %d", ssocket.getLocalPort()));
 
 			socket = ssocket.accept();
-			mExecutorService.execute(new Connection(socket, mDroidManager, mCommunicationIO));
+			mExecutorService.execute(new ClientConnection(socket, mDroidManager, mCommunicationIO));
 		}
 		LOGGER.log(Level.INFO, "Server terminated");
 		ssocket.close();

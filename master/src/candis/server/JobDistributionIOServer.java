@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.Connection;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedControl;
@@ -87,7 +88,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		return mCDBLoader;
 	}
 
-	protected Connection getDroidConnection(String droidID) {
+	protected ClientConnection getDroidConnection(String droidID) {
 		return mDroidManager.getConnectedDroids().get(droidID);
 	}
 	/*--------------------------------------------------------------------------*/

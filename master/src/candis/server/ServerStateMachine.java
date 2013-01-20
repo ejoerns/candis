@@ -34,7 +34,7 @@ public class ServerStateMachine extends FSM {
 	private static final String TAG = ServerStateMachine.class.getName();
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Connection used for sending data
-	protected final Connection mConnection;
+	protected final ClientConnection mConnection;
 	/// Droid manager used for managing connections
 	protected final DroidManager mDroidManager;
 	/// Job distributor used for managing tasks and jobs
@@ -84,7 +84,7 @@ public class ServerStateMachine extends FSM {
 	}
 
 	public ServerStateMachine(
-					final Connection connection,
+					final ClientConnection connection,
 					final DroidManager droidManager,
 					final JobDistributionIOServer comIO) {
 		super();
@@ -496,13 +496,13 @@ public class ServerStateMachine extends FSM {
 
 			System.out.println("SendInitialParameterHandler() called");
 			CandisLog.v(TAG, "Sending initial parameter for task ID " + mJobDistIO.getCurrentTaskID());
-//			try {
-//				assert mJobDistIO.getScheduler().getInitialParameter() != null;
-//				mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getScheduler().getInitialParameter()));
-//			}
-//			catch (IOException ex) {
-//				LOGGER.log(Level.SEVERE, null, ex);
-//			}
+			try {
+				assert mJobDistIO.getScheduler().getInitialParameter() != null;
+				mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getScheduler().getInitialParameter()));
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
 		}
 	}
 

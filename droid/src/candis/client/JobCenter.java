@@ -58,6 +58,9 @@ public class JobCenter {
     Log.v(TAG, String.format("Saving jar to file %s", filename));
     final File dexInternalStoragePath = new File(mContext.getFilesDir(), filename);
 
+    if (mTaskContextMap.containsKey(runnableID)) {
+      Log.w(TAG, String.format("Warning: Task with ID %s already loaded", runnableID));
+    }
     // create new task context
     mTaskContextMap.put(runnableID, new TaskContext(filename));// TODO: name
     mTaskContextMap.get(runnableID).jarfile = filename;
@@ -202,24 +205,25 @@ public class JobCenter {
    */
   private void loadClassesFromJar(final String runnableID, final File jarfile) {
 
-    if (mTaskContextMap.containsKey(runnableID)) {
-      Log.w(TAG, String.format("Warning: Task with ID %s already loaded", runnableID));
-    }
-    else {
-      mTaskContextMap.get(runnableID).taskClasses = new LinkedList<Class>();
-    }
+    mTaskContextMap.get(runnableID).taskClasses = new LinkedList<Class>();
 
-    Log.i(TAG, "XXX: Calling DexClassLoader with jarfile: " + jarfile.getName());
+    Log.i(TAG,
+          "XXX: Calling DexClassLoader with jarfile: " + jarfile.getName());
     final File tmpDir = mContext.getDir("dex", 0);
-    mClassLoader.set(new DexClassLoader(
+
+    mClassLoader.set(
+            new DexClassLoader(
             jarfile.getAbsolutePath(),
             tmpDir.getAbsolutePath(),
             null,
-            BackgroundService.class.getClassLoader()));
+            BackgroundService.class
+            .getClassLoader()));
 
 
     // load all available classes
     String path = jarfile.getPath();
+
+
     try {
       // load dexfile
       DexFile dx = DexFile.loadDex(
@@ -236,26 +240,33 @@ public class JobCenter {
           final Class<Object> loadedClass = (Class<Object>) mClassLoader.get().loadClass(className);
           Log.i(TAG, String.format("Loaded class: %s", className));
           // add associated classes to task class list
+          if (loadedClass == null) {
+            Log.e(TAG, "EEEEEE loadedClass is null");
+          }
+          if (mTaskContextMap.get(runnableID) == null) {
+            Log.e(TAG, "EEEEEE no mapentry found");
+          }
+          if (mTaskContextMap.get(runnableID).taskClasses == null) {
+            Log.e(TAG, "EEEEEE taskClasses empty");
+          }
           mTaskContextMap.get(runnableID).taskClasses.add(loadedClass);
           // add task class to task list
           if (DistributedRunnable.class.isAssignableFrom(loadedClass)) {
             mTaskContextMap.get(runnableID).taskClass = loadedClass;
           }
         }
-        catch (Exception ex) {
-          Log.e(TAG, ex.toString());
+        catch (ClassNotFoundException ex) {
+          Log.getStackTraceString(ex);
         }
       }
     }
     catch (IOException e) {
       System.out.println("Error opening " + path);
     }
-
     // notify listeners
     for (JobCenterHandler handler : mHandlerList) {
       handler.onBinaryReceived(runnableID);
     }
-
   }
 
   /**

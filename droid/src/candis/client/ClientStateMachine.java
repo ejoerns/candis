@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import candis.client.comm.ServerConnection;
 import candis.client.comm.SecureConnection;
 import candis.client.service.BackgroundService;
 import candis.common.Instruction;
@@ -31,7 +32,7 @@ public final class ClientStateMachine extends FSM {
   private static final String TAG = "ClientStateMachine";
   private static final Logger LOGGER = Logger.getLogger(TAG);
   private final DroidContext mDroitContext;
-  private final SecureConnection mSConn;
+  private final ServerConnection mSConn;
   private final Context mContext;
   private final NotificationManager mNotificationManager;
   private final JobCenter mJobCenter;
@@ -68,7 +69,7 @@ public final class ClientStateMachine extends FSM {
   }
 
   public ClientStateMachine(
-          SecureConnection sconn,
+          ServerConnection sconn,
           final DroidContext dcontext,
           final Context context,
           final FragmentManager fragmanager,
