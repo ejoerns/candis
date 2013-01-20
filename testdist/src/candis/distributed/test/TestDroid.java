@@ -11,10 +11,13 @@ import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
+import candis.server.CDBLoader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,19 +40,19 @@ public class TestDroid extends DroidData implements Runnable {
 		return mID;
 	}
 
-	public TestDroid(int id, DistributedRunnable task) {
+	public TestDroid(int id, CDBLoader CDBLoader) {
 		super(false, new StaticProfile());
 		LOGGER.log(Level.INFO, String.format("New Droid %d", id));
-		this.task = task;
+		this.task = CDBLoader.getDistributedRunnable();
 		mID = Integer.toString(id);
 		try {
 			// Direction: Droid is reading
-			InOutStreams incomming = new InOutStreams();
+			InOutStreams incomming = new InOutStreams(CDBLoader);
 			internalOos = incomming.getOutputStream();
 			ois = incomming.getInputStream();
 
 			// Direction: Droid is writing
-			InOutStreams outgoing = new InOutStreams();
+			InOutStreams outgoing = new InOutStreams(CDBLoader);
 			oos = outgoing.getOutputStream();
 			internalOis = outgoing.getInputStream();
 		}
@@ -67,10 +70,15 @@ public class TestDroid extends DroidData implements Runnable {
 
 			while (true) {
 				try {
+
 					LOGGER.log(Level.INFO, "Waiting for a new Message");
-					Message m_in = (Message) internalOis.readObject();
-					LOGGER.log(Level.INFO, "Droid received message: {0}", m_in.getRequest());
+					Object m = internalOis.readObject();
+					if(m instanceof Message) {
+					Message m_in = (Message) m;
+
 					if (m_in != null) {
+						LOGGER.log(Level.INFO, "Droid received message: {0}", m_in.getRequest());
+
 						// Handle job
 						switch (m_in.getRequest()) {
 							case SEND_BINARY:
@@ -90,9 +98,10 @@ public class TestDroid extends DroidData implements Runnable {
 								break;
 						};
 
-					}
+					}}
 				}
 				catch (ClassNotFoundException ex) {
+					System.out.println(ex);
 					LOGGER.log(Level.SEVERE, null, ex);
 				}
 				//Thread.sleep(10);

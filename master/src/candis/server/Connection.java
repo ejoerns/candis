@@ -47,10 +47,14 @@ public class Connection implements Runnable {
 	}
 
 	public void sendMessage(final Message msg) throws IOException {
-		LOGGER.fine(String.format("##SEND to %s:%s: %s",
-															mSocket.getInetAddress(),
-															mSocket.getPort(),
-															msg.getRequest()));
+		// For connection types with sockets
+		if(mSocket != null)
+		{
+			LOGGER.fine(String.format("##SEND to %s:%s: %s",
+																mSocket.getInetAddress(),
+																mSocket.getPort(),
+																msg.getRequest()));
+		}
 		oos.writeObject(msg);
 		oos.flush();
 	}

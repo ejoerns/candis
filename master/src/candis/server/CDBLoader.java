@@ -130,7 +130,6 @@ public class CDBLoader {
 
 				for (String classname : classList) {
 					// finds the DistributedControl instance
-					//System.out.println(classname);
 					Class classToLoad = mClassLoaderWrapper.get().loadClass(classname);
 					if ((!DistributedJobParameter.class.isAssignableFrom(classToLoad))
 									&& (!DistributedJobResult.class.isAssignableFrom(classToLoad))

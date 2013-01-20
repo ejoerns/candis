@@ -1,7 +1,6 @@
 package candis.distributed.test;
 
 import candis.common.fsm.StateMachineException;
-import candis.distributed.DistributedRunnable;
 import candis.server.Connection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
@@ -16,7 +15,7 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class JobDistributionIOTestServer<T extends DistributedRunnable> extends JobDistributionIOServer {
+public class JobDistributionIOTestServer extends JobDistributionIOServer {
 
 	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOTestServer.class.getName());
 	/// List of all TestDroid and Communication threads
@@ -35,8 +34,6 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 		Connection d = getDroidConnection(droidID);
 
 		try {
-			System.out.println(droidID);
-			System.out.println(d);
 			d.getStateMachine().process(
 							ServerStateMachine.ServerTrans.SEND_BINARY,
 							(Object) null);
@@ -72,8 +69,7 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 	 * @return The new TestDroid
 	 */
 	private TestDroid initDroid(int id) {
-
-		TestDroid d = new TestDroid(id, getCDBLoader().getDistributedRunnable());
+		TestDroid d = new TestDroid(id, getCDBLoader());
 		mDroidManager.addDroid((new Integer(id)).toString(), d);
 
 		Thread t = new Thread(d);

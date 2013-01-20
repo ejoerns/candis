@@ -26,7 +26,7 @@ public class TestMain{
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
 		comio.loadCDB(new File(cdb));
-		comio.initDroids();
+		comio.initDroids(threads);
 
 		try {
 			comio.initScheduler();

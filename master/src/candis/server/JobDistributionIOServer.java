@@ -80,6 +80,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	}
 
 	protected Connection getDroidConnection(String droidID) {
+		System.out.println(mDroidManager.getConnectedDroids().size());
 		return mDroidManager.getConnectedDroids().get(droidID);
 	}
 	/*--------------------------------------------------------------------------*/
