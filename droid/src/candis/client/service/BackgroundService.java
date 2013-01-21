@@ -96,7 +96,7 @@ public class BackgroundService extends Service {
 
     new Thread(new Runnable() {
       public void run() {
-        final ServerConnection crb;
+        ServerConnection crb = null;
         SecureConnection secureConn = null;
 
         // wait for connection to finish
@@ -121,13 +121,18 @@ public class BackgroundService extends Service {
         JobCenterHandler jobCenterHandler = new ActivityLogger(mContext);
         final JobCenter jobcenter = new JobCenter(mContext, mClassloaderWrapper);
         jobcenter.addHandler(jobCenterHandler);
-        crb = new ServerConnection(
-                secureConn.getSocket(),
-                mClassloaderWrapper,
-                mDroidContext,
-                mContext,
-                null,
-                jobcenter);
+        try {
+          crb = new ServerConnection(
+                  secureConn.getSocket(),
+                  mClassloaderWrapper,
+                  mDroidContext,
+                  mContext,
+                  null,
+                  jobcenter);
+        }
+        catch (IOException ex) {
+          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+        }
 //                secureConn.getSocket(),
 //                fsm,
 //                mClassloader);
