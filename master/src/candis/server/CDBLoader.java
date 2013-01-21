@@ -48,6 +48,7 @@ public class CDBLoader {
 	private static final Logger LOGGER = Logger.getLogger(CDBLoader.class.getName());
 	private final Map<String, DistributedControl> mDistributedControl = new HashMap<String, DistributedControl>();
 	private final Map<String, Class> mDistributedRunnable = new HashMap<String, Class>();
+	private final Map<String, String> mTaskNames = new HashMap<String, String>();
 	private final Map<String, CDBContext> mCDBContextMap = new HashMap<String, CDBContext>();
 	private final Set<String> mKnownTaskIDs = new HashSet<String>();
 	private final ClassLoaderWrapper mClassLoaderWrapper;
@@ -84,6 +85,15 @@ public class CDBLoader {
 		}
 		return null;
 
+	}
+
+	/**
+	 *
+	 * @param id
+	 * @return
+	 */
+	public String getTaskName(String id) {
+		return mTaskNames.get(id);
 	}
 
 	/**
@@ -124,7 +134,7 @@ public class CDBLoader {
 		LOGGER.log(Level.INFO, "Loading CDB file with ID {0}", newID);
 
 		final CDBContext newCDBContext = new CDBContext(projectPath);
-		extractCandisDistributedBundle(cdbfile, newCDBContext);
+		extractCandisDistributedBundle(cdbfile, newID, newCDBContext);
 
 		try {
 			List<URL> urls = new LinkedList<URL>();
@@ -207,6 +217,7 @@ public class CDBLoader {
 	 */
 	private void extractCandisDistributedBundle(
 					final File cdbfile,
+					final String taskID,
 					final CDBContext cdbContext)
 					throws Exception {
 		ZipFile zipFile;
@@ -247,7 +258,7 @@ public class CDBLoader {
 			}
 
 			// Set task name
-			cdbContext.setName(name);
+			mTaskNames.put(taskID, name);
 
 			// load server binary
 			entry = zipFile.getEntry(server_binary);
@@ -366,11 +377,10 @@ public class CDBLoader {
 	}
 
 	/**
-	 * Holds filenames.
+	 * Holds filenames. Used internal only.
 	 */
 	private class CDBContext {
 
-		private String mName;
 		private String mPath;
 		private File mDroidBin;
 		private File mServerBin;
@@ -386,10 +396,6 @@ public class CDBLoader {
 			mDroidBin = new File(mPath, "droid.binary.dex");
 			mServerBin = new File(mPath, "server.binary.jar");
 			mLibs = new LinkedList<File>();
-		}
-
-		protected void setName(String name) {
-			mName = name;
 		}
 
 		public int getLibCount() {

@@ -281,7 +281,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 
   private void mExecuteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mExecuteButtonActionPerformed
 		try {
-			mJobDistIO.initScheduler(mCurrentTaskID);
+			mJobDistIO.initScheduler(mTaskPanel.getSelectedTaskID());
 
 			mJobDistIO.startScheduler();
 			mExecuteButton.setEnabled(false);
