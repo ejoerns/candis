@@ -39,7 +39,6 @@ public class ServerStateMachine extends FSM {
 	protected final DroidManager mDroidManager;
 	/// Job distributor used for managing tasks and jobs
 	protected final JobDistributionIOServer mJobDistIO;
-//	protected Integer taskID = 0;
 
 	/**
 	 * All availbale states for the FSM.
@@ -79,7 +78,6 @@ public class ServerStateMachine extends FSM {
 		CLIENT_DISCONNECTED,
 		SEND_JOB,
 		SEND_INITAL,// TODO...
-		//		SEND_BINARY,
 		STOP_JOB;// TODO...
 	}
 
@@ -92,10 +90,10 @@ public class ServerStateMachine extends FSM {
 		mConnection = connection;
 		mDroidManager = droidManager;
 		mJobDistIO = comIO;
-		init();
 	}
 
-	protected void init() {
+	@Override
+	public void init() {
 		addState(ServerStates.UNCONNECTED)
 						.addTransition(
 						Instruction.REQUEST_CONNECTION,
@@ -457,16 +455,10 @@ public class ServerStateMachine extends FSM {
 				buffer.flush();
 				outdata = buffer.toByteArray();
 
-				// ID is currently just a serial number
-//				taskID++;
-//
 				mConnection.sendMessage(
 								new Message(Instruction.SEND_BINARY,
 														mJobDistIO.getCurrentTaskID(),
-														//														"foo"));
 														outdata));
-//				mConnection.sendMessage(
-//								new Message(Instruction.ACK));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -474,17 +466,6 @@ public class ServerStateMachine extends FSM {
 		}
 	}
 
-//	/**
-//	 * Gets called if droid ACKs binary receive.
-//	 */
-//	private class ClientBinarySentHandler implements ActionHandler {
-//
-//		@Override
-//		public void handle(final Object... o) {
-//			System.out.println("ClientBinarySentHandler() called");
-//			mCommunicationIO.onBinarySent(mConnection.getDroidID());
-//		}
-//	}
 	/**
 	 * Sends the initial parameter to the droid. arguments: none (called by ACK)
 	 */
@@ -499,8 +480,8 @@ public class ServerStateMachine extends FSM {
 			System.out.println("SendInitialParameterHandler() called");
 			CandisLog.v(TAG, "Sending initial parameter for task ID " + mJobDistIO.getCurrentTaskID());
 			try {
-				assert mJobDistIO.getScheduler().getInitialParameter() != null;
-				mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getScheduler().getInitialParameter()));
+				assert mJobDistIO.getCurrentScheduler().getInitialParameter() != null;
+				mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getCurrentScheduler().getInitialParameter()));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -508,17 +489,6 @@ public class ServerStateMachine extends FSM {
 		}
 	}
 
-	/**
-	 * Gets called when the droid ACKed the initial parameter.
-	 */
-//	private class ClientInitalParameterSentHandler implements ActionHandler {
-//
-//		@Override
-//		public void handle(final Object... o) {
-//			System.out.println("ClientInitalParameterSentHandler() called");
-//			mCommunicationIO.onInitalParameterSent(mConnection.getDroidID());
-//		}
-//	}
 	/**
 	 * Sends the job to the droid.
 	 */
@@ -530,16 +500,13 @@ public class ServerStateMachine extends FSM {
 			assert params[1] instanceof DistributedJobParameter;
 			assert params.length == 2;
 
-//			Serializable myparam = params[1];
-
 			System.out.println("SendJobHandler() called");
 			CandisLog.v(TAG, "Sending job for task ID " + params[0]);
 			try {
 				mConnection.sendMessage(new Message(
 								Instruction.SEND_JOB,
 								(String) params[0],
-								(Serializable) params[1])); // TODO: param FAILS!
-//				mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getScheduler().getInitialParameter()));
+								(Serializable) params[1]));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

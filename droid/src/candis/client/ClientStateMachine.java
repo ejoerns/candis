@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.graphics.BitmapFactory;
 import candis.client.comm.ServerConnection;
 import candis.client.service.BackgroundService;
-import candis.common.ByteArray;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.ActionHandler;
@@ -19,8 +18,6 @@ import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
-import java.io.ByteArrayInputStream;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,11 +80,10 @@ public final class ClientStateMachine extends FSM {
 
     mNotificationManager =
             (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-
-    init();
   }
 
-  protected void init() {
+  @Override
+  public void init() {
     addState(ClientStates.UNCONNECTED)
             .addTransition(
             ClientTrans.SOCKET_CONNECTED,

@@ -1,12 +1,13 @@
 package candis.server;
 
-import candis.common.ClassLoaderWrapper;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.MessageConnection;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,8 +28,19 @@ public class ClientConnection extends MessageConnection implements Runnable {
 	public ClientConnection(
 					final Socket socket,
 					final DroidManager droidmanager,
-					final JobDistributionIOServer jobDistIO) {
-		super(socket, jobDistIO.getCDBLoader().getClassLoaderWrapper()); // TODO...
+					final JobDistributionIOServer jobDistIO) throws IOException {
+		super(socket, jobDistIO.getCDBLoader().getClassLoaderWrapper());
+		mDroidManager = droidmanager;
+		mJobDistIO = jobDistIO;
+		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
+	}
+
+	public ClientConnection(
+					final InputStream in,
+					final OutputStream out,
+					final DroidManager droidmanager,
+					final JobDistributionIOServer jobDistIO) throws IOException {
+		super(in, out, jobDistIO.getCDBLoader().getClassLoaderWrapper());
 		mDroidManager = droidmanager;
 		mJobDistIO = jobDistIO;
 		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
@@ -48,8 +60,8 @@ public class ClientConnection extends MessageConnection implements Runnable {
 
 	@Override
 	public void run() {
-		initConnection();
 
+		mStateMachine.init();
 		// Handle incoming client requests
 		while ((!isStopped) && (!isSocketClosed())) {
 

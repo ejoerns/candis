@@ -1,6 +1,8 @@
 package candis.common;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.Socket;
 import java.util.LinkedList;
@@ -18,8 +20,12 @@ public class MessageConnection extends ObjectConnection {
   private static final int MAX_MSG_ID = 10;
   private static final LinkedList mMessageBuffer = new LinkedList();
 
-  public MessageConnection(Socket socket, ClassLoaderWrapper clw) {
+  public MessageConnection(Socket socket, ClassLoaderWrapper clw) throws IOException {
     super(socket, clw);
+  }
+
+  public MessageConnection(InputStream in, OutputStream out, ClassLoaderWrapper clw) {
+    super(in, out, clw);
   }
 
   public void sendMessage(final Message msg) throws IOException {

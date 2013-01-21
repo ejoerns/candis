@@ -2,6 +2,7 @@ package candis.common;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,20 +15,25 @@ import java.util.logging.Logger;
 public class Connection {
 
   private static final Logger LOGGER = Logger.getLogger(Connection.class.getName());
-  private final Socket mSocket;
+  private Socket mSocket = null;
+  private InputStream mInputStream = null;
+  private OutputStream mOutputStream = null;
 
-  public Connection(final Socket socket) {
+  public Connection(final Socket socket) throws IOException {
+    this(socket.getInputStream(), socket.getOutputStream());
     mSocket = socket;
-//    try {
-//      mSocket.setSoTimeout(5000);                      // Unterbricht blockierendes read() beim Client wenn Server nichts sendet.
-//    }
-//    catch (SocketException ex) {
-//      Logger.getLogger(Connection.class.getName()).log(Level.SEVERE, null, ex);
-//    }
+    //    mSocket = socket;
+    //    try {
+    //      mSocket.setSoTimeout(5000);                      // Unterbricht blockierendes read() beim Client wenn Server nichts sendet.
+    //    }
+    //    catch (SocketException ex) {
+    //    }
+    //    }
   }
 
-  protected void initConnection() {
-    LOGGER.log(Level.INFO, "Client {0} connected...", mSocket.getInetAddress());
+  public Connection(InputStream in, OutputStream out) {
+    mInputStream = in;
+    mOutputStream = out;
   }
 
   /**
@@ -38,8 +44,8 @@ public class Connection {
   public void sendChunk(byte[] bytes) throws IOException {
 
     // send header (length[4]) and body of message
-    mSocket.getOutputStream().write(IntToByteArray(bytes.length));                                             // header wird als erstes versendet
-    mSocket.getOutputStream().write(bytes);
+    mOutputStream.write(intToByteArray(bytes.length));                                             // header wird als erstes versendet
+    mOutputStream.write(bytes);
 
   }
 
@@ -51,20 +57,20 @@ public class Connection {
   public byte[] recieveChunk() throws IOException {
 
     // Stream -> bytes []
-    InputStream in;
+//    InputStream in;
     byte[] header = new byte[4];
     byte[] bytes = null;
     int offset = 0;
 
-    in = mSocket.getInputStream();
+//    in = mSocket.getInputStream();
 
-    if (in == null) {
+    if (mInputStream == null) {
       return null;
     }
 
     // read header
     for (int i = 0; i < 4; i++) {
-      header[i] = (byte) mSocket.getInputStream().read();                   // 4 byte header wird zuerst gelesen
+      header[i] = (byte) mInputStream.read();                   // 4 byte header wird zuerst gelesen
       // If read failed, try again.
       if (header[i] == -1) {
         i--;
@@ -82,7 +88,7 @@ public class Connection {
 
     // read bytes from input stream to byte array
     do {
-      offset += in.read(bytes, offset, dataLength - offset);                   // 
+      offset += mInputStream.read(bytes, offset, dataLength - offset);                   // 
     }
     while (offset < dataLength);
 
@@ -111,7 +117,7 @@ public class Connection {
    * @param value Integer-Wert
    * @return 4-Byte-Array
    */
-  private byte[] IntToByteArray(int value) {
+  protected final byte[] intToByteArray(int value) {
 
     byte[] bytes = new byte[4];
     bytes[0] = (byte) (value >>> 24);
@@ -136,6 +142,4 @@ public class Connection {
       }
     }
   }
-
-
 }

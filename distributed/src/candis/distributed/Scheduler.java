@@ -86,7 +86,7 @@ public abstract class Scheduler {
    *
    * @param droidList List of all schedulable Droids.
    */
-  protected abstract void schedule(Map<String, DroidData> droidList);
+  protected abstract void schedule(Map<String, DroidData> droidList, JobDistributionIO jobDistIO);
 
   /**
    * Used to do inital checks if the droid can be used for scheduling.
@@ -111,7 +111,7 @@ public abstract class Scheduler {
           synchronized (mSchedulabeDroids) {
             if (hasParameter()) {
               System.out.println("hasParameter -> schedule");
-              schedule(mSchedulabeDroids);
+              schedule(mSchedulabeDroids, mJobDistIO);
             }
             try {
               mSchedulabeDroids.wait();
@@ -228,7 +228,7 @@ public abstract class Scheduler {
                new Object[]{
               mRunningDroidsList.size(),
               mParams.size(),
-              mJobDistIO.getDroidCount()});
+              mSchedulabeDroids.size()});
     return (mRunningDroidsList.size() + mParams.size()) == 0;
   }
 

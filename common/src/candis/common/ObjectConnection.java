@@ -3,7 +3,9 @@ package candis.common;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.Socket;
 
@@ -19,8 +21,13 @@ public class ObjectConnection extends Connection {
   // Holds the raw data of the laste received element, can be used for deserialization
   private byte[] mRawData;
 
-  public ObjectConnection(Socket socket, ClassLoaderWrapper clw) {
+  public ObjectConnection(Socket socket, ClassLoaderWrapper clw) throws IOException {
     super(socket);
+    mClassLoaderWrapper = clw;
+  }
+
+  public ObjectConnection(InputStream in, OutputStream out, ClassLoaderWrapper clw) {
+    super(in, out);
     mClassLoaderWrapper = clw;
   }
 

@@ -46,10 +46,11 @@ public class ServerConnection implements Runnable {
                           final DroidContext dcontext,
                           final Context context,
                           final FragmentManager fragmanager,
-                          final JobCenter jobcenter) {
+                          final JobCenter jobcenter) throws IOException {
     mClassLoaderWrapper = cl;
     mMessageConnection = new MessageConnection(socket, mClassLoaderWrapper);
     mFSM = new ClientStateMachine(this, dcontext, context, fragmanager, jobcenter);
+    mFSM.init();
     isStopped = false;
   }
 
