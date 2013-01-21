@@ -1,13 +1,10 @@
 package candis.distributed.test;
 
-import candis.common.fsm.StateMachineException;
 import candis.server.ClientConnection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
-import candis.server.ServerStateMachine.ServerTrans;
 import java.io.IOException;
 import java.util.LinkedList;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -75,18 +72,8 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 		public TestConnection(TestDroid droid, final DroidManager manager, final JobDistributionIOServer comIO) throws IOException {
 			super(droid.getInputStream(), droid.getOutputStream(), manager, comIO);
 			this.droid = droid;
-		}
-
-//		@Override
-		protected void initConnection() {
 			mStateMachine = new TestServerStateMachine(this, mDroidManager, mJobDistIO);
 			mStateMachine.init();
-			try {
-				mStateMachine.process(ServerTrans.CLIENT_NEW, droid.getId());
-			}
-			catch (StateMachineException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
 		}
 
 		@Override
@@ -114,5 +101,6 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 				t.interrupt();
 			}
 		}
+		getCurrentScheduler().abort();
 	}
 }

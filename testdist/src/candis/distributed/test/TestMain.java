@@ -1,7 +1,6 @@
 package candis.distributed.test;
 
 import candis.distributed.SchedulerStillRuningException;
-import candis.server.CDBLoader;
 import candis.server.DroidManager;
 import java.io.File;
 import java.util.logging.Level;
@@ -26,7 +25,6 @@ public class TestMain {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
 		String cdbID = comio.getCDBLoader().loadCDB(new File(cdb));
-		//comio.loadCDB(new File(cdb));
 		comio.initDroids(threads, cdbID);
 
 		try {
@@ -45,7 +43,9 @@ public class TestMain {
 		catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
+
 		comio.stopDroids();
+
 
 	}
 

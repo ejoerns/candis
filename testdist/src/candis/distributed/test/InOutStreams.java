@@ -1,12 +1,8 @@
 package candis.distributed.test;
 
-import candis.server.CDBLoader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,17 +14,17 @@ import java.util.List;
  */
 public class InOutStreams {
 
-	private final ObjectInputStream in;
-	private final ObjectOutputStream out;
+	private final InputStream in;
+	private final OutputStream out;
 	private final List<Integer> buffer = new LinkedList<Integer>();
-	private final CDBLoader mCDBLoader;
+	//private final CDBLoader mCDBLoader;
 
 	/**
 	 * Getter for ObjectInputStream.
 	 *
 	 * @return The created InputStream
 	 */
-	public ObjectInputStream getInputStream() {
+	public InputStream getInputStream() {
 		return in;
 	}
 
@@ -37,7 +33,7 @@ public class InOutStreams {
 	 *
 	 * @return The created OutputStream
 	 */
-	public ObjectOutputStream getOutputStream() {
+	public OutputStream getOutputStream() {
 		return out;
 	}
 
@@ -46,11 +42,10 @@ public class InOutStreams {
 	 *
 	 * @throws IOException
 	 */
-	public InOutStreams(CDBLoader CDBLoader) throws IOException {
+	public InOutStreams(/*CDBLoader CDBLoader*/) throws IOException {
 
-		mCDBLoader = CDBLoader;
 		// Create new OutputStream writing to buffer
-		out = new ObjectOutputStream(new OutputStream() {
+		out = new OutputStream() {
 			@Override
 			public void write(int i) throws IOException {
 				synchronized (buffer) {
@@ -58,11 +53,10 @@ public class InOutStreams {
 					buffer.notify();
 				}
 			}
-		});
+		};
 
 		// Create new InputStream reading from buffer
-		// If you are reading this comment, please skip the next 30 lines
-		in = new ObjectInputStream(new InputStream() {
+		in = new InputStream() {
 			@Override
 			public int read() throws IOException {
 				try {
@@ -75,18 +69,6 @@ public class InOutStreams {
 				}
 				catch (InterruptedException ex) {
 					throw new InterruptedIOException();
-				}
-			}
-		}) {
-			@Override
-			public Class resolveClass(ObjectStreamClass desc) throws IOException,
-							ClassNotFoundException {
-
-				try {
-					return mCDBLoader.getClassLoaderWrapper().get().loadClass(desc.getName());
-				}
-				catch (Exception e) {
-					return super.resolveClass(desc);
 				}
 			}
 		};
