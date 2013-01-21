@@ -28,7 +28,7 @@ public class ClientConnection extends MessageConnection implements Runnable {
 					final Socket socket,
 					final DroidManager droidmanager,
 					final JobDistributionIOServer jobDistIO) {
-		super(socket, new ClassLoaderWrapper()); // TODO...
+		super(socket, jobDistIO.getCDBLoader().getClassLoaderWrapper()); // TODO...
 		mDroidManager = droidmanager;
 		mJobDistIO = jobDistIO;
 		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
