@@ -26,6 +26,7 @@ import candis.client.gui.InfoActivity;
 import candis.client.gui.settings.SettingsActivity;
 import candis.client.service.BackgroundService;
 import candis.common.CandisLog;
+import candis.common.CandisLog.CandisLogLevel;
 import candis.common.Settings;
 import java.io.File;
 import java.io.IOException;
@@ -75,7 +76,7 @@ public class MainActivity extends Activity
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
-    CandisLog.level(CandisLog.DEBUG);
+    CandisLog.level(CandisLogLevel.DEBUG);
     System.out.println("onCreate()");
 
     // Check if saved bundle can be found...
@@ -95,7 +96,7 @@ public class MainActivity extends Activity
     SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 
     // load logger.properties from /res/raw/logger.properties
-    // Must be loaded in order to get default logging levels below INFO working 
+    // Must be loaded in order to get default logging levels below INFO working
     final InputStream inputStream = getResources().openRawResource(R.raw.logger);
     try {
       LogManager.getLogManager().readConfiguration(inputStream);
