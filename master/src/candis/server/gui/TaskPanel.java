@@ -39,11 +39,15 @@ public class TaskPanel {
 	}
 
 	public void addTask(String id) {
-		TaskPanelElement tpe = new TaskPanelElement(id, "foo");
+		// add new task element
+		TaskPanelElement tpe = new TaskPanelElement(id, mJobDistIO.getCDBLoader().getTaskName(id));
 		mTaskPanels.put(id, tpe);
-
 		tpe.addMouseListener(mClickListener);
 
+		if (mSelectedTaskID == null) {
+			mSelectedTaskID = id;
+			tpe.setBorder(BorderFactory.createEtchedBorder(Color.CYAN, Color.CYAN.darker()));
+		}
 
 		// add to layout
 		mHolder.add(tpe);
