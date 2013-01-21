@@ -1,10 +1,7 @@
 package candis.server.gui;
 
 import candis.common.Settings;
-import candis.distributed.DistributedJobParameter;
-import candis.distributed.DistributedJobResult;
 import candis.distributed.JobDistributionIOHandler;
-import candis.distributed.ResultReceiver;
 import candis.distributed.SchedulerStillRuningException;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
@@ -36,8 +33,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 	private final OptionsDialog mOptionDialog;
 	private final CheckCodeShowDialog mCheckCodeShowDialog;
 	private CandisLoggerHandler mLoggerHandler;
-	private Map<String, TaskPanel> mTaskPanels = new HashMap<String, TaskPanel>();
 	private String mCurrentTaskID = "";
+	private TaskPanel mTaskPanel;
 
 	/**
 	 * Creates new form CandisMasterFrame.
@@ -82,7 +79,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     jButton1 = new javax.swing.JButton();
     jLabel1 = new javax.swing.JLabel();
     mClearlogButton = new javax.swing.JButton();
-    mTaskPanel = new javax.swing.JPanel();
+    mTaskPanelHolder = new javax.swing.JPanel();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
     setTitle("Candis Master");
@@ -268,7 +265,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.gridy = 5;
     getContentPane().add(mClearlogButton, gridBagConstraints);
 
-    mTaskPanel.setLayout(new javax.swing.BoxLayout(mTaskPanel, javax.swing.BoxLayout.PAGE_AXIS));
+    mTaskPanelHolder.setLayout(new javax.swing.BoxLayout(mTaskPanelHolder, javax.swing.BoxLayout.PAGE_AXIS));
+    mTaskPanel = new TaskPanel(mTaskPanelHolder, mJobDistIO);
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 3;
     gridBagConstraints.gridy = 1;
@@ -276,8 +274,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.PAGE_START;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
-    getContentPane().add(mTaskPanel, gridBagConstraints);
-    mTaskPanel.add(new TaskPanel());
+    getContentPane().add(mTaskPanelHolder, gridBagConstraints);
 
     pack();
   }// </editor-fold>//GEN-END:initComponents
@@ -326,10 +323,8 @@ public class CandisMasterFrame extends javax.swing.JFrame {
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				mCurrentTaskID = mJobDistIO.getCDBLoader().loadCDB(fileChooser.getSelectedFile());
-				TaskPanel panel = new TaskPanel(mCurrentTaskID);
-				mTaskPanels.put(mCurrentTaskID, panel);
-				mTaskPanel.add(panel);
-				mTaskPanel.revalidate();
+				mTaskPanel.addTask(mCurrentTaskID);
+				mTaskPanelHolder.revalidate();
 				mExecuteButton.setEnabled(true);
 				this.pack();
 			}
@@ -472,7 +467,7 @@ public class CandisMasterFrame extends javax.swing.JFrame {
   private javax.swing.JTextArea mLogTextArea;
   private javax.swing.JButton mOptionButton;
   private javax.swing.JButton mStopButton;
-  private javax.swing.JPanel mTaskPanel;
+  private javax.swing.JPanel mTaskPanelHolder;
   private javax.swing.JButton mUploadButton;
   // End of variables declaration//GEN-END:variables
 
