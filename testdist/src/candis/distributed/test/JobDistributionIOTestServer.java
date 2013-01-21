@@ -3,11 +3,9 @@ package candis.distributed.test;
 import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedRunnable;
 import candis.server.CDBLoader;
-import candis.server.Connection;
+import candis.server.ClientConnection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
-import candis.server.ServerStateMachine;
-import candis.server.ServerStateMachine.ServerTrans;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.Level;
@@ -23,31 +21,18 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
 	//private final TaskFactory<T> factory;
-	private final CDBLoader mLoader;
+	//private final CDBLoader mLoader;
 	/// Default number of droids generated if not specified otherwise
 	private static final int DEFAULT_DROIDAMOUNT = 1;
 	private boolean isClosed = false;
 
-	public JobDistributionIOTestServer(CDBLoader loader, DroidManager manager) {
+	public JobDistributionIOTestServer(DroidManager manager) {
 		super(manager);
-		mLoader = loader;
+		//mLoader = loader;
 	}
 
-		// Called by Scheduler.
-	@Override
-	public void sendBinary(String droidID) {
-		Connection d = getDroidConnection(droidID);
-		try {
-			System.out.println(d);
-			d.getStateMachine().process(
-							ServerStateMachine.ServerTrans.SEND_BINARY,
-							(Object) null);
-		}
-		catch (StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
 
-		}
-	}
+			System.out.println(droidID);
 	public void initDroids() {
 		initDroids(DEFAULT_DROIDAMOUNT);
 	}
@@ -73,8 +58,8 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 	 * @return The new TestDroid
 	 */
 	private TestDroid initDroid(int id) {
-		
-		TestDroid d = new TestDroid(id, mLoader.getDistributedRunnable());
+
+		TestDroid d = new TestDroid(id, getCDBLoader().getDistributedRunnable());
 		mDroidManager.addDroid((new Integer(id)).toString(), d);
 
 		Thread t = new Thread(d);
@@ -89,21 +74,20 @@ public class JobDistributionIOTestServer<T extends DistributedRunnable> extends 
 	/**
 	 * Simulates Connection local streams and a security-simplified FSM.
 	 */
-	private class TestConnection extends Connection {
+	private class TestConnection extends ClientConnection {
 
 		private TestDroid droid;
 		private final Logger LOGGER = Logger.getLogger(TestConnection.class.getName());
 
-		public TestConnection(TestDroid droid, final DroidManager manager, final JobDistributionIOServer comIO) {
-			super(null, manager, comIO);
+		public TestConnection(TestDroid droid, final DroidManager manager, final JobDistributionIOServer comIO) throws IOException {
+			super(droid.getInputStream(), droid.getOutputStream(), manager, comIO);
 			this.droid = droid;
 		}
 
-		@Override
+//		@Override
 		protected void initConnection() {
-			oos = droid.getOutputStream();
-			ois = droid.getInputStream();
 			mStateMachine = new TestServerStateMachine(this, mDroidManager, mCommunicationIO);
+			mStateMachine.init();
 			try {
 				mStateMachine.process(ServerTrans.CLIENT_NEW, droid.getId());
 			}

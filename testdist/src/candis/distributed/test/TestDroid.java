@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed.test;
 
 import candis.common.Instruction;
@@ -76,7 +72,7 @@ public class TestDroid extends DroidData implements Runnable {
 							case SEND_BINARY:
 								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
 								break;
-							case SEND_INITAL:
+							case SEND_INITIAL:
 								DistributedJobParameter initial = (DistributedJobParameter) m_in.getData(0);
 								task.setInitialParameter(initial);
 								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));

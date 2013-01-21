@@ -1,8 +1,6 @@
 package candis.distributed.test;
 
-import candis.distributed.DistributedControl;
 import candis.distributed.SchedulerStillRuningException;
-import candis.server.CDBLoader;
 import candis.server.DroidManager;
 import java.io.File;
 import java.util.logging.Level;
@@ -19,22 +17,18 @@ import org.apache.commons.cli.PosixParser;
  *
  * @author Sebastian Willenborg
  */
-public class TestMain{
+public class TestMain {
 
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
 
-
 	public static void runCDBTest(String cdb, int threads) throws Exception {
-		CDBLoader loader = new CDBLoader();
-		loader.loadCDB(new File(cdb));
-		DistributedControl t = loader.getDistributedControl();
-		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(loader, DroidManager.getInstance());
-
-
-			//JobDistributionIOTestServer comio = new JobDistributionIOTestServer<MiniRunnable>(new MiniTaskFactory(), DroidManager.getInstance());
+		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
+		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
+		comio.loadCDB(new File(cdb));
 		comio.initDroids();
+
 		try {
-			comio.setDistributedControl(t);
+			comio.initScheduler();
 			comio.startScheduler();
 		}
 		catch (SchedulerStillRuningException ex) {
@@ -52,6 +46,7 @@ public class TestMain{
 		comio.stopDroids();
 
 	}
+
 	/**
 	 * @param args the command line arguments
 	 */
@@ -65,34 +60,25 @@ public class TestMain{
 						.hasArg()
 						.withArgName("THREADS")
 						.create("t"));
-		//Option o = new Option("t", "threads", true, "Threads");
 
-		//o.setType("Integer");
-
-
-		//opts.addOption(o);
 		CommandLineParser parser = new PosixParser();
 		boolean showHelp = false;
 		try {
 			CommandLine cmd = parser.parse(opts, args);
 
-			if(cmd.hasOption("h"))
-			{
+			if (cmd.hasOption("h")) {
 				showHelp = true;
 			}
-			else
-			{
+			else {
 				int threads = 4;
 				if (cmd.hasOption("t")) {
 					threads = ((Number) cmd.getParsedOptionValue("t")).intValue();
 				}
-				if(cmd.getArgs().length == 1)
-				{
+				if (cmd.getArgs().length == 1) {
 					String cdb = cmd.getArgs()[0];
 					runCDBTest(cdb, threads);
 				}
-				else
-				{
+				else {
 					showHelp = true;
 				}
 			}
@@ -104,7 +90,7 @@ public class TestMain{
 		catch (Exception ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
-		if(showHelp) {
+		if (showHelp) {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("testdist [options] CDB", opts);
 		}
