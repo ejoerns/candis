@@ -11,6 +11,7 @@ import candis.client.JobCenter;
 import candis.client.JobCenterHandler;
 import candis.client.R;
 import candis.client.comm.SecureConnection;
+import candis.client.comm.ServerConnection;
 import candis.common.ClassLoaderWrapper;
 import candis.common.Settings;
 import candis.common.fsm.FSM;
