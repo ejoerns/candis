@@ -1,11 +1,10 @@
 package candis.distributed.test;
 
 import candis.common.fsm.StateMachineException;
-import candis.distributed.DistributedRunnable;
-import candis.server.CDBLoader;
 import candis.server.ClientConnection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
+import candis.server.ServerStateMachine.ServerTrans;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.Level;
@@ -28,8 +27,8 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 		super(manager);
 	}
 
-	public void initDroids() {
-		initDroids(DEFAULT_DROIDAMOUNT);
+	public void initDroids(String jobID) throws IOException {
+		initDroids(DEFAULT_DROIDAMOUNT, jobID);
 	}
 
 	/**
@@ -37,9 +36,9 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 	 *
 	 * @param number Number of TestDroids to generate
 	 */
-	public void initDroids(int number) {
+	public void initDroids(int number, String jobID) throws IOException {
 		for (int i = 0; i < number; i++) {
-			initDroid(i);
+			initDroid(i, jobID);
 		}
 	}
 
@@ -52,8 +51,8 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 	 * @param id Id of the generated Droid
 	 * @return The new TestDroid
 	 */
-	private TestDroid initDroid(int id) {
-		TestDroid d = new TestDroid(id, getCDBLoader());
+	private TestDroid initDroid(int id, String jobID) throws IOException {
+		TestDroid d = new TestDroid(id, this, jobID);
 		mDroidManager.addDroid((new Integer(id)).toString(), d);
 
 		Thread t = new Thread(d);
@@ -80,7 +79,7 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 
 //		@Override
 		protected void initConnection() {
-			mStateMachine = new TestServerStateMachine(this, mDroidManager, mCommunicationIO);
+			mStateMachine = new TestServerStateMachine(this, mDroidManager, mJobDistIO);
 			mStateMachine.init();
 			try {
 				mStateMachine.process(ServerTrans.CLIENT_NEW, droid.getId());

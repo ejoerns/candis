@@ -63,7 +63,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * All server-side transition for the FSM.
 	 */
-	protected enum ServerTrans implements Transition {
+	public enum ServerTrans implements Transition {
 
 		CLIENT_BLACKLISTED,
 		CLIENT_NEW,

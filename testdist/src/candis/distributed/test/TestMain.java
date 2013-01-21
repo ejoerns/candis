@@ -1,6 +1,7 @@
 package candis.distributed.test;
 
 import candis.distributed.SchedulerStillRuningException;
+import candis.server.CDBLoader;
 import candis.server.DroidManager;
 import java.io.File;
 import java.util.logging.Level;
@@ -24,11 +25,12 @@ public class TestMain {
 	public static void runCDBTest(String cdb, int threads) throws Exception {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
-		comio.loadCDB(new File(cdb));
-		comio.initDroids(threads);
+		String cdbID = comio.getCDBLoader().loadCDB(new File(cdb));
+		//comio.loadCDB(new File(cdb));
+		comio.initDroids(threads, cdbID);
 
 		try {
-			comio.initScheduler();
+			comio.initScheduler(cdbID);
 			comio.startScheduler();
 		}
 		catch (SchedulerStillRuningException ex) {

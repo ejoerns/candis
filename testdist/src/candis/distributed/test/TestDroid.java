@@ -8,6 +8,7 @@ import candis.distributed.DistributedRunnable;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import candis.server.CDBLoader;
+import candis.server.JobDistributionIOServer;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
@@ -34,19 +35,20 @@ public class TestDroid extends DroidData implements Runnable {
 		return mID;
 	}
 
-	public TestDroid(int id, CDBLoader CDBLoader) {
+	public TestDroid(int id, JobDistributionIOServer jobIOServer, String jobID) {
 		super(false, new StaticProfile());
 		LOGGER.log(Level.INFO, String.format("New Droid %d", id));
-		this.task = CDBLoader.getDistributedRunnable();
+
+		this.task = jobIOServer.getCDBLoader().getDistributedRunnable(jobID);
 		mID = Integer.toString(id);
 		try {
 			// Direction: Droid is reading
-			InOutStreams incomming = new InOutStreams(CDBLoader);
+			InOutStreams incomming = new InOutStreams(jobIOServer.getCDBLoader());
 			internalOos = incomming.getOutputStream();
 			ois = incomming.getInputStream();
 
 			// Direction: Droid is writing
-			InOutStreams outgoing = new InOutStreams(CDBLoader);
+			InOutStreams outgoing = new InOutStreams(jobIOServer.getCDBLoader());
 			oos = outgoing.getOutputStream();
 			internalOis = outgoing.getInputStream();
 		}
@@ -78,7 +80,7 @@ public class TestDroid extends DroidData implements Runnable {
 								case SEND_BINARY:
 									internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
 									break;
-								case SEND_INITAL:
+								case SEND_INITIAL:
 									DistributedJobParameter initial = (DistributedJobParameter) m_in.getData(0);
 									task.setInitialParameter(initial);
 									internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
