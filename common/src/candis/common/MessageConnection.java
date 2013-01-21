@@ -14,6 +14,9 @@ import java.util.List;
 public class MessageConnection extends ObjectConnection {
 
   private static final String TAG = MessageConnection.class.getName();
+  private int msgID = 3;
+  private static final int MAX_MSG_ID = 10;
+  private static final LinkedList mMessageBuffer = new LinkedList();
 
   public MessageConnection(Socket socket, ClassLoaderWrapper clw) {
     super(socket, clw);
@@ -34,8 +37,10 @@ public class MessageConnection extends ObjectConnection {
   }
 
   public Message readMessage() throws IOException {
-    Instruction inst = null;
+    Instruction inst;
     try {
+      // calc message id (mod MAX_MSG_ID)
+      msgID = (msgID + 1) % MAX_MSG_ID;
       inst = (Instruction) receiveObject();
       CandisLog.v(TAG, "## Received Request: " + inst.toString());
     }
@@ -53,9 +58,10 @@ public class MessageConnection extends ObjectConnection {
           CandisLog.v(TAG, "## Received Data Type: " + ser.getClass());
         }
       }
+      // if class not loadable, simply but raw data in
       catch (ClassNotFoundException ex) {
         CandisLog.e(TAG, ex.toString());
-        data.add(null);
+        data.add(getLastRawData());
       }
     }
     // concat Message from received data

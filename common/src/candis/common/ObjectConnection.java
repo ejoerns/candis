@@ -3,10 +3,7 @@ package candis.common;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.net.Socket;
 
@@ -17,9 +14,10 @@ import java.net.Socket;
  */
 public class ObjectConnection extends Connection {
 
-  private static final boolean DEBUG = true;
   private static final String TAG = ObjectConnection.class.getName();
   private final ClassLoaderWrapper mClassLoaderWrapper;
+  // Holds the raw data of the laste received element, can be used for deserialization
+  private byte[] mRawData;
 
   public ObjectConnection(Socket socket, ClassLoaderWrapper clw) {
     super(socket);
@@ -69,40 +67,27 @@ public class ObjectConnection extends Connection {
    */
   public Serializable receiveObject() throws IOException, ClassNotFoundException {
 
-    byte[] a = recieveChunk();
+    mRawData = recieveChunk();
 
-    if (a == null) {
+    if (mRawData == null) {
       CandisLog.w(TAG, "recieved null");
       return null;
     }
 
-    CandisLog.v(TAG, "recieved " + a.length + " bytes ...");
+    CandisLog.v(TAG, "recieved " + mRawData.length + " bytes ...");
 
-    Object obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(a)).readObject();
+    Object obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(mRawData), mClassLoaderWrapper).readObject();
 
     return (Serializable) obj;
   }
 
   /**
-   * Resolves class with custom classloader.
+   * Returns the raw data for the last received Object.
+   * Can be used to do manual deserialization later on.
+   *
+   * @return raw serialized data if sent with an ObjectConnection.
    */
-  public class ClassloaderObjectInputStream extends ObjectInputStream {
-
-    @Override
-    public Class resolveClass(ObjectStreamClass desc) throws IOException,
-            ClassNotFoundException {
-
-      try {
-        return mClassLoaderWrapper.get().loadClass(desc.getName());
-      }
-      catch (Exception e) {
-      }
-
-      return super.resolveClass(desc);
-    }
-
-    public ClassloaderObjectInputStream(InputStream in) throws IOException {
-      super(in);
-    }
+  public byte[] getLastRawData() {
+    return mRawData;
   }
 }

@@ -3,18 +3,22 @@ package candis.client;
 import android.content.Context;
 import android.util.Log;
 import candis.client.service.BackgroundService;
+import candis.common.ByteArray;
 import candis.common.CandisLog;
 import candis.common.ClassLoaderWrapper;
+import candis.common.ClassloaderObjectInputStream;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OptionalDataException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -42,11 +46,33 @@ public class JobCenter {
   private final Map<String, TaskContext> mTaskContextMap = new HashMap<String, TaskContext>();
   /// List of all registered handlers
   private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
+  private byte[] lastUnserializedJob;
 
   public JobCenter(final Context context, final ClassLoaderWrapper cl) {
     CandisLog.level(CandisLog.VERBOSE);
     mContext = context;
     mClassLoader = cl;
+  }
+
+  public void setLastUnserializedJob(byte[] lusj) {
+    lastUnserializedJob = lusj;
+  }
+
+  public DistributedJobParameter serializeJob() {
+    Object obj = null;
+    try {
+      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoader).readObject();
+    }
+    catch (OptionalDataException ex) {
+      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    catch (ClassNotFoundException ex) {
+      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    catch (IOException ex) {
+      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    return (DistributedJobParameter) obj;
   }
 
   /**
@@ -97,6 +123,7 @@ public class JobCenter {
 
     // try to instanciate class
     try {
+      Log.i(TAG, "Running Job for Task " + mTaskContextMap.get(runnableID).name + " with TaskID " + runnableID);
       DistributedRunnable currentTask = (DistributedRunnable) mTaskContextMap.get(runnableID).taskClass.newInstance();
       currentTask.setInitialParameter(mTaskContextMap.get(runnableID).initialParam);
       result = currentTask.runJob(param);
@@ -273,7 +300,7 @@ public class JobCenter {
    *
    * @param dparam
    */
-  public boolean loadInitialParameter(final String runnableID, final DistributedJobParameter dparam) {
+  public boolean setInitialParameter(final String runnableID, final DistributedJobParameter dparam) {
     Log.i(TAG, "runnableID: " + runnableID);
     Log.i(TAG, "Param: " + dparam);
     mTaskContextMap.get(runnableID).initialParam = dparam;
@@ -291,15 +318,14 @@ public class JobCenter {
    * @todo: needed?
    * @param o
    */
-  public boolean loadJob(final String runnableID, final Object o) {
-    if (!(o instanceof DistributedJobParameter)) {
-      Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
-      return false;
-    }
-    Log.w(TAG, "Job Parameter dummy-loaded");
-    return true;
-  }
-
+//  public boolean loadJob(final String runnableID, final Object o) {
+//    if (!(o instanceof DistributedJobParameter)) {
+//      Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
+//      return false;
+//    }
+//    Log.w(TAG, "Job Parameter dummy-loaded");
+//    return true;
+//  }
   /**
    *
    * @param handler

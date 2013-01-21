@@ -53,6 +53,11 @@ public class ServerConnection implements Runnable {
     isStopped = false;
   }
 
+  // TODO: better hack?
+  public MessageConnection getMessageConnection() {
+    return mMessageConnection;
+  }
+
   /**
    * Thread to handle incoming requests.
    */
@@ -111,28 +116,5 @@ public class ServerConnection implements Runnable {
    */
   public void sendMessage(final Message msg) {
     mSendHandler.addToQueue(msg);
-  }
-
-  /**
-   * Resolves class with custom classloader.
-   */
-  public class DexloaderObjectInputStream extends ObjectInputStream {
-
-    @Override
-    public Class resolveClass(ObjectStreamClass desc) throws IOException,
-            ClassNotFoundException {
-
-      try {
-        return mClassLoaderWrapper.get().loadClass(desc.getName());
-      }
-      catch (Exception e) {
-      }
-
-      return super.resolveClass(desc);
-    }
-
-    public DexloaderObjectInputStream(InputStream in) throws IOException {
-      super(in);
-    }
   }
 }

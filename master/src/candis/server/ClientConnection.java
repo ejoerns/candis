@@ -1,16 +1,13 @@
 package candis.server;
 
 import candis.common.ClassLoaderWrapper;
-import candis.common.MessageConnection;
 import candis.common.Instruction;
 import candis.common.Message;
+import candis.common.MessageConnection;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.Socket;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,57 +52,29 @@ public class ClientConnection extends MessageConnection implements Runnable {
 
 		// Handle incoming client requests
 		while ((!isStopped) && (!isSocketClosed())) {
-//			try {
 
-			Message rec_msg = new Message(Instruction.NO_MSG);
+			Message msg = new Message(Instruction.NO_MSG);
 			try {
-				rec_msg = readMessage();
+				msg = readMessage();
+				try {
+					if (msg.getData() == null) {
+						System.out.println("getData is NULL");
+						mStateMachine.process(msg.getRequest());
+					}
+					else {
+						System.out.println("getData is not NULL");
+						mStateMachine.process(msg.getRequest(), (Object[]) (msg.getData()));
+					}
+				}
+				catch (StateMachineException ex) {
+					Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
+				}
 			}
 			catch (IOException ex) {
 				Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
 			}
 
-			LOGGER.log(Level.INFO, "Client request: {0}", rec_msg.getRequest());
-			try {
-				if (rec_msg.getRequest().len == 0) {
-					mStateMachine.process(rec_msg.getRequest());
-				}
-				else {
-					mStateMachine.process(rec_msg.getRequest(), (Object[]) rec_msg.getData());
-
-				}
-			}
-			catch (StateMachineException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
-//			}
-//			catch (EOFException ex) {
-//				LOGGER.log(Level.SEVERE, "EOF detected, closing socket ...");
-//				try {
-//					mStateMachine.process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
-//				}
-//				catch (StateMachineException ex1) {
-//					LOGGER.log(Level.SEVERE, null, ex1);
-//				}
-//				// terminate connection to client
-//				isStopped = true;
-//				try {
-//					closeSocket();
-//				}
-//				catch (IOException e) {
-//					LOGGER.log(Level.SEVERE, null, ex);
-//				}
-//			}
-//			catch (InterruptedIOException ex) {
-//				isStopped = true;
-//				try {
-//					closeSocket();
-//				}
-//				catch (IOException e) {
-//					LOGGER.log(Level.SEVERE, null, ex);
-//				}
-//			}
-
+			LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
 		}
 	}
 }

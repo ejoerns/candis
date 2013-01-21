@@ -2,10 +2,7 @@ package candis.common;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectStreamClass;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -140,28 +137,5 @@ public class Connection {
     }
   }
 
-  /**
-   * ObjectInputStream that allows to specify custom ClassLoader.
-   */
-  private class ClassLoaderObjectInputStream extends ObjectInputStream {
 
-    private final ClassLoaderWrapper mClassLoaderWrapper;
-
-    @Override
-    public Class resolveClass(ObjectStreamClass desc) throws IOException,
-            ClassNotFoundException {
-
-      try {
-        return mClassLoaderWrapper.get().loadClass(desc.getName());
-      }
-      catch (Exception e) {
-        return super.resolveClass(desc);
-      }
-    }
-
-    public ClassLoaderObjectInputStream(InputStream in, ClassLoaderWrapper cloaderwrap) throws IOException {
-      super(in);
-      mClassLoaderWrapper = cloaderwrap;
-    }
-  }
 }

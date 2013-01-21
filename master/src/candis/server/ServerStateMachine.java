@@ -190,7 +190,9 @@ public class ServerStateMachine extends FSM {
 						ServerStates.INIT_BINARY_SENT,
 						new SendBinaryHandler());
 		addState(ServerStates.INIT_BINARY_SENT)
-						.addTransition(Instruction.ACK, ServerStates.CONNECTED);
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.CONNECTED);
 
 		addGlobalTransition(// TODO: 
 						ServerTrans.CLIENT_DISCONNECTED,
@@ -411,7 +413,7 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			assert o[0] instanceof String;
-			assert o[1] instanceof DistributedJobResult;
+//			assert o[1] instanceof DistributedJobResult;
 
 			System.out.println("ClientJobDonedHandler() called");
 			CandisLog.v(TAG, "Getting result...");
@@ -421,7 +423,7 @@ public class ServerStateMachine extends FSM {
 			}
 			else {
 				LOGGER.log(Level.INFO, "Received Result");
-				result = (DistributedJobResult) o[0];
+				result = (DistributedJobResult) o[1];
 			}
 			mJobDistIO.onJobDone(mConnection.getDroidID(), result);
 		}
@@ -490,7 +492,7 @@ public class ServerStateMachine extends FSM {
 
 		@Override
 		public void handle(final Object... param) {
-			assert param[0] == null;
+//			assert param.length == 0;
 //			assert param[0] instanceof String;
 //			assert param[1] instanceof DistributedJobParameter;
 

@@ -7,8 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import candis.client.comm.ServerConnection;
-import candis.client.comm.SecureConnection;
 import candis.client.service.BackgroundService;
+import candis.common.ByteArray;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.ActionHandler;
@@ -19,6 +19,8 @@ import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -268,12 +270,16 @@ public final class ClientStateMachine extends FSM {
   private class CheckJobHandler implements ActionHandler {
 
     public void handle(Object... obj) {
+      assert obj[0] instanceof String;
+      assert (obj[1] instanceof DistributedJobParameter) || (obj[1] instanceof byte[]);
+
       System.out.println("CheckJobHandler...");
       try {
         if (mJobCenter.isTaskAvailable((String) obj[0])) {
           process(ClientTrans.KNOWN, obj);
         }
         else {
+          mJobCenter.setLastUnserializedJob((byte[]) obj[1]);
           process(ClientTrans.UNKNOWN, obj);
         }
       }
@@ -291,14 +297,12 @@ public final class ClientStateMachine extends FSM {
 
     @Override
     public void handle(final Object... obj) {
+      assert obj[0] instanceof String;
+      assert obj[1] instanceof DistributedJobResult;
+      assert obj.length == 2;
+
       System.out.println("JobFinishedHandler() called");
-      if (obj[0] == null) {
-        LOGGER.info("Sending empty result");
-        mSConn.sendMessage(new Message(Instruction.SEND_RESULT));
-      }
-      else {
-        mSConn.sendMessage(new Message(Instruction.SEND_RESULT, (Serializable) obj[0]));
-      }
+      mSConn.sendMessage(new Message(Instruction.SEND_RESULT, (String) obj[0], (Serializable) obj[1]));
     }
   }
 
@@ -332,7 +336,13 @@ public final class ClientStateMachine extends FSM {
 
     public void handle(Object... obj) {
       mSConn.sendMessage(new Message(Instruction.ACK));
-      mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
+      DistributedJobResult djr = mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
+      try {
+        process(ClientTrans.JOB_FINISHED, obj[0], djr);
+      }
+      catch (StateMachineException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
   }
 
@@ -355,7 +365,7 @@ public final class ClientStateMachine extends FSM {
   private class AddInitialParameterHandler implements ActionHandler {
 
     public void handle(Object... obj) {
-      mJobCenter.loadInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
+      mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
       mSConn.sendMessage(new Message(Instruction.ACK));
     }
   }
@@ -366,8 +376,20 @@ public final class ClientStateMachine extends FSM {
   private class AddInitialAndProcessHandler implements ActionHandler {
 
     public void handle(Object... obj) {
-      new AddInitialParameterHandler().handle(obj);
-      new ProcessJobHandler().handle(obj);
+      assert obj[0] instanceof String;
+      assert obj[1] instanceof DistributedJobParameter;
+      assert obj.length == 2;
+
+      mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
+      mSConn.sendMessage(new Message(Instruction.ACK));
+      DistributedJobParameter djp = mJobCenter.serializeJob();
+      DistributedJobResult djr = mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) djp);
+      try {
+        process(ClientTrans.JOB_FINISHED, obj[0], djr);
+      }
+      catch (StateMachineException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
   }
 
