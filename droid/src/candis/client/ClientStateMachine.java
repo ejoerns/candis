@@ -18,6 +18,9 @@ import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -275,7 +278,24 @@ public final class ClientStateMachine extends FSM {
           process(ClientTrans.KNOWN, obj);
         }
         else {
-          mJobCenter.setLastUnserializedJob((byte[]) obj[1]);
+          try {
+            mJobCenter.setLastUnserializedJob((byte[]) obj[1]);
+          }
+          // we may fail if we loaded the same task with different IDs
+          // then we simply serialize the result again
+          catch (ClassCastException ccex) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos;
+            try {
+              oos = new ObjectOutputStream(baos);
+              oos.writeObject(obj[1]);
+              oos.close();
+            }
+            catch (IOException ex) {
+              LOGGER.log(Level.SEVERE, null, ex);
+            }
+            mJobCenter.setLastUnserializedJob(baos.toByteArray());
+          }
           process(ClientTrans.UNKNOWN, obj);
         }
       }
