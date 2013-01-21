@@ -47,6 +47,14 @@ public class TaskPanelElement extends javax.swing.JPanel {
 		return mID;
 	}
 
+	public void setParameterCounter(int size) {
+		mParametersValue.setText(Integer.toString(size));
+	}
+
+	public void setResultCounter(int size) {
+		mResultsValue.setText(Integer.toString(size));
+	}
+
 	/**
 	 * This method is called from within the constructor to initialize the form.
 	 * WARNING: Do NOT modify this code. The content of this method is always

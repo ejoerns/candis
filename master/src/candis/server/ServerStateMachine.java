@@ -413,7 +413,7 @@ public class ServerStateMachine extends FSM {
 			assert o[0] instanceof String;
 //			assert o[1] instanceof DistributedJobResult;
 
-			System.out.println("ClientJobDonedHandler() called");
+			System.out.println("ResultHandler() called");
 			CandisLog.v(TAG, "Getting result...");
 			DistributedJobResult result = null;
 			if (o == null) {

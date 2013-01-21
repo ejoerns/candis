@@ -89,6 +89,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		try {
 			fsm.process(
 							ServerStateMachine.ServerTrans.SEND_JOB, mCurrentTaskID, param);// TODO: check ID
+			invoke(JobDistributionIOHandler.Event.JOB_SENT);
 		}
 		catch (StateMachineException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -115,6 +116,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 			@Override
 			public void run() {
 				mCurrentScheduler.onJobDone(droidID, result);
+				invoke(JobDistributionIOHandler.Event.JOB_DONE);
 			}
 		});
 	}

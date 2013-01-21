@@ -10,7 +10,10 @@ public interface JobDistributionIOHandler {
 
   public enum Event {
 
-    SCHEDULER_DONE,}
+    JOB_DONE,
+    JOB_SENT,
+    SCHEDULER_DONE;
+  }
 
   public void onEvent(Event event);
 }

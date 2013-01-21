@@ -1,11 +1,11 @@
 package candis.server.gui;
 
+import candis.distributed.JobDistributionIOHandler;
 import candis.server.JobDistributionIOServer;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.util.HashMap;
 import java.util.Map;
 import javax.swing.AbstractAction;
@@ -14,7 +14,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.text.JTextComponent;
 
 /**
  * Holds available Tasks that can be selected.
@@ -36,11 +35,18 @@ public class TaskPanel {
 	public TaskPanel(JPanel holder, JobDistributionIOServer jDistIO) {
 		mHolder = holder;
 		mJobDistIO = jDistIO;
+		mJobDistIO.addHandler(new JobDistListener());
 	}
 
 	public void addTask(String id) {
 		// add new task element
 		TaskPanelElement tpe = new TaskPanelElement(id, mJobDistIO.getCDBLoader().getTaskName(id));
+		if (mJobDistIO.getCurrentScheduler() == null) {
+			System.out.println("mJobDistIO is null");
+		}
+		else {
+			tpe.setParameterCounter(mJobDistIO.getCurrentScheduler().getParametersLeft());
+		}
 		mTaskPanels.put(id, tpe);
 		tpe.addMouseListener(mClickListener);
 
@@ -124,6 +130,24 @@ public class TaskPanel {
 		@Override
 		public boolean isEnabled() {
 			return true;
+		}
+	}
+
+	private class JobDistListener implements JobDistributionIOHandler {
+
+		@Override
+		public void onEvent(Event event) {
+			switch (event) {
+				case JOB_DONE:
+					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getCurrentScheduler().getParametersLeft());
+					break;
+				case JOB_SENT:
+//					JOptionPane.showMessageDialog(mHolder, "Result!!!!");
+					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mJobDistIO.getCurrentScheduler().getResults().size());
+					break;
+				case SCHEDULER_DONE:
+					break;
+			}
 		}
 	}
 }
