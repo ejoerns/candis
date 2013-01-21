@@ -17,10 +17,9 @@ import org.apache.commons.cli.PosixParser;
  *
  * @author Sebastian Willenborg
  */
-public class TestMain{
+public class TestMain {
 
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
-
 
 	public static void runCDBTest(String cdb, int threads) throws Exception {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
@@ -47,6 +46,7 @@ public class TestMain{
 		comio.stopDroids();
 
 	}
+
 	/**
 	 * @param args the command line arguments
 	 */
@@ -66,23 +66,19 @@ public class TestMain{
 		try {
 			CommandLine cmd = parser.parse(opts, args);
 
-			if(cmd.hasOption("h"))
-			{
+			if (cmd.hasOption("h")) {
 				showHelp = true;
 			}
-			else
-			{
+			else {
 				int threads = 4;
 				if (cmd.hasOption("t")) {
 					threads = ((Number) cmd.getParsedOptionValue("t")).intValue();
 				}
-				if(cmd.getArgs().length == 1)
-				{
+				if (cmd.getArgs().length == 1) {
 					String cdb = cmd.getArgs()[0];
 					runCDBTest(cdb, threads);
 				}
-				else
-				{
+				else {
 					showHelp = true;
 				}
 			}
@@ -94,7 +90,7 @@ public class TestMain{
 		catch (Exception ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
-		if(showHelp) {
+		if (showHelp) {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("testdist [options] CDB", opts);
 		}

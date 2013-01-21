@@ -186,7 +186,7 @@ public class ServerStateMachine extends FSM {
 						ServerStates.INIT_SENT_DONE,
 						new ClientJobDonedHandler());
 
-		addGlobalTransition(// TODO: 
+		addGlobalTransition(// TODO:
 						ServerTrans.CLIENT_DISCONNECTED,
 						ServerStates.UNCONNECTED,
 						new ClientDisconnectedHandler());
@@ -427,7 +427,7 @@ public class ServerStateMachine extends FSM {
 				final File file = (File) binary[0];
 				int nRead;
 				byte[] data = new byte[16384];
-				byte[] outdata = new byte[(int) file.length()];
+				byte[] outdata;// = new byte[(int) file.length()];
 
 				// convert file to byte-array
 				final InputStream is = new FileInputStream(file);

@@ -77,19 +77,18 @@ public class InOutStreams {
 					throw new InterruptedIOException();
 				}
 			}
-		})
-		{
+		}) {
 			@Override
 			public Class resolveClass(ObjectStreamClass desc) throws IOException,
-						ClassNotFoundException {
+							ClassNotFoundException {
 
-			try {
-				return mCDBLoader.getClassLoaderWrapper().get().loadClass(desc.getName());
+				try {
+					return mCDBLoader.getClassLoaderWrapper().get().loadClass(desc.getName());
+				}
+				catch (Exception e) {
+					return super.resolveClass(desc);
+				}
 			}
-			catch (Exception e) {
-				return super.resolveClass(desc);
-			}
-		}
 		};
 	}
 }

@@ -112,7 +112,7 @@ public class TestServerStateMachine extends ServerStateMachine {
 				taskID++;
 
 				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY, String.format("%05d",taskID), null));
+								new Message(Instruction.SEND_BINARY, String.format("%05d", taskID), null));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

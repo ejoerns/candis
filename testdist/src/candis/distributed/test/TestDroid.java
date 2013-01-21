@@ -13,11 +13,9 @@ import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import candis.server.CDBLoader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -72,48 +70,43 @@ public class TestDroid extends DroidData implements Runnable {
 				try {
 
 					LOGGER.log(Level.INFO, "Waiting for a new Message");
-					Object m = internalOis.readObject();
-					if(m instanceof Message) {
-					Message m_in = (Message) m;
+					Object msg = internalOis.readObject();
+					if (msg instanceof Message) {
+						Message m_in = (Message) msg;
 
-					if (m_in != null) {
-						LOGGER.log(Level.INFO, "Droid received message: {0}", m_in.getRequest());
+						if (m_in != null) {
+							LOGGER.log(Level.INFO, "Droid received message: {0}", m_in.getRequest());
 
-						// Handle job
-						switch (m_in.getRequest()) {
-							case SEND_BINARY:
-								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
-								break;
-							case SEND_INITAL:
-								DistributedJobParameter initial = (DistributedJobParameter) m_in.getData(0);
-								task.setInitialParameter(initial);
-								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
-								break;
-							case SEND_JOB:
-								internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
-								DistributedJobParameter parameters = (DistributedJobParameter) m_in.getData(0);
-								DistributedJobResult result = runTask(parameters);
-								Message m_result = new Message(Instruction.SEND_RESULT, result);
-								internalOos.writeObject(m_result);
-								break;
-						};
-
-					}}
+							// Handle job
+							switch (m_in.getRequest()) {
+								case SEND_BINARY:
+									internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
+									break;
+								case SEND_INITAL:
+									DistributedJobParameter initial = (DistributedJobParameter) m_in.getData(0);
+									task.setInitialParameter(initial);
+									internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
+									break;
+								case SEND_JOB:
+									internalOos.writeObject(new Message(Instruction.ACK, (Serializable) null));
+									DistributedJobParameter parameters = (DistributedJobParameter) m_in.getData(0);
+									DistributedJobResult result = runTask(parameters);
+									Message m_result = new Message(Instruction.SEND_RESULT, result);
+									internalOos.writeObject(m_result);
+									break;
+							}
+						}
+					}
 				}
 				catch (ClassNotFoundException ex) {
-					System.out.println(ex);
 					LOGGER.log(Level.SEVERE, null, ex);
 				}
-				//Thread.sleep(10);
 			}
 
 
-		}/* catch (InterruptedException iex) {
-		 LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
-		 } */
-
+		}
 		catch (InterruptedIOException iex) {
-			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
+			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID), iex);
 		}
 		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
