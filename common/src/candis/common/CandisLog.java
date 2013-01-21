@@ -62,27 +62,55 @@ public class CandisLog {
 		logp(tag, CandisLogLevel.ERROR, msg);
 	}
 
+	public static void e(String msg) {
+		logp(null, CandisLogLevel.ERROR, msg);
+	}
+
 	public static void w(String tag, String msg) {
 		logp(tag, CandisLogLevel.WARNING, msg);
+	}
+
+	public static void w(String msg) {
+		logp(null, CandisLogLevel.WARNING, msg);
 	}
 
 	public static void i(String tag, String msg) {
 		logp(tag, CandisLogLevel.INFO, msg);
 	}
 
+	public static void i(String msg) {
+		logp(null, CandisLogLevel.INFO, msg);
+	}
+
 	public static void d(String tag, String msg) {
 		logp(tag, CandisLogLevel.DEBUG, msg);
+	}
+
+	public static void d(String msg) {
+		logp(null, CandisLogLevel.DEBUG, msg);
 	}
 
 	public static void v(String tag, String msg) {
 		logp(tag, CandisLogLevel.VERBOSE, msg);
 	}
 
+	public static void v(String msg) {
+		logp(null, CandisLogLevel.VERBOSE, msg);
+	}
+
 	public static void log(String tag, CandisLogLevel level, String msg) {
 		logp(tag, level, msg);
 	}
 
+	private static void log(CandisLogLevel level, String msg) {
+		logp(null, level, msg);
+	}
+
 	private static void logp(String tag, CandisLogLevel level, String msg) {
+		StackTraceElement stack = (Thread.currentThread().getStackTrace())[3];
+		if (tag == null) {
+			tag = stack.getClassName();
+		}
 		String defaultLevel = LogManager.getLogManager().getProperty(tag);
 		CandisLogLevel cLevel = mLevel;
 		if (defaultLevel != null && levelMap.containsKey(defaultLevel)) {
@@ -90,7 +118,7 @@ public class CandisLog {
 		}
 
 		if (cLevel.iLevel <= level.iLevel) {
-			StackTraceElement stack = (Thread.currentThread().getStackTrace())[3];
+
 			Logger.getLogger(tag).logp(level.lLevel, stack.getClassName(), stack.getMethodName(), String.format("%s: %s", level.sLevel, msg));
 		}
 
