@@ -86,7 +86,6 @@ public class ServerStateMachine extends FSM {
 					final DroidManager droidManager,
 					final JobDistributionIOServer comIO) {
 		super();
-		CandisLog.level(CandisLog.VERBOSE);
 		mConnection = connection;
 		mDroidManager = droidManager;
 		mJobDistIO = comIO;
@@ -301,7 +300,10 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Connects droid to DroidManager.
 	 */
-	private class ClientConnectedHandler implements ActionHandler {
+	protected class ClientConnectedHandler implements ActionHandler {
+
+		public ClientConnectedHandler() {
+		}
 
 		@Override
 		public void handle(final Object... o) {
@@ -406,7 +408,10 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Gets called if JOB_DONE was received.
 	 */
-	private class ResultHandler implements ActionHandler {
+	protected class ResultHandler implements ActionHandler {
+
+		public ResultHandler() {
+		}
 
 		@Override
 		public void handle(final Object... o) {
@@ -430,7 +435,10 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends binary file to droid.
 	 */
-	private class SendBinaryHandler implements ActionHandler {
+	protected class SendBinaryHandler implements ActionHandler {
+
+		public SendBinaryHandler() {
+		}
 
 		@Override
 		public void handle(final Object... binary) {
@@ -469,7 +477,10 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends the initial parameter to the droid. arguments: none (called by ACK)
 	 */
-	private class SendInitialParameterHandler implements ActionHandler {
+	protected class SendInitialParameterHandler implements ActionHandler {
+
+		public SendInitialParameterHandler() {
+		}
 
 		@Override
 		public void handle(final Object... param) {
@@ -492,7 +503,10 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends the job to the droid.
 	 */
-	private class SendJobHandler implements ActionHandler {
+	protected class SendJobHandler implements ActionHandler {
+
+		public SendJobHandler() {
+		}
 
 		@Override
 		public void handle(final Object... params) {

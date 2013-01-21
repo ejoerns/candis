@@ -1,12 +1,12 @@
 package candis.server;
 
-import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.MessageConnection;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
@@ -63,30 +63,30 @@ public class ClientConnection extends MessageConnection implements Runnable {
 
 		mStateMachine.init();
 		// Handle incoming client requests
-		while ((!isStopped) && (!isSocketClosed())) {
+		try {
+			while ((!isStopped) && (!isSocketClosed())) {
 
-			Message msg = new Message(Instruction.NO_MSG);
-			try {
-				msg = readMessage();
+				Message msg = readMessage();
 				try {
 					if (msg.getData() == null) {
-						System.out.println("getData is NULL");
 						mStateMachine.process(msg.getRequest());
 					}
 					else {
-						System.out.println("getData is not NULL");
 						mStateMachine.process(msg.getRequest(), (Object[]) (msg.getData()));
 					}
 				}
 				catch (StateMachineException ex) {
 					Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
 				}
-			}
-			catch (IOException ex) {
-				Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
-			}
 
-			LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
+
+				LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
+			}
+		}
+		catch (InterruptedIOException iex) {
+		}
+		catch (IOException ex) {
+			Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
 }

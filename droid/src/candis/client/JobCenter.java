@@ -5,6 +5,7 @@ import android.util.Log;
 import candis.client.service.BackgroundService;
 import candis.common.ByteArray;
 import candis.common.CandisLog;
+import candis.common.CandisLog.CandisLogLevel;
 import candis.common.ClassLoaderWrapper;
 import candis.common.ClassloaderObjectInputStream;
 import candis.distributed.DistributedJobParameter;
@@ -49,7 +50,7 @@ public class JobCenter {
   private byte[] lastUnserializedJob;
 
   public JobCenter(final Context context, final ClassLoaderWrapper cl) {
-    CandisLog.level(CandisLog.VERBOSE);
+    CandisLog.level(CandisLogLevel.VERBOSE);
     mContext = context;
     mClassLoader = cl;
   }

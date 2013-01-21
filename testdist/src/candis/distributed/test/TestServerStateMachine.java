@@ -1,13 +1,11 @@
 package candis.distributed.test;
 
 import candis.common.Instruction;
-import candis.common.Message;
-import candis.common.fsm.ActionHandler;
+import candis.common.fsm.StateMachineException;
 import candis.server.ClientConnection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
 import candis.server.ServerStateMachine;
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,37 +23,63 @@ public class TestServerStateMachine extends ServerStateMachine {
 
 	@Override
 	public void init() {
-		super.init();
-	}
+		System.out.println("hier!");
+		addState(ServerStates.UNCONNECTED)
+						.addTransition(
+						ServerTrans.CLIENT_NEW,
+						ServerStates.CONNECTED,
+						new ClientConnectedHandler());
+		addState(ServerStates.CONNECTED)
+						.addTransition(
+						ServerTrans.SEND_JOB,
+						ServerStates.JOB_SENT,
+						new SendJobHandler())
+						.addTransition(
+						ServerTrans.SEND_INITAL,
+						ServerStates.INIT_SENT,
+						new SendInitialParameterHandler());
+		addState(ServerStates.JOB_SENT)
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.JOB_PROCESSING)
+						.addTransition(
+						Instruction.REQUEST_INITIAL,
+						ServerStates.JOB_INIT_SENT,
+						new SendInitialParameterHandler());
+		addState(ServerStates.JOB_BINARY_SENT)
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.JOB_INIT_SENT,
+						new SendInitialParameterHandler());
+		addState(ServerStates.JOB_INIT_SENT)
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.JOB_PROCESSING);
+		addState(ServerStates.JOB_PROCESSING)
+						.addTransition(
+						Instruction.SEND_RESULT,
+						ServerStates.CONNECTED,
+						new ResultHandler());
+		addState(ServerStates.INIT_SENT)
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.CONNECTED)
+						.addTransition(
+						Instruction.REQUEST_BINARY,
+						ServerStates.INIT_BINARY_SENT,
+						new SendBinaryHandler());
+		addState(ServerStates.INIT_BINARY_SENT)
+						.addTransition(
+						Instruction.ACK,
+						ServerStates.CONNECTED);
 
-	private class ClientConnectedHandler implements ActionHandler {
 
-		@Override
-		public void handle(final Object... o) {
-			mDroidManager.connectDroid((String) o[0], mConnection);
-			mCommunicationIO.onDroidConnected((String) o[0], mConnection);
+		setState(ServerStates.UNCONNECTED);
+		try {
+			process(ServerTrans.CLIENT_NEW);
 		}
-	}
-
-	/**
-	 * Sends binary file to droid.
-	 */
-	public class SendBinaryHandler implements ActionHandler {
-
-		@Override
-		public void handle(final Object... binary) {
-			System.out.println("SendBinaryHandler() called");
-			try {
-
-				// ID is currently just a serial number
-				taskID++;
-
-				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY, String.format("%05d", taskID), null));
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+		catch (StateMachineException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
 }

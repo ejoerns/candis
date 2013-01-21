@@ -24,11 +24,11 @@ public class TestMain {
 	public static void runCDBTest(String cdb, int threads) throws Exception {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
-		comio.loadCDB(new File(cdb));
-		comio.initDroids(threads);
+		String cdbID = comio.getCDBLoader().loadCDB(new File(cdb));
+		comio.initDroids(threads, cdbID);
 
 		try {
-			comio.initScheduler();
+			comio.initScheduler(cdbID);
 			comio.startScheduler();
 		}
 		catch (SchedulerStillRuningException ex) {
@@ -43,7 +43,9 @@ public class TestMain {
 		catch (InterruptedException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
+
 		comio.stopDroids();
+
 
 	}
 

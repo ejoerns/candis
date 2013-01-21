@@ -1,6 +1,9 @@
 package candis.common;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 /**
@@ -9,48 +12,115 @@ import java.util.logging.Logger;
  */
 public class CandisLog {
 
-  public static final int VERBOSE = 0;
-  public static final int DEBUG = 10;
-  public static final int INFO = 20;
-  public static final int WARNING = 30;
-  public static final int ERROR = 40;
-  private static int mLevel = WARNING;
+	public enum CandisLogLevel {
 
-  public static void level(int level) {
-    mLevel = level;
-  }
+		VERBOSE(0, "VERBOSE", Level.INFO),
+		DEBUG(10, "DEBUG", Level.INFO),
+		INFO(20, "INFO", Level.INFO),
+		WARNING(30, "WARNING", Level.WARNING),
+		ERROR(40, "ERROR", Level.SEVERE),
+		OFF(1000, "OFF", Level.OFF);
 
-  public static void e(String tag, String msg) {
-    if (mLevel <= ERROR) {
-      log(tag, "ERROR", Level.SEVERE, msg);
-    }
-  }
+		CandisLogLevel(int iLevel, String sLevel, Level lLevel) {
+			this.iLevel = iLevel;
+			this.sLevel = sLevel;
+			this.lLevel = lLevel;
+		}
+		public final int iLevel;
+		public final String sLevel;
+		public final Level lLevel;
+	};
+	private static Map<String, CandisLogLevel> levelMap = generateLevelMap();
 
-  public static void w(String tag, String msg) {
-    if (mLevel <= WARNING) {
-      log(tag, "WARNING", Level.WARNING, msg);
-    }
-  }
+	private static Map<String, CandisLogLevel> generateLevelMap() {
+		Map<String, CandisLogLevel> result = new HashMap<String, CandisLogLevel>();
+		result.put("ALL", CandisLogLevel.VERBOSE);
+		result.put("CONFIG", CandisLogLevel.DEBUG);
+		result.put("FINE", CandisLogLevel.DEBUG);
+		result.put("DEBUG", CandisLogLevel.DEBUG);
+		result.put("FINEST", CandisLogLevel.VERBOSE);
+		result.put("FINER", CandisLogLevel.VERBOSE);
+		result.put("VERBOSE", CandisLogLevel.VERBOSE);
+		result.put("INFO", CandisLogLevel.INFO);
+		result.put("OFF", CandisLogLevel.OFF);
+		result.put("SEVERE", CandisLogLevel.ERROR);
+		result.put("ERROR", CandisLogLevel.ERROR);
+		result.put("WARNING", CandisLogLevel.WARNING);
 
-  public static void i(String tag, String msg) {
-    if (mLevel <= INFO) {
-      log(tag, "INFO", Level.INFO, msg);
-    }
-  }
 
-  public static void d(String tag, String msg) {
-    if (mLevel <= DEBUG) {
-      log(tag, "DEBUG", Level.INFO, msg);
-    }
-  }
 
-  public static void v(String tag, String msg) {
-    if (mLevel <= VERBOSE) {
-      log(tag, "VERBOSE", Level.INFO, msg);
-    }
-  }
 
-  public static void log(String tag, String level, Level mapLevel, String msg) {
-    Logger.getLogger(tag).log(mapLevel, String.format("%s: %s", level, msg));
-  }
+		return result;
+	}
+	private static CandisLogLevel mLevel = CandisLogLevel.INFO;
+
+	public static void level(CandisLogLevel level) {
+		mLevel = level;
+	}
+
+	public static void e(String tag, String msg) {
+		logp(tag, CandisLogLevel.ERROR, msg);
+	}
+
+	public static void e(String msg) {
+		logp(null, CandisLogLevel.ERROR, msg);
+	}
+
+	public static void w(String tag, String msg) {
+		logp(tag, CandisLogLevel.WARNING, msg);
+	}
+
+	public static void w(String msg) {
+		logp(null, CandisLogLevel.WARNING, msg);
+	}
+
+	public static void i(String tag, String msg) {
+		logp(tag, CandisLogLevel.INFO, msg);
+	}
+
+	public static void i(String msg) {
+		logp(null, CandisLogLevel.INFO, msg);
+	}
+
+	public static void d(String tag, String msg) {
+		logp(tag, CandisLogLevel.DEBUG, msg);
+	}
+
+	public static void d(String msg) {
+		logp(null, CandisLogLevel.DEBUG, msg);
+	}
+
+	public static void v(String tag, String msg) {
+		logp(tag, CandisLogLevel.VERBOSE, msg);
+	}
+
+	public static void v(String msg) {
+		logp(null, CandisLogLevel.VERBOSE, msg);
+	}
+
+	public static void log(String tag, CandisLogLevel level, String msg) {
+		logp(tag, level, msg);
+	}
+
+	private static void log(CandisLogLevel level, String msg) {
+		logp(null, level, msg);
+	}
+
+	private static void logp(String tag, CandisLogLevel level, String msg) {
+		StackTraceElement stack = (Thread.currentThread().getStackTrace())[3];
+		if (tag == null) {
+			tag = stack.getClassName();
+		}
+		String defaultLevel = LogManager.getLogManager().getProperty(tag);
+		CandisLogLevel cLevel = mLevel;
+		if (defaultLevel != null && levelMap.containsKey(defaultLevel)) {
+			cLevel = levelMap.get(defaultLevel);
+		}
+
+		if (cLevel.iLevel <= level.iLevel) {
+
+			Logger.getLogger(tag).logp(level.lLevel, stack.getClassName(), stack.getMethodName(), String.format("%s: %s", level.sLevel, msg));
+		}
+
+	}
 }
