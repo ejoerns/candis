@@ -1,6 +1,6 @@
 package candis.server;
 
-import candis.common.CandisLog;
+import candis.common.Connection;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedControl;
@@ -11,7 +11,6 @@ import candis.distributed.JobDistributionIO;
 import candis.distributed.JobDistributionIOHandler;
 import candis.distributed.Scheduler;
 import candis.distributed.SchedulerStillRuningException;
-import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -26,18 +25,18 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOServer.class.getName());
 	protected final DroidManager mDroidManager;
+	private final CDBLoader mCDBLoader;
+	/// The control, scheduler and id for the task currently processed
 	protected DistributedControl mDistributedControl;
-	protected Scheduler mScheduler;
+	protected Scheduler mCurrentScheduler;
+	private String mCurrentTaskID = "";
+	/// Thread and list for execution queue
 	private Thread mQueueThread;
 	private final List<Runnable> mComIOQueue = new LinkedList<Runnable>();
-	private final CDBLoader mCDBLoader;
-	/// Holds all registered classloaders.
-	private LinkedList<ClassLoader> mClassLoderList = new LinkedList<ClassLoader>();
 	/// Holds all registered handlers
 	private LinkedList<JobDistributionIOHandler> mHanderList = new LinkedList<JobDistributionIOHandler>();
 
 	public JobDistributionIOServer(final DroidManager manager) {
-//		CandisLog.level(CandisLog.VERBOSE);
 		mCDBLoader = new CDBLoader();
 		mDroidManager = manager;
 	}
@@ -58,10 +57,16 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	/*--------------------------------------------------------------------------*/
 	/* Get methods                                                              */
 	/*--------------------------------------------------------------------------*/
-	// Called by Scheduler.
-	@Override
-	public int getDroidCount() {
-		return mDroidManager.getConnectedDroids().size();
+	public String getCurrentTaskID() {
+		return mCurrentTaskID;
+	}
+
+	public Scheduler getCurrentScheduler() {
+		return mCurrentScheduler;
+	}
+
+	public CDBLoader getCDBLoader() {
+		return mCDBLoader;
 	}
 
 	// Called by Scheduler.
@@ -70,17 +75,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		return mDroidManager.getKnownDroids().get(droidID);
 	}
 
-	@Override
-	public Set<String> getConnectedDroids() {
-		return mDroidManager.getConnectedDroids().keySet();
-	}
-
-	public Scheduler getScheduler() {
-		return mScheduler;
-	}
-
-	protected Connection getDroidConnection(String droidID) {
-		System.out.println(mDroidManager.getConnectedDroids().size());
+	protected ClientConnection getDroidConnection(String droidID) {
 		return mDroidManager.getConnectedDroids().get(droidID);
 	}
 	/*--------------------------------------------------------------------------*/
@@ -88,37 +83,12 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	/*--------------------------------------------------------------------------*/
 
 	@Override
-	public void sendBinary(String droidID) {
-		FSM fsm = getDroidConnection(droidID).getStateMachine();
-		try {
-			fsm.process(
-							ServerStateMachine.ServerTrans.SEND_BINARY,
-							mCDBLoader.getDroidBinary());
-		}
-		catch (StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
-	}
-
-	@Override
-	public void sendInitialParameter(String droidID, DistributedJobParameter parameter) {
-		FSM fsm = getDroidConnection(droidID).getStateMachine();
-		try {
-			fsm.process(
-							ServerStateMachine.ServerTrans.SEND_INITAL,
-							parameter);
-		}
-		catch (StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
-	}
-
-	@Override
 	public void startJob(String droidID, DistributedJobParameter param) {
+		assert param != null;
 		FSM fsm = getDroidConnection(droidID).getStateMachine();
 		try {
 			fsm.process(
-							ServerStateMachine.ServerTrans.SEND_JOB, param);
+							ServerStateMachine.ServerTrans.SEND_JOB, mCurrentTaskID, param);// TODO: check ID
 		}
 		catch (StateMachineException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -130,7 +100,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		FSM fsm = getDroidConnection(droidID).getStateMachine();
 		try {
 			fsm.process(
-							ServerStateMachine.ServerTrans.STOP_JOB);
+							ServerStateMachine.ServerTrans.STOP_JOB, mCurrentTaskID);
 		}
 		catch (StateMachineException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -144,7 +114,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
-				mScheduler.onJobDone(droidID, result);
+				mCurrentScheduler.onJobDone(droidID, result);
 			}
 		});
 	}
@@ -153,25 +123,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
-				mScheduler.registerDroid(droidID);
-			}
-		});
-	}
-
-	public void onBinarySent(final String droidID) {
-		addToQueue(new Runnable() {
-			@Override
-			public void run() {
-				mScheduler.onBinarySent(droidID);
-			}
-		});
-	}
-
-	public void onInitalParameterSent(final String droidID) {
-		addToQueue(new Runnable() {
-			@Override
-			public void run() {
-				mScheduler.onInitParameterSent(droidID);
+				mCurrentScheduler.registerDroid(droidID);
 			}
 		});
 	}
@@ -182,7 +134,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	@Override
 	public void run() {
 		try {
-			while (!(isQueueEmpty() && mScheduler.isDone())) {
+			while (!(isQueueEmpty() && mCurrentScheduler.isDone())) {
 
 				while (!isQueueEmpty()) {
 					Runnable task;
@@ -191,7 +143,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 					}
 					task.run();
 				}
-				if (!mScheduler.isDone()) {
+				if (!mCurrentScheduler.isDone()) {
 					synchronized (mComIOQueue) {
 						if (mComIOQueue.isEmpty()) {
 							mComIOQueue.wait();
@@ -233,15 +185,27 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	/* Scheduler control functions                                              */
 	/*--------------------------------------------------------------------------*/
 
-	public void initScheduler() throws SchedulerStillRuningException {
-		if ((mScheduler == null) || (mScheduler.isDone())) {
+	public void initScheduler(String taskID) throws SchedulerStillRuningException {
+		if ((mCurrentScheduler == null) || (mCurrentScheduler.isDone())) {
+			mCurrentTaskID = taskID;
 			// init scheduler and set self as callback
-			mScheduler = mDistributedControl.initScheduler();
-			mScheduler.setJobDistributionIO(this);
+			mDistributedControl = mCDBLoader.getDistributedControl(taskID);
+			mCurrentScheduler = mDistributedControl.initScheduler();
+			mCurrentScheduler.setJobDistributionIO(this);
 		}
 		else {
 			throw new SchedulerStillRuningException("Scheduler still running");
 		}
+	}
+
+	/**
+	 *
+	 * @param droidID
+	 * @param p
+	 */
+	@Override
+	public void sendInitialParameter(String droidID, DistributedJobParameter p) {
+		throw new UnsupportedOperationException();
 	}
 
 	/**
@@ -250,17 +214,17 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	 * @throws SchedulerStillRuningException
 	 */
 	public void startScheduler() throws SchedulerStillRuningException {
-		if (mScheduler != null || mScheduler.isDone()) {
+		if (mCurrentScheduler != null || mCurrentScheduler.isDone()) {
 			addToQueue(new Runnable() {
 				@Override
 				public void run() {
-					mScheduler.registerDroids(mDroidManager.getConnectedDroids().keySet());
+					mCurrentScheduler.registerDroids(mDroidManager.getConnectedDroids().keySet());
 				}
 			});
 			addToQueue(new Runnable() {
 				@Override
 				public void run() {
-					mScheduler.start();
+					mCurrentScheduler.start();
 				}
 			});
 			// Starts worker queue
@@ -279,25 +243,8 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
-				mScheduler.abort();
+				mCurrentScheduler.abort();
 			}
 		});
-	}
-
-	/*--------------------------------------------------------------------------*/
-	/* CDB handling                                                             */
-	/*--------------------------------------------------------------------------*/
-	public int loadCDB(final File cdbFile) throws Exception {
-		int cdbID = mCDBLoader.loadCDB(cdbFile);
-		// TODO: merge...
-		mDistributedControl = mCDBLoader.getDistributedControl();
-//		initScheduler();
-		return cdbID;
-	}
-
-	public CDBLoader getCDBLoader() {
-		if (mCDBLoader == null) {
-		}
-		return mCDBLoader;
 	}
 }

@@ -18,10 +18,10 @@ public class SendHandler implements Runnable {
   private static final Logger LOGGER = Logger.getLogger(SendHandler.class.getName());
   private final List<Message> mMessageQueue = new LinkedList<Message>();
   private boolean mStop = false; // TODO: use? :)
-  private final ObjectOutputStream mObjOutstream;
+  private final MessageConnection mMsgConn;
 
-  public SendHandler(ObjectOutputStream oos) {
-    mObjOutstream = oos;
+  public SendHandler(MessageConnection mconn) {
+    mMsgConn = mconn;
   }
 
   private boolean isQueueEmpty() {
@@ -38,8 +38,7 @@ public class SendHandler implements Runnable {
           synchronized (mMessageQueue) {
             // send it
             try {
-              mObjOutstream.writeObject(mMessageQueue.remove(0));
-              mObjOutstream.flush();
+              mMsgConn.sendMessage(mMessageQueue.remove(0));
             }
             catch (IOException ex) {
               LOGGER.log(Level.SEVERE, null, ex);

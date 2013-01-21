@@ -3,17 +3,22 @@ package candis.client;
 import android.content.Context;
 import android.util.Log;
 import candis.client.service.BackgroundService;
+import candis.common.ByteArray;
+import candis.common.CandisLog;
 import candis.common.ClassLoaderWrapper;
+import candis.common.ClassloaderObjectInputStream;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OptionalDataException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -29,18 +34,45 @@ import java.util.logging.Logger;
  */
 public class JobCenter {
 
-  private final Context mContext;
-  private final ClassLoaderWrapper mClassLoader;
   private static final String TAG = JobCenter.class.getName();
-  private final Map<String, List<Class>> mTaskClassesMap = new HashMap<String, List<Class>>();
-  private final Map<String, Class> mTaskMap = new HashMap<String, Class>();
+  /// maximum number of tasks held in cache
+  private static final int MAX_TASKS = 5;// TODO: currently no implemented
+  // ---
+  /// context, needed for file storage
+  private final Context mContext;
+  /// Wrapper to pass ClassLoader
+  private final ClassLoaderWrapper mClassLoader;
+  // --- Maps that holds all info for tasks
+  private final Map<String, TaskContext> mTaskContextMap = new HashMap<String, TaskContext>();
+  /// List of all registered handlers
   private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
-  private Map<String, DistributedJobParameter> mInitialParameterMap =
-          new HashMap<String, DistributedJobParameter>();
+  private byte[] lastUnserializedJob;
 
   public JobCenter(final Context context, final ClassLoaderWrapper cl) {
+    CandisLog.level(CandisLog.VERBOSE);
     mContext = context;
     mClassLoader = cl;
+  }
+
+  public void setLastUnserializedJob(byte[] lusj) {
+    lastUnserializedJob = lusj;
+  }
+
+  public DistributedJobParameter serializeJob() {
+    Object obj = null;
+    try {
+      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoader).readObject();
+    }
+    catch (OptionalDataException ex) {
+      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    catch (ClassNotFoundException ex) {
+      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    catch (IOException ex) {
+      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    return (DistributedJobParameter) obj;
   }
 
   /**
@@ -52,17 +84,35 @@ public class JobCenter {
     Log.v(TAG, String.format("Saving jar to file %s", filename));
     final File dexInternalStoragePath = new File(mContext.getFilesDir(), filename);
 
+    if (mTaskContextMap.containsKey(runnableID)) {
+      Log.w(TAG, String.format("Warning: Task with ID %s already loaded", runnableID));
+    }
+    // create new task context
+    mTaskContextMap.put(runnableID, new TaskContext(filename));// TODO: name
+    mTaskContextMap.get(runnableID).jarfile = filename;
+
     writeByteArrayToFile(binary, dexInternalStoragePath);
 
     loadClassesFromJar(runnableID, dexInternalStoragePath);
-
   }
 
+  /**
+   * Executes task with given ID.
+   *
+   * @param runnableID
+   * @param param
+   * @return
+   */
   public DistributedJobResult executeTask(final String runnableID, final DistributedJobParameter param) {
     DistributedJobResult result = null;
 
-    if (!mTaskMap.containsKey(runnableID)) {
+    if (!mTaskContextMap.containsKey(runnableID)) {
       Log.e(TAG, String.format("Task with ID %s not found", runnableID));
+      return null;
+    }
+
+    // Check if task can be executed
+    if (!checkExecution()) {
       return null;
     }
 
@@ -73,10 +123,11 @@ public class JobCenter {
 
     // try to instanciate class
     try {
-      DistributedRunnable currentTask = (DistributedRunnable) mTaskMap.get(runnableID).newInstance();
-      currentTask.setInitialParameter(mInitialParameterMap.get(runnableID));
+      Log.i(TAG, "Running Job for Task " + mTaskContextMap.get(runnableID).name + " with TaskID " + runnableID);
+      DistributedRunnable currentTask = (DistributedRunnable) mTaskContextMap.get(runnableID).taskClass.newInstance();
+      currentTask.setInitialParameter(mTaskContextMap.get(runnableID).initialParam);
       result = currentTask.runJob(param);
-      
+
       if (result == null) {
         Log.e(TAG, "Process returned null");
       }
@@ -94,6 +145,49 @@ public class JobCenter {
     }
 
     return result;
+  }
+
+  /**
+   * Checks whether Task with specified ID is alread known and loaded.
+   *
+   * @param runnableID
+   * @return true if known, otherwise false
+   */
+  public boolean isTaskAvailable(String runnableID) {
+    return mTaskContextMap.containsKey(runnableID);
+  }
+
+  /**
+   * Checks if the execution is ok.
+   *
+   * @return
+   */
+  private boolean checkExecution() {
+    if (!checkPhoneStatusOK()) {
+      return false;
+    }
+    if (!checkBatteryLevelOK()) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Checks if battery level is ok for execution.
+   *
+   * @return
+   */
+  private boolean checkBatteryLevelOK() {
+    return true;
+  }
+
+  /**
+   * Checks if phone status is ok for execution.
+   *
+   * @return
+   */
+  private boolean checkPhoneStatusOK() {
+    return true;
   }
 
   /**
@@ -138,23 +232,25 @@ public class JobCenter {
    */
   private void loadClassesFromJar(final String runnableID, final File jarfile) {
 
-    if (mTaskClassesMap.containsKey(runnableID)) {
-      Log.w(TAG, String.format("Warning: Task with ID %s already loaded", runnableID));
-    }
-    else {
-      mTaskClassesMap.put(runnableID, new LinkedList<Class>());
-    }
+    mTaskContextMap.get(runnableID).taskClasses = new LinkedList<Class>();
 
+    Log.i(TAG,
+          "XXX: Calling DexClassLoader with jarfile: " + jarfile.getName());
     final File tmpDir = mContext.getDir("dex", 0);
-    mClassLoader.set(new DexClassLoader(
+
+    mClassLoader.set(
+            new DexClassLoader(
             jarfile.getAbsolutePath(),
             tmpDir.getAbsolutePath(),
             null,
-            BackgroundService.class.getClassLoader()));
+            BackgroundService.class
+            .getClassLoader()));
 
 
     // load all available classes
     String path = jarfile.getPath();
+
+
     try {
       // load dexfile
       DexFile dx = DexFile.loadDex(
@@ -171,40 +267,44 @@ public class JobCenter {
           final Class<Object> loadedClass = (Class<Object>) mClassLoader.get().loadClass(className);
           Log.i(TAG, String.format("Loaded class: %s", className));
           // add associated classes to task class list
-          mTaskClassesMap.get(runnableID).add(loadedClass);
+          if (loadedClass == null) {
+            Log.e(TAG, "EEEEEE loadedClass is null");
+          }
+          if (mTaskContextMap.get(runnableID) == null) {
+            Log.e(TAG, "EEEEEE no mapentry found");
+          }
+          if (mTaskContextMap.get(runnableID).taskClasses == null) {
+            Log.e(TAG, "EEEEEE taskClasses empty");
+          }
+          mTaskContextMap.get(runnableID).taskClasses.add(loadedClass);
           // add task class to task list
           if (DistributedRunnable.class.isAssignableFrom(loadedClass)) {
-            mTaskMap.put(runnableID, loadedClass);
+            mTaskContextMap.get(runnableID).taskClass = loadedClass;
           }
         }
-        catch (Exception ex) {
-          Log.e(TAG, ex.toString());
+        catch (ClassNotFoundException ex) {
+          Log.getStackTraceString(ex);
         }
       }
     }
     catch (IOException e) {
       System.out.println("Error opening " + path);
     }
-  
     // notify listeners
     for (JobCenterHandler handler : mHandlerList) {
       handler.onBinaryReceived(runnableID);
     }
-  
   }
 
   /**
    *
-   * @param o
+   * @param dparam
    */
-  public boolean loadInitialParameter(final String runnableID, final Object o) {
-    if (!(o instanceof DistributedJobParameter)) {
-      Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
-      Log.e(TAG, String.format("Is of class %s", o.getClass().getName()));
-      return false;
-    }
-    mInitialParameterMap.put(runnableID, (DistributedJobParameter) o);
-    Log.w(TAG, "Initial Parameter loaded");
+  public boolean setInitialParameter(final String runnableID, final DistributedJobParameter dparam) {
+    Log.i(TAG, "runnableID: " + runnableID);
+    Log.i(TAG, "Param: " + dparam);
+    mTaskContextMap.get(runnableID).initialParam = dparam;
+    Log.i(TAG, "Initial Parameter for ID " + runnableID + " loaded with classloader " + ((DistributedJobParameter) dparam).getClass().getClassLoader());
 
     for (JobCenterHandler handler : mHandlerList) {
       handler.onInitialParameterReceived(runnableID);
@@ -218,20 +318,39 @@ public class JobCenter {
    * @todo: needed?
    * @param o
    */
-  public boolean loadJob(final String runnableID, final Object o) {
-    if (!(o instanceof DistributedJobParameter)) {
-      Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
-      return false;
-    }
-    Log.w(TAG, "Job Parameter dummy-loaded");
-    return true;
-  }
-
+//  public boolean loadJob(final String runnableID, final Object o) {
+//    if (!(o instanceof DistributedJobParameter)) {
+//      Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
+//      return false;
+//    }
+//    Log.w(TAG, "Job Parameter dummy-loaded");
+//    return true;
+//  }
   /**
    *
    * @param handler
    */
   public void addHandler(final JobCenterHandler handler) {
     mHandlerList.add(handler);
+  }
+
+  /**
+   * Class that can hold all information required for a task.
+   */
+  private class TaskContext {
+
+    public final String name;
+    /// Name of jarfile to be able to delete it
+    public String jarfile;
+    /// List of Classes for Task
+    public List<Class> taskClasses;
+    /// Holds the runnable Class for Task
+    public Class taskClass;
+    /// Holds initial parameter for Task
+    public DistributedJobParameter initialParam;
+
+    public TaskContext(String name) {
+      this.name = name;
+    }
   }
 }

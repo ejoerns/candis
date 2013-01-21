@@ -22,35 +22,35 @@ public class CandisLog {
 
   public static void e(String tag, String msg) {
     if (mLevel <= ERROR) {
-      log(tag, "ERROR", msg);
+      log(tag, "ERROR", Level.SEVERE, msg);
     }
   }
 
   public static void w(String tag, String msg) {
     if (mLevel <= WARNING) {
-      log(tag, "WARNING", msg);
+      log(tag, "WARNING", Level.WARNING, msg);
     }
   }
 
   public static void i(String tag, String msg) {
     if (mLevel <= INFO) {
-      log(tag, "INFO", msg);
+      log(tag, "INFO", Level.INFO, msg);
     }
   }
 
   public static void d(String tag, String msg) {
     if (mLevel <= DEBUG) {
-      log(tag, "DEBUG", msg);
+      log(tag, "DEBUG", Level.INFO, msg);
     }
   }
 
   public static void v(String tag, String msg) {
     if (mLevel <= VERBOSE) {
-      log(tag, "VERBOSE", msg);
+      log(tag, "VERBOSE", Level.INFO, msg);
     }
   }
 
-  public static void log(String tag, String level, String msg) {
-    Logger.getLogger(tag).log(Level.INFO, String.format("%s: %s", level, msg));
+  public static void log(String tag, String level, Level mapLevel, String msg) {
+    Logger.getLogger(tag).log(mapLevel, String.format("%s: %s", level, msg));
   }
 }

@@ -1,6 +1,5 @@
 package candis.example.mini;
 
-import android.util.Log;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;

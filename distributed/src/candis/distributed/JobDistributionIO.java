@@ -11,13 +11,6 @@ import java.util.Set;
 public interface JobDistributionIO extends Runnable {
 
   /**
-   * Called by Scheduler to get number of connected droids.
-   *
-   * @return Number of connected droids
-   */
-  int getDroidCount();
-
-  /**
    * Called by Scheduler to get the DroidData which might be used for
    * Scheduling decisions.
    *
@@ -27,14 +20,7 @@ public interface JobDistributionIO extends Runnable {
   DroidData getDroidData(String droidID);
 
   /**
-   * Called by scheduler to send the task binary.
-   *
-   * @param droidID ID of Droid to send to
-   */
-  void sendBinary(String droidID);
-
-  /**
-   * Called by Scheduler to send the initial parameter.
+   * Called by Scheduler to send an initial parameter.
    *
    * @param droidID ID of Droid to send to
    * @param p Initial Parameter to set for the Droid.
@@ -55,11 +41,4 @@ public interface JobDistributionIO extends Runnable {
    * @param droidID ID of droid to stop
    */
   void stopJob(String droidID);
-
-  /**
-   * Requests all connected droids.
-   *
-   * @return Set of all currently connected droids
-   */
-  Set<String> getConnectedDroids();
 }

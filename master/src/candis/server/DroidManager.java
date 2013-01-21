@@ -41,7 +41,7 @@ public final class DroidManager {
 	 * Map of connected droids with bool flag for further use. Dynamic list that
 	 * will be generated at runtime.
 	 */
-	private Map<String, Connection> connectedDroids = new ConcurrentHashMap<String, Connection>();
+	private Map<String, ClientConnection> connectedDroids = new ConcurrentHashMap<String, ClientConnection>();
 	/**
 	 * List of connected Listeners expecting changes of DroidStates.
 	 */
@@ -87,7 +87,7 @@ public final class DroidManager {
 	 *
 	 * @return Map of connected Droids.
 	 */
-	public Map<String, Connection> getConnectedDroids() {
+	public Map<String, ClientConnection> getConnectedDroids() {
 		return connectedDroids;
 	}
 
@@ -264,13 +264,13 @@ public final class DroidManager {
 	 *
 	 * @param rid
 	 */
-	public void connectDroid(final String rid, Connection con) {
+	public void connectDroid(final String rid, ClientConnection con) {
 		LOGGER.log(Level.INFO, "Droid {0} connected", rid);
 		connectedDroids.put(rid, con);
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
 	}
 
-	public void connectDroid(final DroidID rid, Connection con) {
+	public void connectDroid(final DroidID rid, ClientConnection con) {
 		connectDroid(rid.toString(), con);
 	}
 

@@ -1,11 +1,11 @@
 package candis.distributed.test;
 
 import candis.common.fsm.StateMachineException;
-import candis.server.Connection;
+import candis.distributed.DistributedRunnable;
+import candis.server.CDBLoader;
+import candis.server.ClientConnection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
-import candis.server.ServerStateMachine;
-import candis.server.ServerStateMachine.ServerTrans;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.Level;
@@ -26,22 +26,6 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 
 	public JobDistributionIOTestServer(DroidManager manager) {
 		super(manager);
-	}
-
-	// Called by Scheduler.
-	@Override
-	public void sendBinary(String droidID) {
-		Connection d = getDroidConnection(droidID);
-
-		try {
-			d.getStateMachine().process(
-							ServerStateMachine.ServerTrans.SEND_BINARY,
-							(Object) null);
-		}
-		catch (StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-
-		}
 	}
 
 	public void initDroids() {
@@ -84,21 +68,20 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 	/**
 	 * Simulates Connection local streams and a security-simplified FSM.
 	 */
-	private class TestConnection extends Connection {
+	private class TestConnection extends ClientConnection {
 
 		private TestDroid droid;
 		private final Logger LOGGER = Logger.getLogger(TestConnection.class.getName());
 
-		public TestConnection(TestDroid droid, final DroidManager manager, final JobDistributionIOServer comIO) {
-			super(null, manager, comIO);
+		public TestConnection(TestDroid droid, final DroidManager manager, final JobDistributionIOServer comIO) throws IOException {
+			super(droid.getInputStream(), droid.getOutputStream(), manager, comIO);
 			this.droid = droid;
 		}
 
-		@Override
+//		@Override
 		protected void initConnection() {
-			oos = droid.getOutputStream();
-			ois = droid.getInputStream();
 			mStateMachine = new TestServerStateMachine(this, mDroidManager, mCommunicationIO);
+			mStateMachine.init();
 			try {
 				mStateMachine.process(ServerTrans.CLIENT_NEW, droid.getId());
 			}

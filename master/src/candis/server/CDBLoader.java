@@ -17,9 +17,13 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.logging.Level;
@@ -42,11 +46,12 @@ import java.util.zip.ZipFile;
 public class CDBLoader {
 
 	private static final Logger LOGGER = Logger.getLogger(CDBLoader.class.getName());
-	private DistributedControl mDistributedControl;
-	private Class mDistributedRunnable;
-	private CDBContext mCDBContext;
+	private final Map<String, DistributedControl> mDistributedControl = new HashMap<String, DistributedControl>();
+	private final Map<String, Class> mDistributedRunnable = new HashMap<String, Class>();
+	private final Map<String, CDBContext> mCDBContextMap = new HashMap<String, CDBContext>();
+	private final Set<String> mKnownTaskIDs = new HashSet<String>();
 	private final ClassLoaderWrapper mClassLoaderWrapper;
-	private static int mCDBid = 0;
+	private static int mCDBid = 42;
 
 	/**
 	 * Creates new CDB loader.
@@ -63,13 +68,13 @@ public class CDBLoader {
 	 *
 	 * @return extracted DistributedControl
 	 */
-	public final DistributedControl getDistributedControl() {
-		return mDistributedControl;
+	public final DistributedControl getDistributedControl(String id) {
+		return mDistributedControl.get(id);
 	}
 
-	public final DistributedRunnable getDistributedRunnable() {
+	public final DistributedRunnable getDistributedRunnable(String id) {
 		try {
-			return (DistributedRunnable) mDistributedRunnable.newInstance();
+			return (DistributedRunnable) mDistributedRunnable.get(id).newInstance();
 		}
 		catch (InstantiationException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -86,8 +91,12 @@ public class CDBLoader {
 	 *
 	 * @return loaded droid binary
 	 */
-	public final File getDroidBinary() {
-		return mCDBContext.getDroidBin();
+	public final File getDroidBinary(String id) {
+		if (!mKnownTaskIDs.contains(id)) {
+			LOGGER.log(Level.SEVERE, "Binary for id {0} not found", id);
+			return null;
+		}
+		return mCDBContextMap.get(id).getDroidBin();
 	}
 
 	/**
@@ -103,30 +112,34 @@ public class CDBLoader {
 	/**
 	 * Loads classes from cdb file.
 	 *
+	 * Returns ID that can be used to acces CDB data later on.
+	 *
 	 * @param cdbfile
 	 * @return ID for the CDB file.
 	 */
-	public int loadCDB(final File cdbfile) throws Exception {
+	public String loadCDB(final File cdbfile) throws Exception {
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
 		List<String> classList;
+		String newID = String.format("%05d", mCDBid++);
+		LOGGER.log(Level.INFO, "Loading CDB file with ID {0}", newID);
 
-		mCDBContext = new CDBContext(projectPath);
-		extractCandisDistributedBundle(cdbfile, mCDBContext);
+		final CDBContext newCDBContext = new CDBContext(projectPath);
+		extractCandisDistributedBundle(cdbfile, newCDBContext);
 
 		try {
 			List<URL> urls = new LinkedList<URL>();
-			for(int i=0; i < mCDBContext.getLibCount(); i++) {
-				urls.add(mCDBContext.getLib(i).toURI().toURL());
+			for (int i = 0; i < newCDBContext.getLibCount(); i++) {
+				urls.add(newCDBContext.getLib(i).toURI().toURL());
 			}
-			urls.add(mCDBContext.getServerBin().toURI().toURL());
+			urls.add(newCDBContext.getServerBin().toURI().toURL());
 			mClassLoaderWrapper.set(
 							new URLClassLoader(
 							urls.toArray(new URL[]{}),
 							this.getClass().getClassLoader()));
 
 
-			for(int i=0; i < mCDBContext.getLibCount(); i++) {
-				classList = getClassNamesInJar(mCDBContext.getLib(i).getPath());
+			for (int i = 0; i < newCDBContext.getLibCount(); i++) {
+				classList = getClassNamesInJar(newCDBContext.getLib(i).getPath());
 
 				for (String classname : classList) {
 					// finds the DistributedControl instance
@@ -136,9 +149,8 @@ public class CDBLoader {
 									&& (!DistributedRunnable.class.isAssignableFrom(classToLoad))) {
 						LOGGER.log(Level.INFO, "Loaded class with non-default interface: {0}", classToLoad.getName());
 					}
-					else if (DistributedRunnable.class.isAssignableFrom(classToLoad))
-					{
-						mDistributedRunnable = classToLoad;
+					else if (DistributedRunnable.class.isAssignableFrom(classToLoad)) {
+						mDistributedRunnable.put(newID, classToLoad);
 					}
 					else {
 						LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
@@ -147,7 +159,7 @@ public class CDBLoader {
 			}
 
 			// load server binary
-			classList = getClassNamesInJar(mCDBContext.getServerBin().getPath());
+			classList = getClassNamesInJar(newCDBContext.getServerBin().getPath());
 
 			for (String classname : classList) {
 				System.out.println("Trying to load class: " + classname);
@@ -156,7 +168,7 @@ public class CDBLoader {
 				if (DistributedControl.class.isAssignableFrom(classToLoad)) {
 					LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
 					try {
-						mDistributedControl = (DistributedControl) classToLoad.newInstance();
+						mDistributedControl.put(newID, (DistributedControl) classToLoad.newInstance());
 					}
 					catch (InstantiationException ex) {
 						LOGGER.log(Level.SEVERE, null, ex);
@@ -178,7 +190,10 @@ public class CDBLoader {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
 
-		return mCDBid++;
+		mCDBContextMap.put(newID, newCDBContext);
+		mKnownTaskIDs.add(newID);
+		// convert to string ID
+		return newID;
 	}
 
 	/**
@@ -188,10 +203,14 @@ public class CDBLoader {
 	 * server binary
 	 *
 	 * @param cdbfile Name of cdb-file
-	 * @param cdbContext
+	 * @param cdbContext CDB context
 	 */
-	private void extractCandisDistributedBundle(final File cdbfile, final CDBContext cdbContext) throws Exception {
+	private void extractCandisDistributedBundle(
+					final File cdbfile,
+					final CDBContext cdbContext)
+					throws Exception {
 		ZipFile zipFile;
+		String name;
 		String server_binary;
 		String droid_binary;
 		int libNumber = 0;
@@ -212,16 +231,23 @@ public class CDBLoader {
 			if (entry == null) {
 				throw new FileNotFoundException("cdb does not have a 'config.properties'");
 			}
-			Properties p = new Properties();
-			p.load(zipFile.getInputStream(entry));
-			server_binary = p.getProperty("server.binary");
-			droid_binary = p.getProperty("droid.binary");
+			Properties props = new Properties();
+			props.load(zipFile.getInputStream(entry));
+			name = props.getProperty("name");
+			server_binary = props.getProperty("server.binary");
+			droid_binary = props.getProperty("droid.binary");
+			if (name == null) {
+				throw new Exception("No task name given");
+			}
 			if (server_binary == null) {
 				throw new Exception("No server binary given");
 			}
 			if (droid_binary == null) {
 				throw new Exception("No droid binary given");
 			}
+
+			// Set task name
+			cdbContext.setName(name);
 
 			// load server binary
 			entry = zipFile.getEntry(server_binary);
@@ -237,7 +263,7 @@ public class CDBLoader {
 
 			// load libs
 			String lib;
-			while ((lib = p.getProperty(String.format("server.lib.%d", libNumber))) != null) {
+			while ((lib = props.getProperty(String.format("server.lib.%d", libNumber))) != null) {
 				File libName = cdbContext.getLibByNumber(libNumber);
 				cdbContext.addLib(libName);
 				entry = zipFile.getEntry(lib);
@@ -344,6 +370,7 @@ public class CDBLoader {
 	 */
 	private class CDBContext {
 
+		private String mName;
 		private String mPath;
 		private File mDroidBin;
 		private File mServerBin;
@@ -359,6 +386,10 @@ public class CDBLoader {
 			mDroidBin = new File(mPath, "droid.binary.dex");
 			mServerBin = new File(mPath, "server.binary.jar");
 			mLibs = new LinkedList<File>();
+		}
+
+		protected void setName(String name) {
+			mName = name;
 		}
 
 		public int getLibCount() {
@@ -380,6 +411,7 @@ public class CDBLoader {
 		public File getServerBin() {
 			return mServerBin;
 		}
+
 		public File getLibByNumber(final int n) {
 			return new File(mPath, String.format("server.lib.%d.jar", n));
 		}

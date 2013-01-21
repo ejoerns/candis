@@ -1,12 +1,13 @@
 package candis.common;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  *
  * @author Enrico Joerns
  */
-public final class ByteArray {
+public final class ByteArray implements Serializable {
 
 	private final byte[] data;
 

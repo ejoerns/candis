@@ -1,7 +1,7 @@
 package candis.client.comm;
 
-import candis.common.SendHandler;
 import candis.common.Message;
+import candis.common.SendHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
@@ -10,8 +10,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -27,12 +25,11 @@ import javax.net.ssl.X509TrustManager;
 public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 
   private static final Logger LOGGER = Logger.getLogger(SecureConnection.class.getName());
-  private ObjectOutputStream mObjOutstream;
+//  private ObjectOutputStream mObjOutstream;
   private Socket socket = null;
   private boolean mConnected;
-  private InputStream mInstream;
+//  private InputStream mInstream;
   private X509TrustManager mTrustManager;
-  private SendHandler mSendHandler;
 
   /**
    * Creates new SecureConnection.
@@ -88,21 +85,20 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
       return;
     }
 
-    try {
-      mObjOutstream = new ObjectOutputStream(socket.getOutputStream());
-      Thread.sleep(500);
-      mInstream = socket.getInputStream();
-    }
-    catch (InterruptedException ex) {
-      LOGGER.log(Level.SEVERE, null, ex);
-    }
-    catch (IOException ex) {
-      LOGGER.log(Level.SEVERE, "Failed creating input/output streams");
-    }
+//    try {
+//      mObjOutstream = new ObjectOutputStream(socket.getOutputStream());
+//      Thread.sleep(500);
+//      mInstream = socket.getInputStream();
+//    }
+//    catch (InterruptedException ex) {
+//      LOGGER.log(Level.SEVERE, null, ex);
+//    }
+//    catch (IOException ex) {
+//      LOGGER.log(Level.SEVERE, "Failed creating input/output streams");
+//    }
 
     // start message worker queue;
-    mSendHandler = new SendHandler(mObjOutstream);
-    new Thread(mSendHandler).start();
+
     mConnected = true;
   }
 
@@ -137,17 +133,13 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
     return mConnected;
   }
 
-  public InputStream getInputStream() throws IOException {
-    return mInstream;
-  }
-
   /**
    * Sends data in new thread
    *
    * @todo Replace with send qeue
    * @param msg
    */
-  public void sendMessage(final Message msg) {
-    mSendHandler.addToQueue(msg);
-  }
+//  public void sendMessage(final Message msg) {
+//    mSendHandler.addToQueue(msg);
+//  }
 }

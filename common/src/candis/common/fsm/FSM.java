@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author Enrico Joerns
  */
-public class FSM {
+public abstract class FSM {
 
   private class TransitionContainer {
 
@@ -37,6 +37,11 @@ public class FSM {
 
   public FSM() {
   }
+
+  /**
+   * Must be implemented to init the FSM
+   */
+  public abstract void init();
 
   /**
    * Adds a new state to the FSM.

@@ -17,7 +17,7 @@ public class SimpleScheduler extends Scheduler {
 
   private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
 
-  public void schedule(final Map<String, DroidData> droidList) {
+  public void schedule(final Map<String, DroidData> droidList, JobDistributionIO jobDistIO) {
     // do magic stuff here...
     // simply start all available jobs on all available droids
     Iterator<Map.Entry<String, DroidData>> it = droidList.entrySet().iterator();
@@ -28,7 +28,7 @@ public class SimpleScheduler extends Scheduler {
       // TODO: flag setzen
       it.remove();
       DistributedJobParameter param = popParameters();
-      mJobDistIO.startJob(id, param);
+      jobDistIO.startJob(id, param);
     }
   }
 }

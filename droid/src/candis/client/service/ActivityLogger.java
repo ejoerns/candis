@@ -47,4 +47,21 @@ public class ActivityLogger implements JobCenterHandler {
     intent.putExtra("Message", msg);
     mContext.startActivity(intent);
   }
+
+  public void onAction(int action, String runnableID) {
+    switch (action) {
+      case BINARY_RECEIVED:
+        onBinaryReceived(runnableID);
+        break;
+      case INITIAL_PARAMETER_RECEIVED:
+        onInitialParameterReceived(runnableID);
+        break;
+      case JOB_EXECUTION_DONE:
+        onJobExecutionDone(runnableID);
+        break;
+      case JOB_EXECUTION_START:
+        onJobExecutionStart(runnableID);
+        break;
+    }
+  }
 }
