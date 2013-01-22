@@ -1,5 +1,6 @@
 package candis.client;
 
+import candis.client.gui.LogActivity;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -40,7 +41,10 @@ public class MainActivity extends Activity
 
   private static final String TAG = MainActivity.class.getName();
   private Button mServiceButton;
-  private TextView mLogView;
+  private Button mInfoButton;
+  private Button mOptionsButton;
+  private Button mLogButton;
+  ///
   private InitTask mInitTask;
   private DroidContext mDroidContext;
   private Handler mHandler;
@@ -112,9 +116,18 @@ public class MainActivity extends Activity
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main);
 
-    // init button
+    // init buttons
     mServiceButton = (Button) findViewById(R.id.service_button);
+    mInfoButton = (Button) findViewById(R.id.info_button);
+    mOptionsButton = (Button) findViewById(R.id.settings_button);
+    mLogButton = (Button) findViewById(R.id.log_button);
+    // add handlers
     mServiceButton.setOnClickListener(this);
+    mInfoButton.setOnClickListener(this);
+    mOptionsButton.setOnClickListener(this);
+    mLogButton.setOnClickListener(this);
+
+
     if (mServiceRunning) {
       mServiceButton.setText(getResources().getString(R.string.service_button_stop));
       ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
@@ -126,9 +139,6 @@ public class MainActivity extends Activity
       ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
     }
 
-    // init text view
-    mLogView = (TextView) findViewById(R.id.logtext);
-    mLogView.setMovementMethod(new ScrollingMovementMethod());
 
     mDroidContext = DroidContext.getInstance();
     // Init droid
@@ -152,10 +162,14 @@ public class MainActivity extends Activity
       checkDialog.show(getFragmentManager(), TAG);
     }
     else if (intent.getAction().equals(BackgroundService.JOB_CENTER_HANDLER)) {
-      mLogView.append(intent.getStringExtra("Message").concat("\n"));
+//      mLogView.append(intent.getStringExtra("Message").concat("\n"));
     }
   }
 
+  /**
+   *
+   * @param v
+   */
   public void onClick(View v) {
 
     if (v == mServiceButton) {
@@ -175,6 +189,21 @@ public class MainActivity extends Activity
         ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
         ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(0, 255, 0));
       }
+    }
+    else if (v == mInfoButton) {
+      Intent newintent = new Intent(this, InfoActivity.class);
+      newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+      startActivity(newintent);
+    }
+    else if (v == mOptionsButton) {
+      Intent newintent = new Intent(this, SettingsActivity.class);
+      newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+      startActivity(newintent);
+    }
+    else if (v == mLogButton) {
+      Intent newintent = new Intent(this, LogActivity.class);
+      newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+      startActivity(newintent);
     }
   }
 

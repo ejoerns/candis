@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="fill_parent"
+              android:layout_height="fill_parent"
+              android:gravity="center">
+  <Button
+    android:id="@+id/clear_log_button"
+    android:layout_width="fill_parent" 
+    android:layout_height="wrap_content"
+    android:layout_marginTop="5dp"
+    android:text="@string/clear_log_button"/> 
+  <TextView
+    android:id="@+id/log_textview"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:layout_marginTop="5dp"
+    android:layout_marginBottom="5dp"
+    android:layout_marginLeft="5dp"
+    android:layout_marginRight="5dp"
+    android:padding="5dp"
+    android:background="#FFF"
+    android:textColor="#111"
+    android:maxLines="100"
+    android:scrollbars="vertical"
+    android:typeface="monospace"
+    android:textSize="10sp"
+    android:text="" />
+</LinearLayout>   
