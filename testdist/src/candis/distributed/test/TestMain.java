@@ -1,6 +1,7 @@
 package candis.distributed.test;
 
 import candis.distributed.SchedulerStillRuningException;
+import candis.distributed.parameter.UserParameterRequester;
 import candis.server.DroidManager;
 import java.io.File;
 import java.util.logging.Level;
@@ -20,9 +21,16 @@ import org.apache.commons.cli.PosixParser;
 public class TestMain {
 
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
+	private static final int THREADS_DEFAULT = 4;
 
-	public static void runCDBTest(String cdb, int threads) throws Exception {
+	public static void runCDBTest(String cdb, String config, int threads) throws Exception {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
+		LOGGER.log(Level.INFO, "Config file {0}", config);
+		File configf = null;
+		if (config != null) {
+			configf = new File(config);
+		}
+		UserParameterRequester.init(true, configf);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
 		String cdbID = comio.getCDBLoader().loadCDB(new File(cdb));
 		comio.initDroids(threads, cdbID);
@@ -56,12 +64,18 @@ public class TestMain {
 		Options opts = new Options();
 
 		opts.addOption("h", "help", false, "Show this help");
+		//opts.addOption("c", "config", true, "Config File");
 		opts.addOption(OptionBuilder.withLongOpt("threads")
-				.withDescription("da")
-				.withType(Number.class)
-				.hasArg()
-				.withArgName("THREADS")
-				.create("t"));
+						.withDescription("Number of Threads (Default: " + THREADS_DEFAULT + ")")
+						.withType(Number.class)
+						.hasArg()
+						.withArgName("no. of threads")
+						.create("t"));
+		opts.addOption(OptionBuilder.withLongOpt("config")
+						.withDescription("Config File for Scheduler initialization")
+						.hasArg()
+						.withArgName("config file")
+						.create("c"));
 
 		CommandLineParser parser = new PosixParser();
 		boolean showHelp = false;
@@ -72,13 +86,17 @@ public class TestMain {
 				showHelp = true;
 			}
 			else {
-				int threads = 4;
+				int threads = THREADS_DEFAULT;
+				String config = null;
 				if (cmd.hasOption("t")) {
 					threads = ((Number) cmd.getParsedOptionValue("t")).intValue();
 				}
+				if (cmd.hasOption("c")) {
+					config = cmd.getOptionValue("c");
+				}
 				if (cmd.getArgs().length == 1) {
 					String cdb = cmd.getArgs()[0];
-					runCDBTest(cdb, threads);
+					runCDBTest(cdb, config, threads);
 				}
 				else {
 					showHelp = true;
