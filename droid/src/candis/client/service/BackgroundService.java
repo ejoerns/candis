@@ -18,7 +18,6 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.File;
 import java.io.IOException;
-import java.io.StreamCorruptedException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -44,7 +43,7 @@ public class BackgroundService extends Service {
   private final AtomicBoolean mCertCheckResult = new AtomicBoolean(false);
   /// Used to avoid double-call of service initialization
   private boolean mRunning = false;
-  private FSM fsm;
+  private FSM mFSM;
   private ClassLoaderWrapper mClassloaderWrapper;
 
   public BackgroundService() {
@@ -66,6 +65,7 @@ public class BackgroundService extends Service {
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     System.out.println("Backgroundservice: onStartCommand()");
+    super.onStartCommand(intent, flags, startId);
 
     // if service running, only handle intent
     if (mRunning) {
@@ -113,9 +113,6 @@ public class BackgroundService extends Service {
           Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        // init fsm
-//				try {
-
         mClassloaderWrapper = new ClassLoaderWrapper();// init empty
 
         JobCenterHandler jobCenterHandler = new ActivityLogger(mContext);
@@ -129,28 +126,14 @@ public class BackgroundService extends Service {
                   mContext,
                   null,
                   jobcenter);
+          mFSM = crb.getFSM(); // TODO: check where to place the fsm!
         }
         catch (IOException ex) {
           Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
         }
-//                secureConn.getSocket(),
-//                fsm,
-//                mClassloader);
-//        fsm = new ClientStateMachine(
-//                crb,
-//                mDroidContext,
-//                mContext,
-//                null,
-//                jobcenter); // TODO: check handler usageIOException
+
         new Thread(crb).start();
         System.out.println("[THREAD DONE]");
-//				}
-//				catch (StreamCorruptedException ex) {
-//					Log.e(TAG, ex.toString());
-//				}
-//				catch (IOException ex) {
-//					Log.e(TAG, ex.toString());
-//				}
 
       }
     }).start();
@@ -176,9 +159,9 @@ public class BackgroundService extends Service {
     else if (intent.getAction().equals(RESULT_SHOW_CHECKCODE)) {
       System.out.println("RESULT_SHOW_CHECKCODE");
       try {
-        fsm.process(
+        mFSM.process(
                 ClientStateMachine.ClientTrans.CHECKCODE_ENTERED,
-                intent.getStringExtra("RESULT"));
+                intent.getStringExtra("candis.client.RESULT"));
       }
       catch (StateMachineException ex) {
         Log.e(TAG, ex.toString());
@@ -192,8 +175,8 @@ public class BackgroundService extends Service {
   @Override
   public void onDestroy() {
     try {
-      if (fsm != null) {
-        fsm.process(ClientStateMachine.ClientTrans.DISCONNECT);
+      if (mFSM != null) {
+        mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
       }
     }
     catch (StateMachineException ex) {

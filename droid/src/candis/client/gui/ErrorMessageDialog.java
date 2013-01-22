@@ -2,18 +2,12 @@ package candis.client.gui;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Message;
+import android.support.v4.app.DialogFragment;
 import android.util.Log;
-import android.widget.EditText;
-import candis.client.ClientStateMachine;
 import candis.client.R;
-import candis.common.fsm.FSM;
-import candis.common.fsm.StateMachineException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *

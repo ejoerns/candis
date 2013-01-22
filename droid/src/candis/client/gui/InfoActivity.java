@@ -35,27 +35,27 @@ public class InfoActivity extends Activity {
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		Intent newintent;
-		switch (item.getItemId()) {
-			case android.R.id.home:
-				finish();
-				return true;
-			case R.id.menu_info:
-				finish();
-				return true;
-			case R.id.menu_settings:
-				newintent = new Intent(this, SettingsActivity.class);
-				newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-				startActivity(newintent);
-				return true;
-			default:
+//		switch (item.getItemId()) {
+//			case android.R.id.home:
+//				finish();
+//				return true;
+//			case R.id.menu_info:
+//				finish();
+//				return true;
+//			case R.id.menu_settings:
+//				newintent = new Intent(this, SettingsActivity.class);
+//				newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//				startActivity(newintent);
+//				return true;
+//			default:
 				return super.onOptionsItemSelected(item);
-		}
+//		}
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.settings, menu);
+//		inflater.inflate(R.menu.settings, menu);
 		return true;
 	}
 }

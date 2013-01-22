@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu></menu>
+<!--<menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/menu_info"
           android:icon="@drawable/action_about"
           android:title="@string/menu_info"
@@ -8,4 +9,4 @@
           android:icon="@drawable/action_settings"
           android:title="@string/menu_settings"
           android:showAsAction="ifRoom" />
-</menu>
+</menu>-->

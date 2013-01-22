@@ -1,10 +1,10 @@
 package candis.client;
 
-import candis.client.gui.LogActivity;
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
-import android.app.DialogFragment;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,7 +12,8 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.text.method.ScrollingMovementMethod;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -24,6 +25,7 @@ import android.widget.TextView;
 import candis.client.gui.CertAcceptDialog;
 import candis.client.gui.CheckcodeInputDialog;
 import candis.client.gui.InfoActivity;
+import candis.client.gui.LogActivity;
 import candis.client.gui.settings.SettingsActivity;
 import candis.client.service.BackgroundService;
 import candis.common.CandisLog;
@@ -36,7 +38,7 @@ import java.security.cert.X509Certificate;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-public class MainActivity extends Activity
+public class MainActivity extends FragmentActivity
         implements OnClickListener {
 
   private static final String TAG = MainActivity.class.getName();
@@ -53,29 +55,29 @@ public class MainActivity extends Activity
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
     MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.settings, menu);
+//    inflater.inflate(R.menu.settings, menu);
     return true;
   }
 
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     Intent newintent;
-    switch (item.getItemId()) {
-      case android.R.id.home:
-        return true;
-      case R.id.menu_info:
-        newintent = new Intent(this, InfoActivity.class);
-        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(newintent);
-        return true;
-      case R.id.menu_settings:
-        newintent = new Intent(this, SettingsActivity.class);
-        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(newintent);
-        return true;
-      default:
-        return super.onOptionsItemSelected(item);
-    }
+//    switch (item.getItemId()) {
+//      case android.R.id.home:
+//        return true;
+//      case R.id.menu_info:
+//        newintent = new Intent(this, InfoActivity.class);
+//        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//        startActivity(newintent);
+//        return true;
+//      case R.id.menu_settings:
+//        newintent = new Intent(this, SettingsActivity.class);
+//        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//        startActivity(newintent);
+//        return true;
+//      default:
+    return super.onOptionsItemSelected(item);
+//    }
   }
 
   @Override
@@ -90,7 +92,7 @@ public class MainActivity extends Activity
     else {
       Log.i(TAG, "Found savedInstanceState!");
     }
-
+    mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
     mHandler = new Handler();
 
     // Load settings from R.raw.settings
@@ -140,6 +142,8 @@ public class MainActivity extends Activity
     }
 
 
+    setDefault(Notification.DEFAULT_LIGHTS);
+
     mDroidContext = DroidContext.getInstance();
     // Init droid
     mInitTask = new InitTask(
@@ -148,18 +152,58 @@ public class MainActivity extends Activity
             new File(this.getFilesDir(), Settings.getString("profilestore")));
     mInitTask.execute();
   }
+  private NotificationManager mNotificationManager;
+  private static int MOOD_NOTIFICATIONS = 12341234;
+  Notification notification;
+
+  private void setDefault(int defaults) {
+
+    // This method sets the defaults on the notification before posting it.
+
+    // This is who should be launched if the user selects our notification.
+    PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                                                            new Intent(this, MainActivity.class), 0);
+
+    // In this sample, we'll use the same text for the ticker and the expanded notification
+    CharSequence text = "Warum bin ich so fröhlich?";
+
+    notification = new Notification(
+            R.drawable.ic_launcher, // the icon for the status bar
+            text, // the text to display in the ticker
+            System.currentTimeMillis()); // the timestamp for the notification
+
+    notification.setLatestEventInfo(
+            this, // the context to use
+            "Fröhlicher Titel",
+            // the title for the notification
+            text, // the details to display in the notification
+            contentIntent);              // the contentIntent (see above)
+
+    notification.defaults = defaults;
+
+    mNotificationManager.notify(
+            MOOD_NOTIFICATIONS, // we use a string id because it is a unique
+            // number.  we use it later to cancel the notification
+            notification);
+  }
 
   @Override
   public void onNewIntent(Intent intent) {
     System.out.println("onNewIntent() " + intent.getAction());
-    if (intent.getAction().equals(BackgroundService.CHECK_SERVERCERT)) {
+    if (intent.getAction() == null) {
+      mNotificationManager.notify(
+              MOOD_NOTIFICATIONS, // we use a string id because it is a unique
+              // number.  we use it later to cancel the notification
+              notification);      // do nothing
+    }
+    else if (intent.getAction().equals(BackgroundService.CHECK_SERVERCERT)) {
       X509Certificate cert = (X509Certificate) intent.getSerializableExtra("X509Certificate");
       CertAcceptDialog cad = new CertAcceptDialog(cert, this);
-      cad.show(getFragmentManager(), "");
+      cad.show(getSupportFragmentManager(), "");
     }
     else if (intent.getAction().equals(BackgroundService.SHOW_CHECKCODE)) {
       DialogFragment checkDialog = new CheckcodeInputDialog(this);
-      checkDialog.show(getFragmentManager(), TAG);
+      checkDialog.show(getSupportFragmentManager(), TAG);
     }
     else if (intent.getAction().equals(BackgroundService.JOB_CENTER_HANDLER)) {
 //      mLogView.append(intent.getStringExtra("Message").concat("\n"));

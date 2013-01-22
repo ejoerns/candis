@@ -2,10 +2,12 @@ package candis.client.service;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 import candis.client.MainActivity;
@@ -27,7 +29,7 @@ import javax.net.ssl.X509TrustManager;
  * @author Enrico Joerns
  */
 class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
-        implements CertAcceptRequestHandler {
+        implements CertAcceptRequestHandler { 
 
   private static final String TAG = "ConnectTask";
   private static final int NOTIFCATION_ID = 4711;
@@ -92,20 +94,24 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
   protected void onProgressUpdate(Object... arg) {
     // mId allows you to update the notification later on.
     Notification noti;
-
+    PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0,
+                new Intent(mContext, MainActivity.class), 0);
+//    NotificationCompat.Builder notiBuild = new NotificationCompat.Builder(mContext);
+//    notiBuild.
     switch ((Integer) arg[0]) {
       case IOEXCEPTION:
         System.out.println("onProgressUpdate: IOException");
-        noti = new Notification.Builder(mContext)
+        noti = new NotificationCompat.Builder(mContext)
                 .setContentTitle("Server not found")
                 .setContentText(String.format("Connection to %s:%d failed", (String) arg[1], ((Integer) arg[2]).intValue()))
                 .setSmallIcon(R.drawable.ic_launcher)
                 .setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_launcher))
+                .setContentIntent(contentIntent)
                 .build();
         break;
       case TMLOADFAILED:
         System.out.println("onProgressUpdate: IOException");
-        noti = new Notification.Builder(mContext)
+        noti = new NotificationCompat.Builder(mContext)
                 .setContentTitle("Trustmanager Error")
                 .setContentText(String.format("Loading Trustmanager failed", (String) arg[1], ((Integer) arg[2]).intValue()))
                 .setSmallIcon(R.drawable.ic_launcher)
@@ -114,7 +120,7 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
         break;
       default:
         System.out.println("onProgressUpdate: default");
-        noti = new Notification.Builder(mContext)
+        noti = new NotificationCompat.Builder(mContext)
                 .setContentTitle("Notification")
                 .setContentText("default")
                 .setSmallIcon(R.drawable.ic_launcher)
