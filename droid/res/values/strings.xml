@@ -30,7 +30,8 @@
   <string name="clear_log_button">Clear Log</string>
 
   <!--Options-->
-  <string name="pref_category_title">Settings</string>
+  <string name="pref_category_server">Server</string>
+  <string name="pref_category_other">Preferences</string>
   <!--Host-->
   <string name="pref_host_title">Host</string>
   <string name="pref_host_summary">Hostname</string>
