@@ -3,9 +3,13 @@ package candis.client.service;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 import candis.client.ClientStateMachine;
+import candis.client.CurrentSystemStatus;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
 import candis.client.JobCenterHandler;
@@ -60,6 +64,12 @@ public class BackgroundService extends Service {
     mContext = getApplicationContext();
     System.out.println("Backgroundservice: onCreate()");
     Settings.load(this.getResources().openRawResource(R.raw.settings));
+
+    // register receiver for battery updates
+    registerReceiver(
+            new PowerConnectionReceiver(CurrentSystemStatus.getInstance()),
+            new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+
   }
 
   @Override
