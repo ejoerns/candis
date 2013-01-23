@@ -9,11 +9,14 @@ import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
+import candis.distributed.parameter.InvalidUserParameterException;
 import candis.distributed.parameter.RegexValidator;
 import candis.distributed.parameter.UserParameter;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.distributed.parameter.UserParameterSet;
 import candis.distributed.parameter.UserStringParameter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -26,6 +29,7 @@ public class HashControl implements DistributedControl, ResultReceiver {
 		UserParameterSet parameters = new UserParameterSet();
 		parameters.AddParameter(new UserStringParameter("hash.hashvalue", "ab12", new RegexValidator("[0-9a-f]*")));
 		UserParameterRequester.getInstance().request(parameters);
+		
 		//parameters
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
