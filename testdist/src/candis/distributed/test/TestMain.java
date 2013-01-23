@@ -23,16 +23,16 @@ public class TestMain {
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
 	private static final int THREADS_DEFAULT = 4;
 
-	public static void runCDBTest(String cdb, String config, int threads) throws Exception {
+	public static void runCDBTest(File cdb, File config, int threads) throws Exception {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
 		LOGGER.log(Level.INFO, "Config file {0}", config);
-		File configf = null;
+		/*File configf = null;
 		if (config != null) {
 			configf = new File(config);
-		}
-		UserParameterRequester.init(true, configf);
+		}*/
+		UserParameterRequester.init(true, config);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
-		String cdbID = comio.getCDBLoader().loadCDB(new File(cdb));
+		String cdbID = comio.getCDBLoader().loadCDB(cdb);
 		comio.initDroids(threads, cdbID);
 
 		try {
@@ -40,7 +40,11 @@ public class TestMain {
 			comio.startScheduler();
 		}
 		catch (SchedulerStillRuningException ex) {
-			Logger.getLogger(TestMain.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		catch (Exception ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+			comio.stopDroids();
 		}
 
 
@@ -87,15 +91,23 @@ public class TestMain {
 			}
 			else {
 				int threads = THREADS_DEFAULT;
-				String config = null;
+				File config = null;
 				if (cmd.hasOption("t")) {
 					threads = ((Number) cmd.getParsedOptionValue("t")).intValue();
 				}
 				if (cmd.hasOption("c")) {
-					config = cmd.getOptionValue("c");
+					config = new File(cmd.getOptionValue("c"));
 				}
 				if (cmd.getArgs().length == 1) {
-					String cdb = cmd.getArgs()[0];
+					File cdb = new File(cmd.getArgs()[0]);
+					if(!cdb.canRead()) {
+						LOGGER.log(Level.SEVERE, "Could not find CDB file: {0}", cdb.getAbsolutePath());
+						return;
+					}
+					if(config != null && !config.canRead()) {
+						LOGGER.log(Level.SEVERE, "Could not find Config file: {0}", config.getAbsolutePath());
+						return;
+					}
 					runCDBTest(cdb, config, threads);
 				}
 				else {

@@ -23,7 +23,6 @@ public class TestServerStateMachine extends ServerStateMachine {
 
 	@Override
 	public void init() {
-		System.out.println("hier!");
 		addState(ServerStates.UNCONNECTED)
 						.addTransition(
 						ServerTrans.CLIENT_NEW,
