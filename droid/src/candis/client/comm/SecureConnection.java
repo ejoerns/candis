@@ -1,10 +1,6 @@
 package candis.client.comm;
 
-import candis.common.Message;
-import candis.common.SendHandler;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -25,10 +21,8 @@ import javax.net.ssl.X509TrustManager;
 public final class SecureConnection {// TODO: maybe extend SocketImpl later...
 
   private static final Logger LOGGER = Logger.getLogger(SecureConnection.class.getName());
-//  private ObjectOutputStream mObjOutstream;
   private Socket socket = null;
   private boolean mConnected;
-//  private InputStream mInstream;
   private X509TrustManager mTrustManager;
 
   /**
@@ -85,23 +79,15 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
       return;
     }
 
-//    try {
-//      mObjOutstream = new ObjectOutputStream(socket.getOutputStream());
-//      Thread.sleep(500);
-//      mInstream = socket.getInputStream();
-//    }
-//    catch (InterruptedException ex) {
-//      LOGGER.log(Level.SEVERE, null, ex);
-//    }
-//    catch (IOException ex) {
-//      LOGGER.log(Level.SEVERE, "Failed creating input/output streams");
-//    }
-
-    // start message worker queue;
-
     mConnected = true;
   }
 
+  /**
+   *
+   * @param address
+   * @param port
+   * @throws IOException
+   */
   public void connect(InetAddress address, int port) throws IOException {
     connect(address.getHostName(), port);
   }
@@ -129,17 +115,11 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
     return socket;
   }
 
+  /**
+   *
+   * @return
+   */
   public boolean isConnected() {
     return mConnected;
   }
-
-  /**
-   * Sends data in new thread
-   *
-   * @todo Replace with send qeue
-   * @param msg
-   */
-//  public void sendMessage(final Message msg) {
-//    mSendHandler.addToQueue(msg);
-//  }
 }

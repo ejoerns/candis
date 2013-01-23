@@ -1,27 +1,45 @@
 package candis.common;
 
 import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Messages to send are pushed to a message queue that can be sent by seperate
+ * Thread.
  *
- * Implements a message queue to send objects over a given ObjectOutputStream.
+ * The QueuedMessageConnection must be started by running it in a Thread:
+ * <code>
+ * new Thread(new QueuedMessageConnection(...)).start;
+ * </code>
  *
  * @author Enrico Joerns
  */
-public class SendHandler implements Runnable {
+public class QueuedMessageConnection extends MessageConnection implements Runnable {
 
-  private static final Logger LOGGER = Logger.getLogger(SendHandler.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(QueuedMessageConnection.class.getName());
   private final List<Message> mMessageQueue = new LinkedList<Message>();
   private boolean mStop = false; // TODO: use? :)
-  private final MessageConnection mMsgConn;
 
-  public SendHandler(MessageConnection mconn) {
-    mMsgConn = mconn;
+  public QueuedMessageConnection(Socket socket, ClassLoaderWrapper clw) throws IOException {
+    super(socket, clw);
+  }
+
+  public QueuedMessageConnection(InputStream in, OutputStream out, ClassLoaderWrapper clw) {
+    super(in, out, clw);
+  }
+
+  @Override
+  public void sendMessage(final Message msg) throws IOException {
+    synchronized (mMessageQueue) {
+      mMessageQueue.add(msg);
+      mMessageQueue.notify();
+    }
   }
 
   private boolean isQueueEmpty() {
@@ -38,7 +56,7 @@ public class SendHandler implements Runnable {
           synchronized (mMessageQueue) {
             // send it
             try {
-              mMsgConn.sendMessage(mMessageQueue.remove(0));
+              super.sendMessage(mMessageQueue.remove(0));
             }
             catch (IOException ex) {
               LOGGER.log(Level.SEVERE, null, ex);
@@ -56,13 +74,6 @@ public class SendHandler implements Runnable {
     }
     catch (InterruptedException ex) {
       LOGGER.log(Level.SEVERE, null, ex);
-    }
-  }
-
-  public void addToQueue(Message msg) {
-    synchronized (mMessageQueue) {
-      mMessageQueue.add(msg);
-      mMessageQueue.notify();
     }
   }
 }
