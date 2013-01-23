@@ -60,6 +60,19 @@ public class TaskPanel {
 		mHolder.revalidate();
 	}
 
+
+	public void selectTask(String taskID) {
+		mSelectedTaskID = taskID;
+		for (Map.Entry<String, TaskPanelElement> tpe : mTaskPanels.entrySet()) {
+			if (tpe.getValue().getID().equals(mSelectedTaskID)) {
+				tpe.getValue().setBorder(BorderFactory.createEtchedBorder(Color.CYAN, Color.CYAN.darker()));
+			}
+			else {
+				tpe.getValue().setBorder(BorderFactory.createEtchedBorder());
+			}
+		}
+	}
+
 	public String getSelectedTaskID() {
 		return mSelectedTaskID;
 	}
@@ -83,6 +96,7 @@ public class TaskPanel {
 			}
 		}
 
+
 		@Override
 		public void mouseReleased(MouseEvent evt) {
 			// selection click
@@ -92,16 +106,8 @@ public class TaskPanel {
 									 evt.getX(), evt.getY());
 			}
 			else {
-//				JOptionPane.showMessageDialog(mHolder, "clicked " + ((TaskPanelElement) evt.getComponent()).getID());
 				// get id of selected task
-				mSelectedTaskID = ((TaskPanelElement) evt.getComponent()).getID();
-				// highlight border of selected, unhighlight other
-				((JPanel) evt.getComponent()).setBorder(BorderFactory.createEtchedBorder(Color.CYAN, Color.CYAN.darker()));
-				for (Map.Entry<String, TaskPanelElement> tpe : mTaskPanels.entrySet()) {
-					if (tpe.getValue() != evt.getComponent()) {
-						tpe.getValue().setBorder(BorderFactory.createEtchedBorder());
-					}
-				}
+				selectTask(((TaskPanelElement) evt.getComponent()).getID());
 			}
 		}
 	}
