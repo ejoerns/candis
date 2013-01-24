@@ -9,12 +9,13 @@ import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
-import candis.distributed.parameter.RegexValidator;
 import candis.distributed.parameter.BooleanUserParameter;
-import candis.distributed.parameter.UserParameterRequester;
-import candis.distributed.parameter.UserParameterSet;
+import candis.distributed.parameter.IntegerUserParameter;
+import candis.distributed.parameter.RegexValidator;
 import candis.distributed.parameter.StringListUserParameter;
 import candis.distributed.parameter.StringUserParameter;
+import candis.distributed.parameter.UserParameterRequester;
+import candis.distributed.parameter.UserParameterSet;
 
 /**
  *
@@ -38,13 +39,20 @@ public class HashControl implements DistributedControl, ResultReceiver {
 		BooleanUserParameter tryNumeric = new BooleanUserParameter("hash.try.numeric", false);
 		parameters.AddParameter(tryNumeric);
 
-		//parameters.AddParameter(new IntegerUserParameter("hash.trylen.start", 2, 0, Integer.MAX_VALUE, null));
+		IntegerUserParameter start = new IntegerUserParameter("hash.trylen.start", 2, 0, Integer.MAX_VALUE,1, null);
+		parameters.AddParameter(start);
+
+		IntegerUserParameter stop = new IntegerUserParameter("hash.trylen.stop", 2, 0, Integer.MAX_VALUE,1, null);
+		parameters.AddParameter(stop);
+
 		UserParameterRequester.getInstance().request(parameters);
 
-		System.out.println("hash.hashvalue " + hashvalue.getValue());
-		System.out.println("hash.type " + type.getValue());
+		System.out.println("hashvalue " + hashvalue.getValue());
+		System.out.println("type " + type.getValue());
 		System.out.println("try.alpha " + tryAlpha.getValue());
-		System.out.println("try.numeric " + tryNumeric.getBooleanValue() + " " + tryNumeric.getValue());
+		System.out.println("try.numeric " + tryNumeric.getBooleanValue());
+		System.out.println("trylen.start " + start.getIngegerValue());
+		System.out.println("trylen.stop " + stop.getIngegerValue());
 		//parameters
 		throw new UnsupportedOperationException("Not supported yet.");
 	}

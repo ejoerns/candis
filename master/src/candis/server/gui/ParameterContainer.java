@@ -1,5 +1,6 @@
 package candis.server.gui;
 
+import candis.distributed.parameter.IntegerUserParameter;
 import candis.distributed.parameter.UserParameter;
 import candis.distributed.parameter.UserParameterCtrl;
 import java.awt.Color;
@@ -12,12 +13,14 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.SpinnerModel;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.plaf.basic.BasicMenuUI;
 
 /**
  *
@@ -56,7 +59,7 @@ public abstract class ParameterContainer {
 			case FLOAT:
 				break;
 			case INTEGER:
-				break;
+				return new IntegerParameterContainer(param);
 			case STRING:
 				return new StringParameterContainer(param);
 			case STRING_LIST:
@@ -64,8 +67,6 @@ public abstract class ParameterContainer {
 			case BOOELAN:
 				return new BooleanParameterContainer(param);
 		}
-
-
 		return null;
 	}
 
@@ -147,6 +148,37 @@ public abstract class ParameterContainer {
 		@Override
 		public Object getValue() {
 			return ((JCheckBox) mJComponent).isSelected();
+		}
+	}
+
+	public static class IntegerParameterContainer extends ParameterContainer {
+
+		public IntegerParameterContainer(UserParameter userParameter) {
+			super(userParameter);
+
+			JSpinner spinner = new JSpinner();
+			if (IntegerUserParameter.class.isInstance(userParameter)) {
+				IntegerUserParameter integerParemeter = (IntegerUserParameter) userParameter;
+				spinner.setModel(new SpinnerNumberModel(integerParemeter.getIngegerValue(),
+																								integerParemeter.getMin(),
+																								integerParemeter.getMax(),
+																								integerParemeter.getStep()));
+			}
+			else {
+				spinner.setModel(new SpinnerNumberModel());
+			}
+			spinner.addChangeListener(new ChangeListener() {
+				@Override
+				public void stateChanged(ChangeEvent ce) {
+					validate();
+				}
+			});
+			mJComponent = spinner;
+		}
+
+		@Override
+		public Object getValue() {
+			return ((JSpinner) mJComponent).getValue();
 		}
 	}
 
