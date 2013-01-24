@@ -9,16 +9,12 @@ import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
-import candis.distributed.parameter.InvalidUserParameterException;
 import candis.distributed.parameter.RegexValidator;
-import candis.distributed.parameter.UserBooleanParameter;
-import candis.distributed.parameter.UserParameter;
+import candis.distributed.parameter.BooleanUserParameter;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.distributed.parameter.UserParameterSet;
-import candis.distributed.parameter.UserStringListParameter;
-import candis.distributed.parameter.UserStringParameter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import candis.distributed.parameter.StringListUserParameter;
+import candis.distributed.parameter.StringUserParameter;
 
 /**
  *
@@ -29,13 +25,26 @@ public class HashControl implements DistributedControl, ResultReceiver {
 	@Override
 	public Scheduler initScheduler() {
 		UserParameterSet parameters = new UserParameterSet();
-		parameters.AddParameter(new UserStringParameter("hash.hashvalue", "Hash", "Hash to Crack", "ab12", new RegexValidator("[0-9a-f]*")));
-		parameters.AddParameter(new UserStringListParameter("hash.type", 1, new String[] {"md5", "sha1"}));
-		parameters.AddParameter(new UserStringListParameter("hash.try.alpha", 2, new String[] {"small", "caps", "both"}));
-		parameters.AddParameter(new UserBooleanParameter("hash.try.numeric", false));
-		//parameters.AddParameter(new UserIntegerParameter("hash.trylen.start", 2, 0, Integer.MAX_VALUE, null));
+
+		StringUserParameter hashvalue = new StringUserParameter("hash.hashvalue", "Hash", "Hash to Crack", "ab12", new RegexValidator("[0-9a-f]*"));
+		parameters.AddParameter(hashvalue);
+
+		StringListUserParameter type = new StringListUserParameter("hash.type", 1, new String[] {"md5", "sha1"});
+		parameters.AddParameter(type);
+
+		StringListUserParameter tryAlpha = new StringListUserParameter("hash.try.alpha", 2, new String[] {"small", "caps", "both"});
+		parameters.AddParameter(tryAlpha);
+
+		BooleanUserParameter tryNumeric = new BooleanUserParameter("hash.try.numeric", false);
+		parameters.AddParameter(tryNumeric);
+
+		//parameters.AddParameter(new IntegerUserParameter("hash.trylen.start", 2, 0, Integer.MAX_VALUE, null));
 		UserParameterRequester.getInstance().request(parameters);
 
+		System.out.println("hash.hashvalue " + hashvalue.getValue());
+		System.out.println("hash.type " + type.getValue());
+		System.out.println("try.alpha " + tryAlpha.getValue());
+		System.out.println("try.numeric " + tryNumeric.getBooleanValue() + " " + tryNumeric.getValue());
 		//parameters
 		throw new UnsupportedOperationException("Not supported yet.");
 	}

@@ -10,10 +10,10 @@ import candis.distributed.parameter.UserParameterCtrl.InputType;
  *
  * @author Sebastian Willenborg
  */
-public class UserStringListParameter  extends UserParameter {
+public class StringListUserParameter  extends UserParameter {
 	private final String[] mValues;
 
-	public UserStringListParameter(String name, int defaultIndex, String[] values) {
+	public StringListUserParameter(String name, int defaultIndex, String[] values) {
 		super(name, values[defaultIndex], new ListValidator(values));
 		mValues = values;
 	}

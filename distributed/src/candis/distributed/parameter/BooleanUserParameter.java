@@ -10,16 +10,16 @@ import candis.distributed.parameter.UserParameterCtrl.InputType;
  *
  * @author Sebastian Willenborg
  */
-public class UserBooleanParameter extends UserParameter{
-	public UserBooleanParameter(String name, boolean defaultValue) {
+public class BooleanUserParameter extends UserParameter{
+	public BooleanUserParameter(String name, boolean defaultValue) {
 		super(name, defaultValue, null);
 	}
-	public UserBooleanParameter(String name, boolean defaultValue, UserParameterValidator validator) {
+	public BooleanUserParameter(String name, boolean defaultValue, UserParameterValidator validator) {
 		super(name, defaultValue, validator);
 	}
 
 	public boolean getBooleanValue() {
-		return false;
+		return Boolean.parseBoolean(mValue.toString());
 	}
 
 	@Override
