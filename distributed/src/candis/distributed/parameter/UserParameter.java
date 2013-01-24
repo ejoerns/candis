@@ -6,7 +6,7 @@ package candis.distributed.parameter;
  */
 public abstract class UserParameter {
 
-	protected Object data;
+	protected Object mValue;
 	protected final String mName;
 	protected final String mDescription;
 	protected final UserParameterValidator mUserParameterValidator;
@@ -17,19 +17,19 @@ public abstract class UserParameter {
 	}
 
 	public UserParameter(String name, String title, String description, Object defaultValue, UserParameterValidator validator) {
-		data = defaultValue;
+		mValue = defaultValue;
 		mName = name;
 		mTitle = title;
 		mDescription = description;
 		mUserParameterValidator = validator;
 	}
 
-	public void SetData(Object data) {
-		this.data = data;
+	public void SetValue(Object value) {
+		this.mValue = value;
 	}
 
-	public Object getData() {
-		return data;
+	public Object getValue() {
+		return mValue;
 	}
 
 	public String getName() {

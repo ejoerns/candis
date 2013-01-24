@@ -80,8 +80,8 @@ public class UserParameterRequester {
 		Properties p = loadConfig();
 		for (UserParameter param : parameters) {
 			if (p != null && p.containsKey(param.getName())) {
-				param.SetData(p.getProperty(param.getName()));
-				LOGGER.log(Level.INFO, "set parameter {0} with value \"{1}\"", new Object[]{param.getName(), param.getData()});
+				param.SetValue(p.getProperty(param.getName()));
+				LOGGER.log(Level.INFO, "set parameter {0} with value \"{1}\"", new Object[]{param.getName(), param.getValue()});
 			}
 			else {
 				LOGGER.log(Level.WARNING, "missing parameter {0}", param.getName());

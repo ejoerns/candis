@@ -1,28 +1,24 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server.gui;
 
 import candis.distributed.parameter.UserParameter;
-import candis.distributed.parameter.UserParameterCtrl;
 import candis.distributed.parameter.UserParameterSet;
-import java.awt.GridBagConstraints;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
+import java.util.LinkedList;
+import java.util.List;
+import javax.swing.JOptionPane;
 
 /**
  *
  * @author Sebastian Willenborg
  */
 public class UserParameterDialog extends javax.swing.JDialog {
+
 	private final UserParameterSet mUserParameterSet;
+	private final List<ParameterContainer> mParameterContainers = new LinkedList<ParameterContainer>();
+	private boolean mValidParameters = false;
 
-
-
-
-
+	public boolean isValid() {
+		return mValidParameters;
+	}
 	/**
 	 * Creates new form UserParameterDialog
 	 */
@@ -35,36 +31,16 @@ public class UserParameterDialog extends javax.swing.JDialog {
 	}
 
 	private void initParameters() {
-		if(mUserParameterSet == null) {
+		if (mUserParameterSet == null) {
 			return;
 		}
 		mParametersPanel.setLayout(new java.awt.GridBagLayout());
 		int i = 0;
-		for(UserParameter param : mUserParameterSet) {
+		for (UserParameter param : mUserParameterSet) {
 			ParameterContainer cont = ParameterContainer.getContainer(param);
 			cont.addToDialog(mParametersPanel, i++);
+			mParameterContainers.add(cont);
 		}
-		/*	UserParameterCtrl ctrl = param.getInputCtrl();
-			if(ctrl.isList()) {
-
-			}
-			else {
-				switch(ctrl.getInputTupe()) {
-					case FILE:
-						break;
-					case FLOAT:
-						break;
-					case INTEGER:
-						break;
-					case STRING:
-						System.out.println("hm");
-						JTextField b = new JTextField();
-
-
-						break;
-				}
-			}
-		}*/
 		pack();
 	}
 
@@ -81,12 +57,18 @@ public class UserParameterDialog extends javax.swing.JDialog {
     mTopLabel = new javax.swing.JLabel();
     mOKButton = new javax.swing.JButton();
     mParametersPanel = new javax.swing.JPanel();
+    mCancelButton = new javax.swing.JButton();
 
-    setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+    setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
     setTitle("Parameters");
     setAlwaysOnTop(true);
     setModalityType(java.awt.Dialog.ModalityType.APPLICATION_MODAL);
     setResizable(false);
+    addWindowListener(new java.awt.event.WindowAdapter() {
+      public void windowClosing(java.awt.event.WindowEvent evt) {
+        formWindowClosing(evt);
+      }
+    });
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
     mTopLabel.setFont(new java.awt.Font("Lucida Grande", 0, 18)); // NOI18N
@@ -95,6 +77,7 @@ public class UserParameterDialog extends javax.swing.JDialog {
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 0;
     gridBagConstraints.gridwidth = 2;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.FIRST_LINE_START;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
     getContentPane().add(mTopLabel, gridBagConstraints);
@@ -106,9 +89,10 @@ public class UserParameterDialog extends javax.swing.JDialog {
       }
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 2;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.LAST_LINE_END;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTHEAST;
+    gridBagConstraints.weightx = 0.1;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
     getContentPane().add(mOKButton, gridBagConstraints);
 
@@ -132,12 +116,49 @@ public class UserParameterDialog extends javax.swing.JDialog {
     gridBagConstraints.weighty = 0.5;
     getContentPane().add(mParametersPanel, gridBagConstraints);
 
+    mCancelButton.setText("Cancel");
+    mCancelButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        mCancelButtonActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridy = 2;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.LAST_LINE_END;
+    gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+    getContentPane().add(mCancelButton, gridBagConstraints);
+
     pack();
   }// </editor-fold>//GEN-END:initComponents
 
   private void mOKButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOKButtonActionPerformed
-    this.setVisible(false);
+		boolean valid = true;
+		for (ParameterContainer cont : mParameterContainers) {
+			valid &= cont.validate();
+		}
+		mValidParameters = valid;
+		if (valid) {
+			this.setVisible(false);
+		}
+		else {
+			JOptionPane.showMessageDialog(this, "One/some of your parameters are invalid! Please use valid values.");
+		}
   }//GEN-LAST:event_mOKButtonActionPerformed
+
+  private void mCancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mCancelButtonActionPerformed
+
+		this.setVisible(false);
+		mValidParameters = false;
+  }//GEN-LAST:event_mCancelButtonActionPerformed
+
+  private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+		int showConfirmDialog = JOptionPane.showConfirmDialog(this, "You are about to close the parameters dialog, the task won't be started!\nAbort?", "Abort", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		if (showConfirmDialog == JOptionPane.OK_OPTION) {
+			this.setVisible(false);
+			mValidParameters = false;
+		}
+  }//GEN-LAST:event_formWindowClosing
 
 	/**
 	 * @param args the command line arguments
@@ -185,6 +206,7 @@ public class UserParameterDialog extends javax.swing.JDialog {
 		});
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables
+  private javax.swing.JButton mCancelButton;
   private javax.swing.JButton mOKButton;
   private javax.swing.JPanel mParametersPanel;
   private javax.swing.JLabel mTopLabel;

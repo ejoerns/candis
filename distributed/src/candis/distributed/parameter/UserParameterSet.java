@@ -13,9 +13,10 @@ public class UserParameterSet implements Iterable<UserParameter> {
 
 
 	public void AddParameter(UserParameter param) {
-		param.mUserParameterValidator.setParameterSet(this);
+		if(param.mUserParameterValidator != null){
+			param.mUserParameterValidator.setParameterSet(this);
+		}
 		mParameters.put(param.getName(), param);
-		//mNames.add(param.getName());
 	}
 
 	public Iterator<UserParameter> iterator() {

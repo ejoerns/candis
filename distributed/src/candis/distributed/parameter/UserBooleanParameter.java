@@ -1,0 +1,30 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package candis.distributed.parameter;
+
+import candis.distributed.parameter.UserParameterCtrl.InputType;
+
+/**
+ *
+ * @author Sebastian Willenborg
+ */
+public class UserBooleanParameter extends UserParameter{
+	public UserBooleanParameter(String name, boolean defaultValue) {
+		super(name, defaultValue, null);
+	}
+	public UserBooleanParameter(String name, boolean defaultValue, UserParameterValidator validator) {
+		super(name, defaultValue, validator);
+	}
+
+	public boolean getBooleanValue() {
+		return false;
+	}
+
+	@Override
+	public UserParameterCtrl getInputCtrl() {
+		return new UserParameterCtrl(InputType.BOOELAN);
+	}
+
+}

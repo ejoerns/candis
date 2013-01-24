@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -24,23 +25,23 @@ public abstract class ParameterContainer {
 	public final UserParameter mUserParameter;
 	public JComponent mJComponent;
 	public final JLabel mNameLabel;
-	public final JLabel mDescriptionLabel;
+	//public final JLabel mDescriptionLabel;
 	public final JLabel mErrorLabel;
 
 	protected ParameterContainer(UserParameter mUserParameter) {
 		this.mUserParameter = mUserParameter;
 		this.mNameLabel = new JLabel(mUserParameter.getTitle());
-		this.mDescriptionLabel = new JLabel(mUserParameter.getDescription());
+		//this.mDescriptionLabel = new JLabel(mUserParameter.getDescription());
 		this.mErrorLabel = new JLabel(" ");
 	}
 
 	public abstract Object getValue();
 
-	public void validate() {
-		mUserParameter.SetData(this.getValue());
-		mUserParameter.validate();
+	public boolean validate() {
+		mUserParameter.SetValue(this.getValue());
+		boolean valid = mUserParameter.validate();
 		mErrorLabel.setText(mUserParameter.getValidatorMessage() + " ");
-
+		return valid;
 	}
 
 	public static ParameterContainer getContainer(UserParameter param) {
@@ -57,6 +58,8 @@ public abstract class ParameterContainer {
 				return new StringParameterContainer(param);
 			case STRING_LIST:
 				return new StringListParameterContainer(param);
+			case BOOELAN:
+				return new BooleanParameterContainer(param);
 		}
 
 
@@ -67,7 +70,11 @@ public abstract class ParameterContainer {
 		GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = position * 2;
+		gridBagConstraints.anchor = gridBagConstraints.LINE_START;
 		gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+		if (mUserParameter.getDescription().length() > 0) {
+			mNameLabel.setToolTipText(mUserParameter.getDescription());
+		}
 		panel.add(mNameLabel, gridBagConstraints);
 
 		gridBagConstraints.gridx = 1;
@@ -75,24 +82,25 @@ public abstract class ParameterContainer {
 		gridBagConstraints.weightx = 1;
 		gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
 		gridBagConstraints.fill = GridBagConstraints.HORIZONTAL;
+		if (mUserParameter.getDescription().length() > 0) {
+			mJComponent.setToolTipText(mUserParameter.getDescription());
+		}
 		panel.add(mJComponent, gridBagConstraints);
-
-		gridBagConstraints.gridx = 3;
-		gridBagConstraints.gridy = position * 2;
-		gridBagConstraints.weightx = 0;
-		gridBagConstraints.gridheight = 2;
-		gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
-		panel.add(mDescriptionLabel, gridBagConstraints);
 
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = position * 2 + 1;
 		gridBagConstraints.weightx = 0;
 		gridBagConstraints.gridwidth = 2;
 		gridBagConstraints.gridheight = 1;
-		gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+		gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 5);
+		gridBagConstraints.anchor = gridBagConstraints.LINE_START;
 		gridBagConstraints.fill = GridBagConstraints.BOTH;
-		panel.add(mErrorLabel, gridBagConstraints);
+		if (mUserParameter.getDescription().length() > 0) {
+			mErrorLabel.setToolTipText(mUserParameter.getDescription());
+		}
 		mErrorLabel.setForeground(Color.red);
+		panel.add(mErrorLabel, gridBagConstraints);
+
 	}
 
 	public static class StringListParameterContainer extends ParameterContainer {
@@ -101,11 +109,11 @@ public abstract class ParameterContainer {
 			super(userParameter);
 			JComboBox box = new JComboBox();
 			box.setModel(new javax.swing.DefaultComboBoxModel(userParameter.getInputCtrl().getListElements()));
-			box.setSelectedItem(userParameter.getData());
+			box.setSelectedItem(userParameter.getValue());
 			box.addItemListener(new ItemListener() {
 				@Override
 				public void itemStateChanged(ItemEvent ie) {
-					mUserParameter.SetData(ie.getItem());
+					mUserParameter.SetValue(ie.getItem());
 					validate();
 				}
 			});
@@ -119,11 +127,26 @@ public abstract class ParameterContainer {
 		}
 	}
 
+	public static class BooleanParameterContainer extends ParameterContainer {
+
+		public BooleanParameterContainer(UserParameter userParameter) {
+			super(userParameter);
+			JCheckBox checkBox = new JCheckBox();
+			checkBox.setSelected(Boolean.parseBoolean(userParameter.getValue().toString()));
+			mJComponent = checkBox;
+		}
+
+		@Override
+		public Object getValue() {
+			return ((JCheckBox) mJComponent).isSelected();
+		}
+	}
+
 	public static class StringParameterContainer extends ParameterContainer {
 
 		public StringParameterContainer(UserParameter userParameter) {
 			super(userParameter);
-			JTextField text = new JTextField(userParameter.getData().toString());
+			JTextField text = new JTextField(userParameter.getValue().toString());
 			mJComponent = text;
 			Dimension d = mJComponent.getMinimumSize();
 			text.addVetoableChangeListener(null);

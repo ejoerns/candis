@@ -3,6 +3,8 @@ package candis.server.gui;
 import candis.common.Settings;
 import candis.distributed.JobDistributionIOHandler;
 import candis.distributed.SchedulerStillRuningException;
+import candis.distributed.parameter.InvalidUserParameterException;
+import candis.distributed.parameter.UserParameterCanceledException;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.distributed.parameter.UserParameterSet;
 import candis.distributed.parameter.UserParameterUI;
@@ -14,6 +16,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -302,6 +305,15 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 				catch (SchedulerStillRuningException ex) {
 					LOGGER.log(Level.SEVERE, null, ex);
 				}
+				catch (UserParameterCanceledException ex) {
+					LOGGER.log(Level.WARNING, "Parameter Dialog canceled by user");
+					EventQueue.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							mExecuteButton.setEnabled(true);
+						}
+					});
+				}
 				catch (Exception ex) {
 					LOGGER.log(Level.SEVERE, "Scheduler error", ex);
 					EventQueue.invokeLater(new Runnable() {
@@ -506,14 +518,15 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 	@Override
 	public void showParameterUIDialog(final UserParameterSet parameterSet) {
 		final javax.swing.JFrame f = this;
+		final AtomicBoolean valid = new AtomicBoolean(false);
 		try {
 			EventQueue.invokeAndWait(new Runnable() {
 				@Override
 				public void run() {
 					UserParameterDialog d = new UserParameterDialog(f, parameterSet);
 					d.setVisible(true);
-
-					//throw new UnsupportedOperationException("Not supported yet.");
+					valid.set(d.isValid());
+					d.dispose();
 				}
 			});
 		}
@@ -523,7 +536,9 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		catch (InvocationTargetException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
-
+		if (!valid.get()) {
+			throw new UserParameterCanceledException();
+		}
 	}
 
 	private class JobDistIOHandler implements JobDistributionIOHandler {

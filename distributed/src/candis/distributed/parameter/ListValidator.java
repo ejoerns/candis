@@ -26,13 +26,13 @@ public class ListValidator extends UserParameterValidator{
 
 	@Override
 	public boolean validate(UserParameter param) {
-		boolean contains = mValues.contains((String)param.getData());
+		boolean contains = mValues.contains((String)param.getValue());
 		if(contains) {
 			message = "";
 		}
 		else
 		{
-			message = String.format("%s is not allowed", param.getData());
+			message = String.format("%s is not allowed", param.getValue());
 		}
 		return contains;
 

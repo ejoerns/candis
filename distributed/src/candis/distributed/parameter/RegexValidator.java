@@ -16,11 +16,11 @@ public class RegexValidator extends UserParameterValidator{
 	}
 
 	public boolean validate(UserParameter param) {
-		if(!String.class.isInstance(param.getData())) {
+		if(!String.class.isInstance(param.getValue())) {
 			message = "the given data is no string";
 			return false;
 		}
-		String data = (String)param.getData();
+		String data = (String)param.getValue();
 		if(!data.matches(regex)) {
 			message = String.format("%s didn't match %s", data, regex);
 			return false;
