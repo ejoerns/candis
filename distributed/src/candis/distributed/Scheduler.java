@@ -200,13 +200,13 @@ public abstract class Scheduler {
 	 */
 	// Job is done and new job can be assigned
 	public void onJobDone(String droidID, DistributedJobResult result) {
-		System.out.println("SS: onJobDone()");
+		//System.out.println("SS: onJobDone()");
 		if (mRunningDroidsList.containsKey(droidID)) {
 			DistributedJobParameter p = mRunningDroidsList.remove(droidID);
 			mResults.put(p, result);
 			releaseResult(p, result);
 			LOGGER.log(Level.INFO, "Param {0} on {1} done with {2}", new Object[]{p, droidID, result});
-      LOGGER.warning("-- RESULTS: " + mResults.size());
+      //LOGGER.warning("-- RESULTS: " + mResults.size());
 		}
 		synchronized (mSchedulabeDroids) {
 			mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));

@@ -1,6 +1,7 @@
 package candis.distributed.test;
 
 import candis.distributed.SchedulerStillRuningException;
+import candis.distributed.parameter.UserParameterRequester;
 import candis.server.DroidManager;
 import java.io.File;
 import java.util.logging.Level;
@@ -20,11 +21,18 @@ import org.apache.commons.cli.PosixParser;
 public class TestMain {
 
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
+	private static final int THREADS_DEFAULT = 4;
 
-	public static void runCDBTest(String cdb, int threads) throws Exception {
+	public static void runCDBTest(File cdb, File config, int threads) throws Exception {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
+		LOGGER.log(Level.INFO, "Config file {0}", config);
+		/*File configf = null;
+		if (config != null) {
+			configf = new File(config);
+		}*/
+		UserParameterRequester.init(true, config);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
-		String cdbID = comio.getCDBLoader().loadCDB(new File(cdb));
+		String cdbID = comio.getCDBLoader().loadCDB(cdb);
 		comio.initDroids(threads, cdbID);
 
 		try {
@@ -32,7 +40,11 @@ public class TestMain {
 			comio.startScheduler();
 		}
 		catch (SchedulerStillRuningException ex) {
-			Logger.getLogger(TestMain.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		catch (Exception ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+			comio.stopDroids();
 		}
 
 
@@ -56,12 +68,18 @@ public class TestMain {
 		Options opts = new Options();
 
 		opts.addOption("h", "help", false, "Show this help");
+		//opts.addOption("c", "config", true, "Config File");
 		opts.addOption(OptionBuilder.withLongOpt("threads")
-				.withDescription("da")
-				.withType(Number.class)
-				.hasArg()
-				.withArgName("THREADS")
-				.create("t"));
+						.withDescription("Number of Threads (Default: " + THREADS_DEFAULT + ")")
+						.withType(Number.class)
+						.hasArg()
+						.withArgName("no. of threads")
+						.create("t"));
+		opts.addOption(OptionBuilder.withLongOpt("config")
+						.withDescription("Config File for Scheduler initialization")
+						.hasArg()
+						.withArgName("config file")
+						.create("c"));
 
 		CommandLineParser parser = new PosixParser();
 		boolean showHelp = false;
@@ -72,13 +90,25 @@ public class TestMain {
 				showHelp = true;
 			}
 			else {
-				int threads = 4;
+				int threads = THREADS_DEFAULT;
+				File config = null;
 				if (cmd.hasOption("t")) {
 					threads = ((Number) cmd.getParsedOptionValue("t")).intValue();
 				}
+				if (cmd.hasOption("c")) {
+					config = new File(cmd.getOptionValue("c"));
+				}
 				if (cmd.getArgs().length == 1) {
-					String cdb = cmd.getArgs()[0];
-					runCDBTest(cdb, threads);
+					File cdb = new File(cmd.getArgs()[0]);
+					if(!cdb.canRead()) {
+						LOGGER.log(Level.SEVERE, "Could not find CDB file: {0}", cdb.getAbsolutePath());
+						return;
+					}
+					if(config != null && !config.canRead()) {
+						LOGGER.log(Level.SEVERE, "Could not find Config file: {0}", config.getAbsolutePath());
+						return;
+					}
+					runCDBTest(cdb, config, threads);
 				}
 				else {
 					showHelp = true;

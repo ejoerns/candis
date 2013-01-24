@@ -29,7 +29,14 @@ def mkdex(dexfile, infiles):
 		raise EnvironmentError("Environment variable ANDROID_HOME not set")
 	if not os.path.exists(android_home):
 		raise EnvironmentError("Path \"%s\" not found" % android_home)
-	cmd = "%s/platform-tools/dx --dex --verbose --output=\"%s\" %s" % (android_home, dexfile, " ".join(map(lambda f: "\"%s\"" % f, infiles)))
+
+	dexbin = "%s/platform-tools/dx" % (android_home)
+	if not os.path.exists(dexbin):
+		dexbin = "%s/bin/dx" % (android_home)
+	if not os.path.exists(dexbin):
+		raise IOError(dexbin)
+	
+	cmd = "%s --dex --verbose --output=\"%s\" %s" % (dexbin, dexfile, " ".join(map(lambda f: "\"%s\"" % f, infiles)))
 	print ">>", cmd
 	execute(cmd)
 

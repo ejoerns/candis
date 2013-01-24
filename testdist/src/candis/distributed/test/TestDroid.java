@@ -71,12 +71,12 @@ public class TestDroid extends DroidData implements Runnable {
 			while (true) {
 
 
-				LOGGER.log(Level.INFO, "Waiting for a new Message");
+				LOGGER.log(Level.FINE, "Waiting for a new Message");
 
 				Message m_in = messageConnection.readMessage();
 
 
-				LOGGER.log(Level.INFO, "Droid received message: {0}", m_in.getRequest());
+				LOGGER.log(Level.FINE, "Droid received message: {0}", m_in.getRequest());
 
 				// Handle job
 				switch (m_in.getRequest()) {
@@ -116,7 +116,7 @@ public class TestDroid extends DroidData implements Runnable {
 
 		}
 		catch (InterruptedIOException iex) {
-			LOGGER.log(Level.INFO, String.format("TestDroid %s: interrupted => stop", mID));
+			LOGGER.log(Level.FINE, String.format("TestDroid %s: interrupted => stop", mID));
 		}
 		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
