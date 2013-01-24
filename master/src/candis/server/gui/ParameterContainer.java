@@ -13,8 +13,11 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.plaf.basic.BasicMenuUI;
 
 /**
  *
@@ -113,7 +116,6 @@ public abstract class ParameterContainer {
 			box.addItemListener(new ItemListener() {
 				@Override
 				public void itemStateChanged(ItemEvent ie) {
-					mUserParameter.SetValue(ie.getItem());
 					validate();
 				}
 			});
@@ -133,6 +135,12 @@ public abstract class ParameterContainer {
 			super(userParameter);
 			JCheckBox checkBox = new JCheckBox();
 			checkBox.setSelected(Boolean.parseBoolean(userParameter.getValue().toString()));
+			checkBox.addChangeListener(new ChangeListener() {
+				@Override
+				public void stateChanged(ChangeEvent ce) {
+					validate();
+				}
+			});
 			mJComponent = checkBox;
 		}
 
