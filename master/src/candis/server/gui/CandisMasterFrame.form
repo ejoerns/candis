@@ -151,7 +151,7 @@
         </Constraint>
       </Constraints>
     </Component>
-    <Component class="javax.swing.JButton" name="mUploadButton">
+    <Component class="javax.swing.JButton" name="mOpenButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="Open"/>
       </Properties>
