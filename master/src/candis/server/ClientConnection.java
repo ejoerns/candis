@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.MessageConnection;
 import candis.common.fsm.FSM;
@@ -9,6 +10,8 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,7 +64,14 @@ public class ClientConnection extends MessageConnection implements Runnable {
 	@Override
 	public void run() {
 
+		// Init ping timer
+		Timer pingTimer = new Timer();
+		PingTimerTask ptt = new PingTimerTask();
+		pingTimer.scheduleAtFixedRate(ptt, 3000, 3000);
+
+		// init state machine
 		mStateMachine.init();
+
 		// Handle incoming client requests
 		try {
 			while ((!isStopped) && (!isSocketClosed())) {
@@ -71,6 +81,11 @@ public class ClientConnection extends MessageConnection implements Runnable {
 					if (msg.getData() == null) {
 						mStateMachine.process(msg.getRequest());
 					}
+					// IF PONG received, clear flag
+					else if (msg.getRequest() == Instruction.PONG) {
+						LOGGER.info("Got PONG reply, client is alive");
+						ptt.clearFlag();
+					}
 					else {
 						mStateMachine.process(msg.getRequest(), (Object[]) (msg.getData()));
 					}
@@ -79,14 +94,43 @@ public class ClientConnection extends MessageConnection implements Runnable {
 					Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
 				}
 
-
 				LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
 			}
 		}
-		catch (InterruptedIOException iex) {
+		catch (InterruptedIOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 		catch (IOException ex) {
-			Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, null, ex);
 		}
 	}
+
+	/**
+	 * Sends ping message.
+	 */
+	private class PingTimerTask extends TimerTask {
+
+		private boolean mFlag;
+
+		@Override
+		public void run() {
+			try {
+				if (mFlag) {
+					LOGGER.severe("Error: no ping reply!");
+				}
+				else {
+					LOGGER.info("Sending PING message");
+					sendMessage(Message.create(Instruction.PING));
+					mFlag = true;
+				}
+			}
+			catch (IOException ex) {
+				Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+
+		public void clearFlag() {
+			mFlag = false;
+		}
+	};
 }
