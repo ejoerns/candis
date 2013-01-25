@@ -1,6 +1,7 @@
 package candis.client.comm;
 
 import android.content.Context;
+import android.os.Messenger;
 import android.support.v4.app.FragmentManager;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
@@ -29,19 +30,21 @@ public class ServerConnection implements Runnable {
   private static final Logger LOGGER = Logger.getLogger(TAG);
   private boolean isStopped;
   private final FSM mFSM;
+  private final Messenger mMessenger;
   private final ClassLoaderWrapper mClassLoaderWrapper;
-//  private SendHandler mSendHandler;
   private final QueuedMessageConnection mMessageConnection;
 
   public ServerConnection(Socket socket,
                           final ClassLoaderWrapper cl,
                           final DroidContext dcontext,
                           final Context context,
+                          final Messenger messenger,
                           final FragmentManager fragmanager,
                           final JobCenter jobcenter) throws IOException {
     mClassLoaderWrapper = cl;
+    mMessenger = messenger;
     mMessageConnection = new QueuedMessageConnection(socket, mClassLoaderWrapper);
-    mFSM = new ClientStateMachine(this, dcontext, context, fragmanager, jobcenter);
+    mFSM = new ClientStateMachine(this, dcontext, context, messenger, fragmanager, jobcenter);
     mFSM.init();
     isStopped = false;
   }
@@ -101,7 +104,7 @@ public class ServerConnection implements Runnable {
       mMessageConnection.sendMessage(msg);
     }
     catch (IOException ex) {
-      Logger.getLogger(ServerConnection.class.getName()).log(Level.SEVERE, null, ex);
+      LOGGER.log(Level.SEVERE, null, ex);
     }
   }
 }

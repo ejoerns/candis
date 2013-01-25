@@ -7,6 +7,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.support.v4.app.DialogFragment;
 import android.util.Log;
 import android.widget.EditText;
@@ -22,10 +24,10 @@ import java.util.logging.Logger;
 public class CheckcodeInputDialog extends DialogFragment {
 
   private static final String TAG = "CheckcodeInputDialog";
-  private final Context mContext;
+  private final Messenger mMessenger;
 
-  public CheckcodeInputDialog(Context context) {
-    mContext = context;
+  public CheckcodeInputDialog(Messenger context) {
+    mMessenger = context;
   }
 
   @Override
@@ -36,17 +38,25 @@ public class CheckcodeInputDialog extends DialogFragment {
     final EditText input = new EditText(getActivity());
     builder.setView(input);
 
-    final Message msg = Message.obtain();
     try {
       builder.setMessage("Enter check code")
-              //							.setTitle("Warning")
               .setPositiveButton(R.string.accept, new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int id) {
           Log.v(TAG, "Positive clicked with checkcode " + input.getText().toString());
-          final Intent intent = new Intent(mContext, BackgroundService.class);
-          intent.setAction(BackgroundService.RESULT_SHOW_CHECKCODE)
-                  .putExtra("candis.client.RESULT", input.getText().toString());
-          mContext.startService(intent);
+          try {
+            // convert string to int and send it
+//            Log.e(TAG, "Value seems to be: " + checkcode);
+            Message message = Message.obtain(
+                    null,
+                    BackgroundService.RESULT_SHOW_CHECKCODE);
+            Bundle bundle = new Bundle();
+            bundle.putString("checkcode", input.getText().toString());
+            message.setData(bundle);
+            mMessenger.send(message);
+          }
+          catch (RemoteException ex) {
+            Logger.getLogger(CheckcodeInputDialog.class.getName()).log(Level.SEVERE, null, ex);
+          }
         }
       });
     }

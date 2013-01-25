@@ -1,9 +1,12 @@
 package candis.client.service;
 
-import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
+import android.os.Messenger;
+import android.os.RemoteException;
 import candis.client.JobCenterHandler;
-import candis.client.MainActivity;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Sends job center message to logging activity by using intents.
@@ -12,40 +15,40 @@ import candis.client.MainActivity;
  */
 public class ActivityLogger implements JobCenterHandler {
 
-  private final Context mContext;
+  private final Messenger mMessenger;
   Intent intent;
-  String msg = "Pseudo message";
+  android.os.Message msg;
 
-  public ActivityLogger(Context context) {
-    mContext = context;
-    intent = new Intent(mContext, MainActivity.class);
-    intent.setAction(BackgroundService.JOB_CENTER_HANDLER)
-            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+  public ActivityLogger(Messenger context) {
+    mMessenger = context;
+    msg = android.os.Message.obtain(null, BackgroundService.JOB_CENTER_HANDLER);
   }
 
   public void onBinaryReceived(String runnableID) {
-    msg = String.format("Task with ID %s received", runnableID);
-    intent.putExtra("Message", msg);
-    mContext.startActivity(intent);
+    sendMsg(String.format("Task with ID %s received", runnableID));
   }
 
   public void onInitialParameterReceived(String runnableID) {
-    msg = String.format("Initial Paramater for Task with ID %s received", runnableID);
-    intent.putExtra("Message", msg);
-    mContext.startActivity(intent);
+    sendMsg(String.format("Initial Paramater for Task with ID %s received", runnableID));
   }
 
   public void onJobExecutionStart(String runnableID) {
-    msg = String.format("Job for Task with ID %s started", runnableID);
-    intent.putExtra("Message", msg);
-    mContext.startActivity(intent);
+    sendMsg(String.format("Job for Task with ID %s started", runnableID));
   }
 
   public void onJobExecutionDone(String runnableID) {
-    msg = String.format("Job for Task with ID %s stopped", runnableID);
-    intent.putExtra("Message", msg);
-    mContext.startActivity(intent);
+    sendMsg(String.format("Job for Task with ID %s stopped", runnableID));
+  }
+
+  private void sendMsg(String message) {
+    Bundle bundle = new Bundle();
+    bundle.putString("Message", message);
+    try {
+      mMessenger.send(msg);
+    }
+    catch (RemoteException ex) {
+      Logger.getLogger(ActivityLogger.class.getName()).log(Level.SEVERE, null, ex);
+    }
   }
 
   public void onAction(int action, String runnableID) {

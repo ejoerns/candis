@@ -25,6 +25,7 @@
 
   <!--Info Activity-->
   <string name="infohead_id_text">ID (SHA-1)</string>
+  <string name="infohead_server_text">Connected to server</string>
 
   <!--Log Activity-->
   <string name="clear_log_button">Clear Log</string>
@@ -57,4 +58,10 @@
   <string name="menu_info">Info</string>
 
   <string name="activity_settings_name">SettingsActivity</string>
+  
+  <!-- Service -->
+  <string name="remote_service_started">Service started</string>
+  <string name="remote_service_stopped">Service stopped</string>
+  <string name="remote_service_connected">Remote Service connected</string>
+  <string name="remote_service_disconnected">Remote Service disconnected</string>
 </resources>

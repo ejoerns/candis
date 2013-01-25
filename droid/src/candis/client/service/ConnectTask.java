@@ -7,6 +7,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.Parcel;
+import android.os.RemoteException;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
@@ -19,17 +24,19 @@ import java.io.File;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.X509TrustManager;
 
 /**
  * Tries to connect to master.
- * 
+ *
  * Returns null if failed.
  *
  * @author Enrico Joerns
  */
 class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
-        implements CertAcceptRequestHandler { 
+        implements CertAcceptRequestHandler {
 
   private static final String TAG = "ConnectTask";
   private static final int NOTIFCATION_ID = 4711;
@@ -39,15 +46,17 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
   private final NotificationManager mNotificationManager;
   private final Context mContext;
   private final File mTSFile;
+  private final Messenger mMessenger;
 
   public ConnectTask(
           final AtomicBoolean bool,
           final Context context,
-          final File ts) {
+          final File ts,
+          final Messenger messenger) {
     mCertCheckResult = bool;
     mContext = context;
     mTSFile = ts;
-
+    mMessenger = messenger;
     mNotificationManager =
             (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
   }
@@ -95,7 +104,7 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
     // mId allows you to update the notification later on.
     Notification noti;
     PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0,
-                new Intent(mContext, MainActivity.class), 0);
+                                                            new Intent(mContext, MainActivity.class), 0);
 //    NotificationCompat.Builder notiBuild = new NotificationCompat.Builder(mContext);
 //    notiBuild.
     switch ((Integer) arg[0]) {
@@ -141,9 +150,19 @@ class ConnectTask extends AsyncTask<Object, Object, SecureConnection>
 
   @Override
   public boolean userCheckAccept(X509Certificate cert) {
-    Intent newintent = new Intent(mContext, MainActivity.class);
-    newintent.setAction(BackgroundService.CHECK_SERVERCERT).putExtra("X509Certificate", cert).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    mContext.startActivity(newintent);
+    try {
+      Bundle myBundle = new Bundle();
+      myBundle.putSerializable("cert", cert);
+      Message sendMessage = Message.obtain(null, BackgroundService.CHECK_SERVERCERT);
+      sendMessage.setData(myBundle);
+      Log.e(TAG, "Sending Message: " + sendMessage.toString());
+      mMessenger.send(sendMessage);
+    }
+    catch (RemoteException ex) {
+      Log.e(TAG, ex.getMessage());
+      return false;
+    }
+
     synchronized (mCertCheckResult) {
       try {
         System.out.println("cert_check_result.wait()");

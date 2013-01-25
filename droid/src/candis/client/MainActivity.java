@@ -5,12 +5,19 @@ import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.Parcel;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
@@ -22,6 +29,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import candis.client.gui.CertAcceptDialog;
 import candis.client.gui.CheckcodeInputDialog;
 import candis.client.gui.InfoActivity;
@@ -197,13 +205,13 @@ public class MainActivity extends FragmentActivity
               notification);      // do nothing
     }
     else if (intent.getAction().equals(BackgroundService.CHECK_SERVERCERT)) {
-      X509Certificate cert = (X509Certificate) intent.getSerializableExtra("X509Certificate");
-      CertAcceptDialog cad = new CertAcceptDialog(cert, this);
-      cad.show(getSupportFragmentManager(), "");
+//      X509Certificate cert = (X509Certificate) intent.getSerializableExtra("X509Certificate");
+//      CertAcceptDialog cad = new CertAcceptDialog(cert, mMessenger);
+//      cad.show(getSupportFragmentManager(), "");
     }
     else if (intent.getAction().equals(BackgroundService.SHOW_CHECKCODE)) {
-      DialogFragment checkDialog = new CheckcodeInputDialog(this);
-      checkDialog.show(getSupportFragmentManager(), TAG);
+//      DialogFragment checkDialog = new CheckcodeInputDialog(this);
+//      checkDialog.show(getSupportFragmentManager(), TAG);
     }
     else if (intent.getAction().equals(BackgroundService.JOB_CENTER_HANDLER)) {
 //      mLogView.append(intent.getStringExtra("Message").concat("\n"));
@@ -229,6 +237,7 @@ public class MainActivity extends FragmentActivity
         mServiceRunning = true; // TODO: replace by real test?
         Log.d(TAG, "onClick: starting service");
         startService(new Intent(this, BackgroundService.class).putExtra("DROID_CONTEXT", mDroidContext));
+        doBindService();
         mServiceButton.setText(getResources().getString(R.string.service_button_stop));
         ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
         ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(0, 255, 0));
@@ -264,5 +273,122 @@ public class MainActivity extends FragmentActivity
       }
     }
     return false;
+  }
+  /**
+   * Messenger for communicating with service.
+   */
+  Messenger mServiceMessenger = null;
+  /**
+   * Flag indicating whether we have called bind on the service.
+   */
+  boolean mIsBound;
+
+  /**
+   * Handler of incoming messages from service.
+   */
+  class IncomingHandler extends Handler {
+
+    @Override
+    public void handleMessage(Message msg) {
+      Log.i("IncomingHandler", "--> Got message: " + msg.toString());
+      switch (msg.what) {
+        case BackgroundService.CHECK_SERVERCERT:
+          Bundle myBundle = msg.getData();
+          X509Certificate cert = (X509Certificate) myBundle.getSerializable("cert");
+          CertAcceptDialog cad = new CertAcceptDialog(cert, mServiceMessenger);
+          cad.show(getSupportFragmentManager(), "");
+          break;
+        case BackgroundService.SHOW_CHECKCODE:
+          DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger);
+          checkDialog.show(getSupportFragmentManager(), TAG);
+          break;
+        default:
+          super.handleMessage(msg);
+      }
+    }
+  }
+  /**
+   * Target we publish for clients to send messages to IncomingHandler.
+   */
+  final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
+  /**
+   * Class for interacting with the main interface of the service.
+   */
+  private ServiceConnection mConnection = new ServiceConnection() {
+    public void onServiceConnected(ComponentName className,
+                                   IBinder service) {
+      // This is called when the connection with the service has been
+      // established, giving us the service object we can use to
+      // interact with the service.  We are communicating with our
+      // service through an IDL interface, so get a client-side
+      // representation of that from the raw service object.
+      mServiceMessenger = new Messenger(service);
+      Log.e(TAG, "Attached.");
+
+      // We want to monitor the service for as long as we are
+      // connected to it.
+      try {
+        Message msg = Message.obtain(null, BackgroundService.MSG_REGISTER_CLIENT);
+        msg.replyTo = mSelfMessenger;
+        mServiceMessenger.send(msg);
+      }
+      catch (RemoteException e) {
+        // In this case the service has crashed before we could even
+        // do anything with it; we can count on soon being
+        // disconnected (and then reconnected if it can be restarted)
+        // so there is no need to do anything here.
+        Log.e(TAG, e.getMessage());
+      }
+
+      // As part of the sample, tell the user what happened.
+      Toast.makeText(MainActivity.this, R.string.remote_service_connected,
+                     Toast.LENGTH_SHORT).show();
+    }
+
+    public void onServiceDisconnected(ComponentName className) {
+      // This is called when the connection with the service has been
+      // unexpectedly disconnected -- that is, its process crashed.
+      mServiceMessenger = null;
+      Log.e(TAG, "Disconnected.");
+
+      // As part of the sample, tell the user what happened.
+      Toast.makeText(MainActivity.this, R.string.remote_service_disconnected,
+                     Toast.LENGTH_SHORT).show();
+    }
+  };
+
+  void doBindService() {
+    // Establish a connection with the service.  We use an explicit
+    // class name because there is no reason to be able to let other
+    // applications replace our component.
+    bindService(new Intent(MainActivity.this,
+                           BackgroundService.class), mConnection, Context.BIND_AUTO_CREATE);
+    mIsBound = true;
+//    mCallbackText.setText("Binding.");
+    Log.e(TAG, "BONDAGE!");
+  }
+
+  void doUnbindService() {
+    if (mIsBound) {
+      // If we have received the service, and hence registered with
+      // it, then now is the time to unregister.
+      if (mServiceMessenger != null) {
+        try {
+          Message msg = Message.obtain(null,
+                                       BackgroundService.MSG_UNREGISTER_CLIENT);
+          msg.replyTo = mSelfMessenger;
+          mServiceMessenger.send(msg);
+        }
+        catch (RemoteException e) {
+          // There is nothing special we need to do if the service
+          // has crashed.
+        }
+      }
+
+      // Detach our existing connection.
+      unbindService(mConnection);
+      mIsBound = false;
+      Log.e(TAG, "Unbinding.");
+    }
   }
 }

@@ -6,6 +6,8 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.NotificationCompat;
 import candis.client.comm.ServerConnection;
@@ -32,17 +34,18 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public final class ClientStateMachine extends FSM {
-  
+
   private static final String TAG = "ClientStateMachine";
   private static final Logger LOGGER = Logger.getLogger(TAG);
   private final DroidContext mDroitContext;
   private final ServerConnection mSConn;
   private final Context mContext;
+  private final Messenger mMessenger;
   private final NotificationManager mNotificationManager;
   private final JobCenter mJobCenter;
-  
+
   private enum ClientStates implements StateEnum {
-    
+
     UNCONNECTED,
     WAIT_ACCEPT,
     CHECKCODE_ENTER,
@@ -56,9 +59,9 @@ public final class ClientStateMachine extends FSM {
     INIT_RECEIVED,
     INIT_BINARY_REQUESTED;
   }
-  
+
   public enum ClientTrans implements Transition {
-    
+
     SOCKET_CONNECTED,
     CHECKCODE_ENTERED,
     JOB_FINISHED,
@@ -66,27 +69,29 @@ public final class ClientStateMachine extends FSM {
     KNOWN,
     UNKNOWN;
   }
-  
+
   private enum ClientHandlerID implements HandlerID {
-    
+
     MY_ID;
   }
-  
+
   public ClientStateMachine(
           ServerConnection sconn,
           final DroidContext dcontext,
           final Context context,
+          final Messenger messenger,
           final FragmentManager fragmanager,
           final JobCenter jobcenter) {
     mDroitContext = dcontext;
     mContext = context;
+    mMessenger = messenger;
     mSConn = sconn;
     mJobCenter = jobcenter;
-    
+
     mNotificationManager =
             (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
   }
-  
+
   @Override
   public void init() {
     addState(ClientStates.UNCONNECTED)
@@ -173,7 +178,7 @@ public final class ClientStateMachine extends FSM {
             ClientTrans.JOB_FINISHED,
             ClientStates.WAIT_FOR_JOB,
             new JobFinishedHandler());
-    
+
     addGlobalTransition(
             ClientTrans.DISCONNECT,
             ClientStates.UNCONNECTED,
@@ -186,7 +191,7 @@ public final class ClientStateMachine extends FSM {
    * Shows Error Dialog with short message.
    */
   private class ConnectionRejectedHandler implements ActionHandler {
-    
+
     @Override
     public void handle(final Object... obj) {
       System.out.println("ConnectionRejectedHandler() called");
@@ -205,7 +210,7 @@ public final class ClientStateMachine extends FSM {
    * Sends disconnect instruction to master.setAccessingle
    */
   private class DisconnectHandler implements ActionHandler {
-    
+
     @Override
     public void handle(final Object... o) {
       System.out.println("DisconnectHandler() called");
@@ -217,7 +222,7 @@ public final class ClientStateMachine extends FSM {
    * Requests connection to server.
    */
   private class SocketConnectedHandler implements ActionHandler {
-    
+
     @Override
     public void handle(final Object... obj) {
       System.out.println("SocketConnectedHandler() called");
@@ -229,7 +234,7 @@ public final class ClientStateMachine extends FSM {
    * Sends Profile data to Server.
    */
   private class ProfileRequestHandler implements ActionHandler {
-    
+
     @Override
     public void handle(final Object... obj) {
       System.out.println("ProfileRequestHandler() called");
@@ -241,15 +246,21 @@ public final class ClientStateMachine extends FSM {
    * Shows input dialog to enter checkcode.
    */
   private class CheckcodeInputHandler implements ActionHandler {
-    
+
     @Override
     public void handle(final Object... o) {
       System.out.println("CheckcodeInputHandler() called");
-      Intent newintent = new Intent(mContext, MainActivity.class);
-      newintent.setAction(BackgroundService.SHOW_CHECKCODE)
-              .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      mContext.startActivity(newintent);
+      try {
+        //      Intent newintent = new Intent(mContext, MainActivity.class);
+        //      newintent.setAction(BackgroundService.SHOW_CHECKCODE)
+        //              .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        //              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        //      mContext.startActivity(newintent);
+        mMessenger.send(android.os.Message.obtain(null, BackgroundService.SHOW_CHECKCODE));
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
   }
 
@@ -257,7 +268,7 @@ public final class ClientStateMachine extends FSM {
    * Sends entered checkcode to server.
    */
   private class CheckcodeSendHandler implements ActionHandler {
-    
+
     @Override
     public void handle(final Object... o) {
       System.out.println("CheckcodeSendHandler() called");
@@ -270,11 +281,11 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class CheckJobHandler implements ActionHandler {
-    
+
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
       assert (obj[1] instanceof DistributedJobParameter) || (obj[1] instanceof byte[]);
-      
+
       System.out.println("CheckJobHandler...");
       try {
         if (mJobCenter.isTaskAvailable((String) obj[0])) {
@@ -313,13 +324,13 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class JobFinishedHandler implements ActionHandler {
-    
+
     @Override
     public void handle(final Object... obj) {
       assert obj[0] instanceof String;
       assert obj[1] instanceof DistributedJobResult;
       assert obj.length == 2;
-      
+
       System.out.println("JobFinishedHandler() called");
       mSConn.sendMessage(new Message(Instruction.SEND_RESULT, (String) obj[0], (Serializable) obj[1]));
     }
@@ -332,7 +343,7 @@ public final class ClientStateMachine extends FSM {
    * param[1]: parameter
    */
   private class CheckInitialParameterHandler implements ActionHandler {
-    
+
     public void handle(Object... obj) {
       try {
         if (mJobCenter.isTaskAvailable((String) obj[0])) {
@@ -352,7 +363,7 @@ public final class ClientStateMachine extends FSM {
    * Executes the job with given ID.
    */
   private class ProcessJobHandler implements ActionHandler {
-    
+
     public void handle(Object... obj) {
       mSConn.sendMessage(new Message(Instruction.ACK));
       DistributedJobResult djr = mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
@@ -369,11 +380,11 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class AddBinaryHandler implements ActionHandler {
-    
+
     public void handle(Object... obj) {
-      
+
       mJobCenter.loadBinary((String) obj[0], (byte[]) obj[1]);
-      
+
       mSConn.sendMessage(new Message(Instruction.ACK));
     }
   }
@@ -382,7 +393,7 @@ public final class ClientStateMachine extends FSM {
    * 
    */
   private class AddInitialParameterHandler implements ActionHandler {
-    
+
     public void handle(Object... obj) {
       mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
       mSConn.sendMessage(new Message(Instruction.ACK));
@@ -393,12 +404,12 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class AddInitialAndProcessHandler implements ActionHandler {
-    
+
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
       assert obj[1] instanceof DistributedJobParameter;
       assert obj.length == 2;
-      
+
       mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
       mSConn.sendMessage(new Message(Instruction.ACK));
       DistributedJobParameter djp = mJobCenter.serializeJob();
@@ -417,10 +428,10 @@ public final class ClientStateMachine extends FSM {
    * param[0] - id (String)
    */
   private class RequestBinaryHandler implements ActionHandler {
-    
+
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
-      
+
       System.out.println("Sending request for a shit fucking binary...");
       mSConn.sendMessage(new Message(Instruction.REQUEST_BINARY, (Serializable) obj[0]));
       System.out.println("Request for a shit fucking binary done...");

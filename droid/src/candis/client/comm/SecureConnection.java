@@ -1,5 +1,6 @@
 package candis.client.comm;
 
+import candis.client.CurrentSystemStatus;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -73,6 +74,9 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
       socket = sf.createSocket(host, port);
       LOGGER.log(Level.INFO, String.format(
               "Connected to %s:%d", socket.getInetAddress(), socket.getPort()));
+//      System.out.println("getStatus() @ SecureConnection: " + CurrentSystemStatus.getStatus());
+//      CurrentSystemStatus.getStatus().servername = socket.getInetAddress().getHostName();
+//      CurrentSystemStatus.getStatus().serverport = String.valueOf(socket.getPort());
     }
     catch (UnknownHostException ex) {
       LOGGER.log(Level.SEVERE, "UnknownHostException");

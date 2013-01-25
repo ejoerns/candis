@@ -14,19 +14,19 @@ import candis.client.CurrentSystemStatus;
  */
 public class PowerConnectionReceiver extends BroadcastReceiver {
 
-  private CurrentSystemStatus mSystemStatus;
+//  private CurrentSystemStatus mSystemStatus = new CurrentSystemStatus();
 
   public PowerConnectionReceiver(CurrentSystemStatus systemStatus) {
-    mSystemStatus = systemStatus;
+//    mSystemStatus = systemStatus;
   }
 
   @Override
   public void onReceive(Context context, Intent batteryIntent) {
     // get charging state
     int status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-    mSystemStatus.charging = status == BatteryManager.BATTERY_STATUS_CHARGING
-            || status == BatteryManager.BATTERY_STATUS_FULL;
-    Log.w("PowerConnectionReceiver", "Charging: " + mSystemStatus.charging);
+//    mSystemStatus.charging = status == BatteryManager.BATTERY_STATUS_CHARGING
+//            || status == BatteryManager.BATTERY_STATUS_FULL;
+//    Log.w("PowerConnectionReceiver", "Charging: " + mSystemStatus.charging);
 
     // get connected adapters (not used)
     int chargePlug = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
@@ -38,11 +38,11 @@ public class PowerConnectionReceiver extends BroadcastReceiver {
     // get battery level
     int rawlevel = batteryIntent.getIntExtra("level", -1);
     double scale = batteryIntent.getIntExtra("scale", -1);
-    mSystemStatus.chargingState = -1;
+//    mSystemStatus.chargingState = -1;
     if (rawlevel >= 0 && scale > 0) {
-      mSystemStatus.chargingState = rawlevel / scale;
+//      mSystemStatus.chargingState = rawlevel / scale;
     }
 
-    Log.w("PowerConnectionReceiver", "Level: " + mSystemStatus.chargingState);
+//    Log.w("PowerConnectionReceiver", "Level: " + mSystemStatus.chargingState);
   }
 }

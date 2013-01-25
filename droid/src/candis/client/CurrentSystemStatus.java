@@ -8,15 +8,8 @@ package candis.client;
  */
 public class CurrentSystemStatus {
 
-  private static CurrentSystemStatus mInstance = new CurrentSystemStatus();
-
-  private CurrentSystemStatus() {
-  }
-
-  public static CurrentSystemStatus getInstance() {
-    return mInstance;
-  }
-//  public boolean batteryLow;
   public boolean charging;
   public double chargingState;
+  public String servername = "not connected";
+  public String serverport = "-----";
 }
