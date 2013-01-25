@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed.parameter;
 
 import candis.distributed.parameter.UserParameterCtrl.InputType;

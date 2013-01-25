@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed.parameter;
 
 import candis.distributed.parameter.UserParameterCtrl.InputType;
@@ -10,10 +6,12 @@ import candis.distributed.parameter.UserParameterCtrl.InputType;
  *
  * @author Sebastian Willenborg
  */
-public class BooleanUserParameter extends UserParameter{
+public class BooleanUserParameter extends UserParameter {
+
 	public BooleanUserParameter(String name, boolean defaultValue) {
 		super(name, defaultValue, null);
 	}
+
 	public BooleanUserParameter(String name, boolean defaultValue, UserParameterValidator validator) {
 		super(name, defaultValue, validator);
 	}
@@ -26,5 +24,4 @@ public class BooleanUserParameter extends UserParameter{
 	public UserParameterCtrl getInputCtrl() {
 		return new UserParameterCtrl(InputType.BOOELAN);
 	}
-
 }

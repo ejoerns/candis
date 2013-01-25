@@ -7,6 +7,7 @@ package candis.distributed.parameter;
  * @author Sebastian Willenborg
  */
 public interface UserParameterUI {
+
 	/**
 	 * Requests to show an Dialog to edit the given parameters
 	 *

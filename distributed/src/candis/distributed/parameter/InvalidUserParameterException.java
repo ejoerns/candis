@@ -7,7 +7,5 @@ package candis.distributed.parameter;
 public class InvalidUserParameterException extends RuntimeException {
 
 	public InvalidUserParameterException() {
-
 	}
-
 }

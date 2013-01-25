@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.distributed.parameter;
 
 import java.util.Arrays;
@@ -12,9 +8,11 @@ import java.util.List;
  *
  * @author Sebastian Willenborg
  */
-public class ListValidator extends UserParameterValidator{
+public class ListValidator extends UserParameterValidator {
+
 	final List<String> mValues;
 	private String message = "";
+
 	public ListValidator(String[] values) {
 		mValues = new LinkedList<String>(Arrays.asList(values));
 	}
@@ -26,16 +24,14 @@ public class ListValidator extends UserParameterValidator{
 
 	@Override
 	public boolean validate(UserParameter param) {
-		boolean contains = mValues.contains((String)param.getValue());
-		if(contains) {
+		boolean contains = mValues.contains((String) param.getValue());
+		if (contains) {
 			message = "";
 		}
-		else
-		{
+		else {
 			message = String.format("%s is not allowed", param.getValue());
 		}
 		return contains;
 
 	}
-
 }

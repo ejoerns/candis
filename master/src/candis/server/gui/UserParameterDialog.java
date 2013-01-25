@@ -16,7 +16,7 @@ public class UserParameterDialog extends javax.swing.JDialog {
 	private final List<ParameterContainer> mParameterContainers = new LinkedList<ParameterContainer>();
 	private boolean mValidParameters = false;
 
-	public boolean isValid() {
+	public boolean parametersAreValid() {
 		return mValidParameters;
 	}
 	/**

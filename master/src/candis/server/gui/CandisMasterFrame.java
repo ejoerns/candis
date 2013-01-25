@@ -3,7 +3,6 @@ package candis.server.gui;
 import candis.common.Settings;
 import candis.distributed.JobDistributionIOHandler;
 import candis.distributed.SchedulerStillRuningException;
-import candis.distributed.parameter.InvalidUserParameterException;
 import candis.distributed.parameter.UserParameterCanceledException;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.distributed.parameter.UserParameterSet;
@@ -424,12 +423,10 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
   }//GEN-LAST:event_mDeleteButtonActionPerformed
 
   private void mClearlogButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mClearlogButtonActionPerformed
-		// TODO add your handling code here:
 		mLogTextArea.setText("");
   }//GEN-LAST:event_mClearlogButtonActionPerformed
 
   private void mStopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mStopButtonActionPerformed
-		// TODO add your handling code here:
 		mStopButton.setEnabled(false);
 		mJobDistIO.stopScheduler();
   }//GEN-LAST:event_mStopButtonActionPerformed
@@ -525,7 +522,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 				public void run() {
 					UserParameterDialog d = new UserParameterDialog(f, parameterSet);
 					d.setVisible(true);
-					valid.set(d.isValid());
+					valid.set(d.parametersAreValid());
 					d.dispose();
 				}
 			});

@@ -5,14 +5,13 @@ package candis.distributed.parameter;
  * @author Sebastian Willenborg
  */
 public class UserParameterCtrl {
+
 	private final InputType mInputType;
 	private final String[] mListElements;
 
 	public enum InputType {
 
 		INTEGER,
-		INTEGER_RANGE,
-		FLOAT,
 		STRING,
 		STRING_LIST,
 		FILE,

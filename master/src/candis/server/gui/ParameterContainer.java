@@ -8,14 +8,15 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
-import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -55,9 +56,7 @@ public abstract class ParameterContainer {
 
 		switch (ctrl.getInputTupe()) {
 			case FILE:
-				break;
-			case FLOAT:
-				break;
+				return new FileParameterContainer(param);
 			case INTEGER:
 				return new IntegerParameterContainer(param);
 			case STRING:
@@ -214,6 +213,54 @@ public abstract class ParameterContainer {
 		@Override
 		public Object getValue() {
 			return ((JTextField) mJComponent).getText();
+		}
+	}
+
+	public static class FileParameterContainer extends ParameterContainer {
+
+		private final JLabel mFileLabel;
+
+		public FileParameterContainer(UserParameter userParameter) {
+			super(userParameter);
+
+			JPanel panel = new JPanel();
+			mFileLabel = new JLabel(userParameter.getValue().toString());
+
+			panel.setLayout(new java.awt.GridBagLayout());
+			GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
+			gridBagConstraints.gridx = 0;
+			gridBagConstraints.gridy = 0;
+			gridBagConstraints.gridwidth = 1;
+			gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+			gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+			gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 5);
+			gridBagConstraints.weightx = 1;
+			panel.add(mFileLabel, gridBagConstraints);
+
+			JButton fileButton = new JButton("Select File");
+			gridBagConstraints.gridx = 1;
+			gridBagConstraints.weightx = 0;
+			panel.add(fileButton, gridBagConstraints);
+			fileButton.addActionListener(new java.awt.event.ActionListener() {
+				@Override
+				public void actionPerformed(java.awt.event.ActionEvent evt) {
+					JFileChooser fileChooser = new JFileChooser();
+					int returnVal = fileChooser.showOpenDialog(mJComponent.getParent());
+
+					if (returnVal == JFileChooser.APPROVE_OPTION) {
+
+						mFileLabel.setText(fileChooser.getSelectedFile().getPath());
+						validate();
+					}
+				}
+			});
+			mJComponent = panel;
+
+		}
+
+		@Override
+		public Object getValue() {
+			return mFileLabel.getText();
 		}
 	}
 }

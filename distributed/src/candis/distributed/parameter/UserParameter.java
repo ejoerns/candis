@@ -35,8 +35,9 @@ public abstract class UserParameter {
 	public String getName() {
 		return mName;
 	}
+
 	public String getTitle() {
-		if(mTitle != null) {
+		if (mTitle != null) {
 			return mTitle;
 		}
 		return mName;

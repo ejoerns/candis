@@ -30,19 +30,19 @@ public class HashControl implements DistributedControl, ResultReceiver {
 		StringUserParameter hashvalue = new StringUserParameter("hash.hashvalue", "Hash", "Hash to Crack", "ab12", new RegexValidator("[0-9a-f]*"));
 		parameters.AddParameter(hashvalue);
 
-		StringListUserParameter type = new StringListUserParameter("hash.type", 1, new String[] {"md5", "sha1"});
+		StringListUserParameter type = new StringListUserParameter("hash.type", 1, new String[]{"md5", "sha1"});
 		parameters.AddParameter(type);
 
-		StringListUserParameter tryAlpha = new StringListUserParameter("hash.try.alpha", 2, new String[] {"small", "caps", "both"});
+		StringListUserParameter tryAlpha = new StringListUserParameter("hash.try.alpha", 2, new String[]{"small", "caps", "both"});
 		parameters.AddParameter(tryAlpha);
 
 		BooleanUserParameter tryNumeric = new BooleanUserParameter("hash.try.numeric", false);
 		parameters.AddParameter(tryNumeric);
 
-		IntegerUserParameter start = new IntegerUserParameter("hash.trylen.start", 2, 0, Integer.MAX_VALUE,1, null);
+		IntegerUserParameter start = new IntegerUserParameter("hash.trylen.start", 2, 0, Integer.MAX_VALUE, 1, null);
 		parameters.AddParameter(start);
 
-		IntegerUserParameter stop = new IntegerUserParameter("hash.trylen.stop", 2, 0, Integer.MAX_VALUE,1, null);
+		IntegerUserParameter stop = new IntegerUserParameter("hash.trylen.stop", 2, 0, Integer.MAX_VALUE, 1, null);
 		parameters.AddParameter(stop);
 
 		UserParameterRequester.getInstance().request(parameters);
@@ -66,5 +66,4 @@ public class HashControl implements DistributedControl, ResultReceiver {
 	public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
-
 }
