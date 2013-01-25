@@ -7,6 +7,7 @@ import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
 import candis.common.ClassLoaderWrapper;
+import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.MessageConnection;
 import candis.common.QueuedMessageConnection;
@@ -25,7 +26,7 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public class ServerConnection implements Runnable {
-
+  
   private static final String TAG = ServerConnection.class.getName();
   private static final Logger LOGGER = Logger.getLogger(TAG);
   private boolean isStopped;
@@ -33,7 +34,7 @@ public class ServerConnection implements Runnable {
   private final Messenger mMessenger;
   private final ClassLoaderWrapper mClassLoaderWrapper;
   private final QueuedMessageConnection mMessageConnection;
-
+  
   public ServerConnection(Socket socket,
                           final ClassLoaderWrapper cl,
                           final DroidContext dcontext,
@@ -53,7 +54,7 @@ public class ServerConnection implements Runnable {
   public MessageConnection getMessageConnection() {
     return mMessageConnection;
   }
-
+  
   public FSM getFSM() {
     return mFSM;
   }
@@ -64,14 +65,14 @@ public class ServerConnection implements Runnable {
   @Override
   public void run() {
     new Thread(mMessageConnection).start();
-
+    
     try {
       mFSM.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
     }
     catch (StateMachineException ex) {
       LOGGER.log(Level.SEVERE, null, ex);
     }
-
+    
     while (!isStopped) {
       try {
         Message msg = mMessageConnection.readMessage();
@@ -79,8 +80,13 @@ public class ServerConnection implements Runnable {
           if (msg.getData() == null) {
             mFSM.process(((Message) msg).getRequest());
           }
+          else if (msg.getRequest() == Instruction.PING) {
+            LOGGER.info("Got PING request, sending PONG");
+            sendMessage(Message.create(Instruction.PONG));
+          }
           else {
-            mFSM.process(((Message) msg).getRequest(), (Object[]) ((Message) msg).getData());
+            LOGGER.info("Got Message: " + msg.getRequest());
+            mFSM.process(msg.getRequest(), (Object[]) msg.getData());
           }
         }
         catch (StateMachineException ex) {
@@ -88,7 +94,6 @@ public class ServerConnection implements Runnable {
         }
       }
       catch (IOException ex) {
-        LOGGER.log(Level.ALL, "IOException2");
         LOGGER.log(Level.SEVERE, null, ex);
       }
     }

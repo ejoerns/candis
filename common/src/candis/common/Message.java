@@ -9,27 +9,36 @@ import java.io.Serializable;
  */
 public class Message implements Serializable {
 
-	private Serializable[] data;
-	private Instruction req;
+  private Serializable[] data;
+  private Instruction req;
+  private static final Message mInstance = new Message(Instruction.NO_MSG);
 
-	public Message(final Instruction req, final Serializable... data) {
-		this.req = req;
-		this.data = data;
-	}
+  private Message(final Instruction req, final Serializable... data) {
+    this.req = req;
+    this.data = data;
+  }
 
-	public Message(final Instruction req) {
-		this(req, (Serializable) null);
-	}
+  public static Message create(final Instruction instr) {
+    mInstance.req = instr;
+    mInstance.data = null;
+    return mInstance;
+  }
 
-	public Instruction getRequest() {
-		return req;
-	}
+  public static Message create(final Instruction instr, final Serializable... data) {
+    mInstance.req = instr;
+    mInstance.data = data;
+    return mInstance;
+  }
 
-	public Serializable getData(final int idx) {
-		return data[idx];
-	}
-	
-	public Serializable[] getData() {
-		return data;
-	}
+  public Instruction getRequest() {
+    return req;
+  }
+
+  public Serializable getData(final int idx) {
+    return data[idx];
+  }
+
+  public Serializable[] getData() {
+    return data;
+  }
 }

@@ -73,6 +73,6 @@ public class MessageConnection extends ObjectConnection {
     // concat Message from received data
     Serializable dataArray[] = new Serializable[data.size()];
     dataArray = data.toArray(dataArray);
-    return new Message(inst, dataArray);
+    return Message.create(inst, dataArray);
   }
 }

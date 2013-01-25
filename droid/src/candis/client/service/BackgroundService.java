@@ -27,7 +27,6 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -75,11 +74,13 @@ public class BackgroundService extends Service {
    *
    */
   public static final int JOB_CENTER_HANDLER = 50;
-  /**
-   * For showing and hiding our notification.
-   */
-  NotificationManager mNM;
-  Messenger mRemoteMessenger;
+  //---
+  /// For showing and hiding our notification.
+  private NotificationManager mNM;
+  /// Remote target to send messsages to.
+  private Messenger mRemoteMessenger;
+  /// Target we publish for clients to send messages to IncomingHandler.
+  final Messenger mLocalMessenger = new Messenger(new IncomingHandler());
   private Context mContext;
   private final DroidContext mDroidContext;
   private final AtomicBoolean mCertCheckResult = new AtomicBoolean(false);
@@ -98,22 +99,58 @@ public class BackgroundService extends Service {
    */
   @Override
   public IBinder onBind(Intent intent) {
-    Log.e("BackgroundService", "onBind()");
+    Log.v(TAG, "onBind()");
     return mLocalMessenger.getBinder();
   }
 
   @Override
   public void onCreate() {
+    Log.v(TAG, "onCreate()");
+    super.onCreate();
+
     mContext = getApplicationContext();
-    System.out.println("Backgroundservice: onCreate()");
-    Settings.load(this.getResources().openRawResource(R.raw.settings));
     mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+    Settings.load(this.getResources().openRawResource(R.raw.settings));
     // register receiver for battery updates
     registerReceiver(
             new PowerConnectionReceiver(null),
             new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     showNotification();
   }
+
+  @Override
+  public int onStartCommand(Intent intent, int flags, int startId) {
+    Log.v(TAG, "onStartCommand()");
+    super.onStartCommand(intent, flags, startId);
+
+    // if service running, only handle intent
+    if (mRunning) {
+      return START_STICKY;
+    }
+    mRunning = true;
+
+    mDroidContext.init((DroidContext) intent.getExtras().getSerializable("DROID_CONTEXT"));
+
+    // We want this service to continue running until it is explicitly
+    // stopped, so return sticky.
+    return START_STICKY;
+  }
+
+  @Override
+  public void onDestroy() {
+    mNM.cancel(R.string.remote_service_started);
+    // Tell the user we stopped.
+    Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
+    try {
+      if (mFSM != null) {
+        mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
+      }
+    }
+    catch (StateMachineException ex) {
+      Log.e(TAG, ex.getMessage());
+    }
+  }
+  //----------------------------------------------------------------------------
 
   /**
    * Show a notification while this service is running.
@@ -139,27 +176,9 @@ public class BackgroundService extends Service {
     mNM.notify(R.string.remote_service_started, notification);
   }
 
-  @Override
-  public int onStartCommand(Intent intent, int flags, int startId) {
-    System.out.println("Backgroundservice: onStartCommand()");
-    super.onStartCommand(intent, flags, startId);
-
-    // if service running, only handle intent
-    if (mRunning) {
-      onNewIntent(intent);
-      return START_STICKY;
-    }
-
-    Log.i("LocalService", "Received start id " + startId + ": " + intent);
-    mRunning = true;
-
-    mDroidContext.init((DroidContext) intent.getExtras().getSerializable("DROID_CONTEXT"));
-
-    // We want this service to continue running until it is explicitly
-    // stopped, so return sticky.
-    return START_STICKY;
-  }
-
+  /**
+   *
+   */
   public void doConnect() {
     final ConnectTask connectTask;
     connectTask = new ConnectTask(
@@ -225,50 +244,6 @@ public class BackgroundService extends Service {
 
   }
 
-  // NOTE: not an override!
-  public void onNewIntent(Intent intent) {
-    System.out.println("onNewIntent() " + intent.getAction());
-    if (intent.getAction() == null) {
-      Log.w(TAG, "Intent Action is null");
-    }
-    else if (intent.getAction().equals(RESULT_CHECK_SERVERCERT)) {
-      synchronized (mCertCheckResult) {
-        mCertCheckResult.set(intent.getBooleanExtra("RESULT", false));// TODO...
-        mCertCheckResult.notifyAll();
-        System.out.println("cert_check_result.notifyAll()");
-      }
-    }
-    else if (intent.getAction().equals(RESULT_SHOW_CHECKCODE)) {
-      System.out.println("RESULT_SHOW_CHECKCODE");
-//      try {
-//        mFSM.process(
-//                ClientStateMachine.ClientTrans.CHECKCODE_ENTERED,
-//                intent.getStringExtra("candis.client.RESULT"));
-//      }
-//      catch (StateMachineException ex) {
-//        Log.e(TAG, ex.toString());
-//      }
-    }
-    else {
-      Log.w(TAG, "Unknown Intent");
-    }
-  }
-
-  @Override
-  public void onDestroy() {
-    mNM.cancel(R.string.remote_service_started);
-    // Tell the user we stopped.
-    Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
-    try {
-      if (mFSM != null) {
-        mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
-      }
-    }
-    catch (StateMachineException ex) {
-      Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
-    }
-  }
-
   /**
    * Handler of incoming messages from clients.
    */
@@ -312,8 +287,4 @@ public class BackgroundService extends Service {
       }
     }
   }
-  /**
-   * Target we publish for clients to send messages to IncomingHandler.
-   */
-  final Messenger mLocalMessenger = new Messenger(new IncomingHandler());
 }

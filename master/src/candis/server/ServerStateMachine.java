@@ -78,7 +78,8 @@ public class ServerStateMachine extends FSM {
 		CLIENT_DISCONNECTED,
 		SEND_JOB,
 		SEND_INITAL,// TODO...
-		STOP_JOB;// TODO...
+		STOP_JOB,// TODO...
+		SEND_PING;
 	}
 
 	public ServerStateMachine(
@@ -199,6 +200,10 @@ public class ServerStateMachine extends FSM {
 						Instruction.DISCONNECT,
 						ServerStates.UNCONNECTED,
 						new ClientDisconnectedHandler());
+		addGlobalTransition(
+						ServerTrans.SEND_PING,
+						null,
+						new SendPingHandler());
 
 		setState(ServerStates.UNCONNECTED);
 	}
@@ -254,7 +259,7 @@ public class ServerStateMachine extends FSM {
 				}
 			}
 			try {
-				mConnection.sendMessage(new Message(instr));
+				mConnection.sendMessage(Message.create(instr));
 				LOGGER.log(Level.INFO, String.format("Server reply: %s", instr));
 				process(trans);
 			}
@@ -324,7 +329,7 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object... o) {
 			System.out.println("ConnectionRejectedHandler() called");
 			try {
-				mConnection.sendMessage(new Message(Instruction.REJECT_CONNECTION));
+				mConnection.sendMessage(Message.create(Instruction.REJECT_CONNECTION));
 			}
 			catch (IOException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
@@ -375,7 +380,7 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object... o) {
 			System.out.println("ProfileRequestHandler() called");
 			try {
-				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
+				mConnection.sendMessage(Message.create(Instruction.REQUEST_PROFILE));
 			}
 			catch (IOException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
@@ -464,7 +469,7 @@ public class ServerStateMachine extends FSM {
 				outdata = buffer.toByteArray();
 
 				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY,
+								Message.create(Instruction.SEND_BINARY,
 														mJobDistIO.getCurrentTaskID(),
 														outdata));
 			}
@@ -492,7 +497,7 @@ public class ServerStateMachine extends FSM {
 			CandisLog.v(TAG, "Sending initial parameter for task ID " + mJobDistIO.getCurrentTaskID());
 			try {
 				assert mJobDistIO.getCurrentScheduler().getInitialParameter() != null;
-				mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getCurrentScheduler().getInitialParameter()));
+				mConnection.sendMessage(Message.create(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getCurrentScheduler().getInitialParameter()));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -517,7 +522,7 @@ public class ServerStateMachine extends FSM {
 			System.out.println("SendJobHandler() called");
 			CandisLog.v(TAG, "Sending job for task ID " + params[0]);
 			try {
-				mConnection.sendMessage(new Message(
+				mConnection.sendMessage(Message.create(
 								Instruction.SEND_JOB,
 								(String) params[0],
 								(Serializable) params[1]));
@@ -525,6 +530,17 @@ public class ServerStateMachine extends FSM {
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
+		}
+	}
+
+	/**
+	 * Sends PING to client.
+	 */
+	private class SendPingHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object... obj) {
+			throw new UnsupportedOperationException("Not supported yet.");
 		}
 	}
 }

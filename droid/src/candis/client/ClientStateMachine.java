@@ -214,7 +214,7 @@ public final class ClientStateMachine extends FSM {
     @Override
     public void handle(final Object... o) {
       System.out.println("DisconnectHandler() called");
-      mSConn.sendMessage(new Message(Instruction.DISCONNECT));
+      mSConn.sendMessage(Message.create(Instruction.DISCONNECT));
     }
   }
 
@@ -226,7 +226,7 @@ public final class ClientStateMachine extends FSM {
     @Override
     public void handle(final Object... obj) {
       System.out.println("SocketConnectedHandler() called");
-      mSConn.sendMessage(new Message(Instruction.REQUEST_CONNECTION, mDroitContext.getID()));
+      mSConn.sendMessage(Message.create(Instruction.REQUEST_CONNECTION, mDroitContext.getID()));
     }
   }
 
@@ -238,7 +238,7 @@ public final class ClientStateMachine extends FSM {
     @Override
     public void handle(final Object... obj) {
       System.out.println("ProfileRequestHandler() called");
-      mSConn.sendMessage(new Message(Instruction.SEND_PROFILE, mDroitContext.getProfile()));
+      mSConn.sendMessage(Message.create(Instruction.SEND_PROFILE, mDroitContext.getProfile()));
     }
   }
 
@@ -272,7 +272,7 @@ public final class ClientStateMachine extends FSM {
     @Override
     public void handle(final Object... o) {
       System.out.println("CheckcodeSendHandler() called");
-      mSConn.sendMessage(new Message(Instruction.SEND_CHECKCODE, (String) o[0]));
+      mSConn.sendMessage(Message.create(Instruction.SEND_CHECKCODE, (String) o[0]));
     }
   }
 
@@ -332,7 +332,7 @@ public final class ClientStateMachine extends FSM {
       assert obj.length == 2;
 
       System.out.println("JobFinishedHandler() called");
-      mSConn.sendMessage(new Message(Instruction.SEND_RESULT, (String) obj[0], (Serializable) obj[1]));
+      mSConn.sendMessage(Message.create(Instruction.SEND_RESULT, (String) obj[0], (Serializable) obj[1]));
     }
   }
 
@@ -365,7 +365,7 @@ public final class ClientStateMachine extends FSM {
   private class ProcessJobHandler implements ActionHandler {
 
     public void handle(Object... obj) {
-      mSConn.sendMessage(new Message(Instruction.ACK));
+      mSConn.sendMessage(Message.create(Instruction.ACK));
       DistributedJobResult djr = mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
       try {
         process(ClientTrans.JOB_FINISHED, obj[0], djr);
@@ -385,7 +385,7 @@ public final class ClientStateMachine extends FSM {
 
       mJobCenter.loadBinary((String) obj[0], (byte[]) obj[1]);
 
-      mSConn.sendMessage(new Message(Instruction.ACK));
+      mSConn.sendMessage(Message.create(Instruction.ACK));
     }
   }
 
@@ -396,7 +396,7 @@ public final class ClientStateMachine extends FSM {
 
     public void handle(Object... obj) {
       mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
-      mSConn.sendMessage(new Message(Instruction.ACK));
+      mSConn.sendMessage(Message.create(Instruction.ACK));
     }
   }
 
@@ -411,7 +411,7 @@ public final class ClientStateMachine extends FSM {
       assert obj.length == 2;
 
       mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
-      mSConn.sendMessage(new Message(Instruction.ACK));
+      mSConn.sendMessage(Message.create(Instruction.ACK));
       DistributedJobParameter djp = mJobCenter.serializeJob();
       DistributedJobResult djr = mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) djp);
       try {
@@ -433,7 +433,7 @@ public final class ClientStateMachine extends FSM {
       assert obj[0] instanceof String;
 
       System.out.println("Sending request for a shit fucking binary...");
-      mSConn.sendMessage(new Message(Instruction.REQUEST_BINARY, (Serializable) obj[0]));
+      mSConn.sendMessage(Message.create(Instruction.REQUEST_BINARY, (Serializable) obj[0]));
       System.out.println("Request for a shit fucking binary done...");
     }
   }

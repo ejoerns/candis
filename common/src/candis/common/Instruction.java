@@ -19,6 +19,7 @@ import candis.common.fsm.Transition;
 public enum Instruction implements Transition {
 
   // -- Available messages
+  /// Indicates no message available
   NO_MSG(0, 0),
   /// Remote error occured
   ERROR(1, 0),
@@ -26,6 +27,10 @@ public enum Instruction implements Transition {
   ACK(2, 0),
   /// Nack
   NACK(3, 0),
+  /// ping
+  PING(4, 0),
+  /// pong
+  PONG(5, 0),
   /// Request information - unused
   GET_INFO(10, 0),
   /// Send information - unused
