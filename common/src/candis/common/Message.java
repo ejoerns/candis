@@ -35,6 +35,9 @@ public class Message implements Serializable {
   }
 
   public Serializable getData(final int idx) {
+    if (data == null) {
+      return null;
+    }
     return data[idx];
   }
 

@@ -1,6 +1,5 @@
 package candis.common;
 
-import android.os.Parcel;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -45,7 +44,7 @@ public class Connection {
   public void sendChunk(byte[] bytes) throws IOException {
 
     // send header (length[4]) and body of message
-    mOutputStream.write(intToByteArray(bytes.length));                                             // header wird als erstes versendet
+    mOutputStream.write(intToByteArray(bytes.length));// header wird als erstes versendet
     mOutputStream.write(bytes);
 
   }
@@ -58,12 +57,9 @@ public class Connection {
   public byte[] recieveChunk() throws IOException {
 
     // Stream -> bytes []
-//    InputStream in;
     byte[] header = new byte[4];
     byte[] bytes = null;
     int offset = 0;
-
-//    in = mSocket.getInputStream();
 
     if (mInputStream == null) {
       return null;
