@@ -16,7 +16,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
-import android.os.Parcel;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.v4.app.DialogFragment;
@@ -36,8 +35,6 @@ import candis.client.gui.InfoActivity;
 import candis.client.gui.LogActivity;
 import candis.client.gui.settings.SettingsActivity;
 import candis.client.service.BackgroundService;
-import candis.common.CandisLog;
-import candis.common.CandisLog.CandisLogLevel;
 import candis.common.Settings;
 import java.io.File;
 import java.io.IOException;
@@ -90,7 +87,6 @@ public class MainActivity extends FragmentActivity
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
-    CandisLog.level(CandisLogLevel.DEBUG);
     System.out.println("onCreate()");
 
     // Check if saved bundle can be found...
@@ -228,6 +224,7 @@ public class MainActivity extends FragmentActivity
       if (mServiceRunning) {
         mServiceRunning = false; // TODO: replace by real test?
         Log.d(TAG, "onClick: stopping service");
+        doUnbindService();
         stopService(new Intent(this, BackgroundService.class));
         mServiceButton.setText(getResources().getString(R.string.service_button_start));
         ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_stopped);
@@ -323,7 +320,7 @@ public class MainActivity extends FragmentActivity
       // service through an IDL interface, so get a client-side
       // representation of that from the raw service object.
       mServiceMessenger = new Messenger(service);
-      Log.e(TAG, "Attached.");
+      Log.v(TAG, "Attached.");
 
       // We want to monitor the service for as long as we are
       // connected to it.
@@ -365,7 +362,6 @@ public class MainActivity extends FragmentActivity
                            BackgroundService.class), mConnection, Context.BIND_AUTO_CREATE);
     mIsBound = true;
 //    mCallbackText.setText("Binding.");
-    Log.e(TAG, "BONDAGE!");
   }
 
   void doUnbindService() {
@@ -388,7 +384,7 @@ public class MainActivity extends FragmentActivity
       // Detach our existing connection.
       unbindService(mConnection);
       mIsBound = false;
-      Log.e(TAG, "Unbinding.");
+      Log.i(TAG, "Unbinding.");
     }
   }
 }

@@ -3,11 +3,10 @@ package candis.client;
 import android.content.Context;
 import android.util.Log;
 import candis.client.service.BackgroundService;
-import candis.common.ByteArray;
-import candis.common.CandisLog;
-import candis.common.CandisLog.CandisLogLevel;
 import candis.common.ClassLoaderWrapper;
 import candis.common.ClassloaderObjectInputStream;
+import candis.common.fsm.FSM;
+import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
@@ -47,12 +46,16 @@ public class JobCenter {
   private final Map<String, TaskContext> mTaskContextMap = new HashMap<String, TaskContext>();
   /// List of all registered handlers
   private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
+  private FSM mFSM;
   private byte[] lastUnserializedJob;
 
   public JobCenter(final Context context, final ClassLoaderWrapper cl) {
-    CandisLog.level(CandisLogLevel.VERBOSE);
     mContext = context;
     mClassLoader = cl;
+  }
+
+  public void setFSM(FSM fsm) {
+    mFSM = fsm;
   }
 
   public void setLastUnserializedJob(byte[] lusj) {
@@ -104,17 +107,16 @@ public class JobCenter {
    * @param param
    * @return
    */
-  public DistributedJobResult executeTask(final String runnableID, final DistributedJobParameter param) {
-    DistributedJobResult result = null;
+  public void executeTask(final String runnableID, final DistributedJobParameter param) {
 
     if (!mTaskContextMap.containsKey(runnableID)) {
       Log.e(TAG, String.format("Task with ID %s not found", runnableID));
-      return null;
+      return;
     }
 
     // Check if task can be executed
     if (!checkExecution()) {
-      return null;
+      return;
     }
 
     // notify handlers about start
@@ -122,30 +124,40 @@ public class JobCenter {
       handler.onJobExecutionStart(runnableID);
     }
 
-    // try to instanciate class
-    try {
-      Log.i(TAG, "Running Job for Task " + mTaskContextMap.get(runnableID).name + " with TaskID " + runnableID);
-      DistributedRunnable currentTask = (DistributedRunnable) mTaskContextMap.get(runnableID).taskClass.newInstance();
-      currentTask.setInitialParameter(mTaskContextMap.get(runnableID).initialParam);
-      result = currentTask.runJob(param);
+    new Thread(new Runnable() {
+      public void run() {
+        Log.i(TAG, "Running Job for Task " + mTaskContextMap.get(runnableID).name + " with TaskID " + runnableID);
+        DistributedJobResult result = null;
+        // try to instanciate class
+        DistributedRunnable currentTask;
+        try {
+          currentTask = (DistributedRunnable) mTaskContextMap.get(runnableID).taskClass.newInstance();
+          currentTask.setInitialParameter(mTaskContextMap.get(runnableID).initialParam);
+          result = currentTask.runJob(param);
+        }
+        catch (InstantiationException ex) {
+          Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        catch (IllegalAccessException ex) {
+          Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
-      if (result == null) {
-        Log.e(TAG, "Process returned null");
+        if (result == null) {
+          Log.e(TAG, "Process returned null");
+        }
+        try {
+          mFSM.process(ClientStateMachine.ClientTrans.JOB_FINISHED, runnableID, result);
+        }
+        catch (StateMachineException ex) {
+          Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        // notify handlers about end
+        for (JobCenterHandler handler : mHandlerList) {
+          handler.onJobExecutionDone(runnableID);
+        }
       }
-    }
-    catch (InstantiationException ex) {
-      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
-    }
-    catch (IllegalAccessException ex) {
-      Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
-    }
-
-    // notify handlers about end
-    for (JobCenterHandler handler : mHandlerList) {
-      handler.onJobExecutionDone(runnableID);
-    }
-
-    return result;
+    }).start();
   }
 
   /**

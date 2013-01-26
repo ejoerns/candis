@@ -19,7 +19,8 @@ import candis.client.JobCenter;
 import candis.client.JobCenterHandler;
 import candis.client.MainActivity;
 import candis.client.R;
-import candis.client.comm.SecureConnection;
+import candis.client.comm.CertAcceptRequestHandler;
+import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.ServerConnection;
 import candis.common.ClassLoaderWrapper;
 import candis.common.Settings;
@@ -27,7 +28,8 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
+import java.net.ConnectException;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,7 +40,7 @@ import java.util.logging.Logger;
  *
  * @author Enrico Joerns
  */
-public class BackgroundService extends Service {
+public class BackgroundService extends Service implements CertAcceptRequestHandler {
 
   private static final String TAG = BackgroundService.class.getName();
   // Intent Actions
@@ -88,6 +90,7 @@ public class BackgroundService extends Service {
   private boolean mRunning = false;
   private FSM mFSM;
   private ClassLoaderWrapper mClassloaderWrapper;
+  private PowerConnectionReceiver mPowerConnectionReceiver;
 
   public BackgroundService() {
     mDroidContext = DroidContext.getInstance();
@@ -112,10 +115,11 @@ public class BackgroundService extends Service {
     mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
     Settings.load(this.getResources().openRawResource(R.raw.settings));
     // register receiver for battery updates
+    mPowerConnectionReceiver = new PowerConnectionReceiver(null);// TODO...
     registerReceiver(
-            new PowerConnectionReceiver(null),
+            mPowerConnectionReceiver,
             new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-    showNotification();
+//    showNotification();
   }
 
   @Override
@@ -138,6 +142,10 @@ public class BackgroundService extends Service {
 
   @Override
   public void onDestroy() {
+    Log.v(TAG, "onDestroy()");
+//    super.onDestroy();
+    unregisterReceiver(mPowerConnectionReceiver);
+
     mNM.cancel(R.string.remote_service_started);
     // Tell the user we stopped.
     Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
@@ -149,15 +157,16 @@ public class BackgroundService extends Service {
     catch (StateMachineException ex) {
       Log.e(TAG, ex.getMessage());
     }
+    mRunning = false;
   }
   //----------------------------------------------------------------------------
 
   /**
    * Show a notification while this service is running.
    */
-  private void showNotification() {
+  private void showNotification(CharSequence text) {
     // In this sample, we'll use the same text for the ticker and the expanded notification
-    CharSequence text = getText(R.string.remote_service_started);
+//    CharSequence text = getText(R.string.remote_service_started);
 
     // Set the icon, scrolling text and timestamp
     Notification notification = new Notification(R.drawable.ic_launcher, text,
@@ -180,68 +189,63 @@ public class BackgroundService extends Service {
    *
    */
   public void doConnect() {
-    final ConnectTask connectTask;
-    connectTask = new ConnectTask(
-            mCertCheckResult,
-            getApplicationContext(),
-            new File(getApplicationContext().getFilesDir(), Settings.getString("truststore")),
-            mRemoteMessenger);
-
-    Log.i(TAG, "CONNECTING...");
-    try {
-      connectTask.execute(
-              Settings.getString("masteraddress"),
-              Settings.getInt("masterport"));
-    }
-    catch (Exception ex) {
-      Log.e(TAG, ex.toString());
-    }
 
     new Thread(new Runnable() {
       public void run() {
-        ServerConnection crb = null;
-        SecureConnection secureConn = null;
-
-        // wait for connection to finish
-        try {
-          secureConn = connectTask.get();
-          if (secureConn == null) {
-            return;
-          }
-        }
-        catch (InterruptedException ex) {
-          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        catch (ExecutionException ex) {
-          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        ServerConnection sconn = null;
 
         mClassloaderWrapper = new ClassLoaderWrapper();// init empty
 
-        JobCenterHandler jobCenterHandler = new ActivityLogger(mRemoteMessenger);
+        // init job center
         final JobCenter jobcenter = new JobCenter(mContext, mClassloaderWrapper);
+        JobCenterHandler jobCenterHandler = new ActivityLogger(mRemoteMessenger);
         jobcenter.addHandler(jobCenterHandler);
+        // init connection
+        ReloadableX509TrustManager tm = null;
         try {
-          crb = new ServerConnection(
-                  secureConn.getSocket(),
+          tm = new ReloadableX509TrustManager(new File(
+                  getApplicationContext().getFilesDir(),
+                  Settings.getString("truststore")));
+        }
+        catch (Exception ex) {
+          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        tm.setCertAcceptDialog(BackgroundService.this);
+        try {
+          sconn = new ServerConnection(
+                  tm,
                   mClassloaderWrapper,
                   mDroidContext,
                   mContext,
                   mRemoteMessenger,
-                  null,
                   jobcenter);
-          mFSM = crb.getFSM(); // TODO: check where to place the fsm!
+          mFSM = sconn.getFSM();
+          jobcenter.setFSM(mFSM);
+          sconn.connect(Settings.getString("masteraddress"),
+                        Settings.getInt("masterport"));
+        }
+        catch (ConnectException ex) {
+          showNotification(getText(R.string.err_connection_failed));
+          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+          return;
         }
         catch (IOException ex) {
           Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
         }
+        catch (Exception ex) {
+          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
-        new Thread(crb).start();
+        new Thread(sconn).start();
         System.out.println("[THREAD DONE]");
 
       }
     }).start();
 
+  }
+
+  public boolean userCheckAccept(X509Certificate cert) {
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   /**
@@ -251,12 +255,12 @@ public class BackgroundService extends Service {
 
     @Override
     public void handleMessage(Message msg) {
-      Log.i("IncomingHandler", "<-- Got message: " + msg.toString());
+      Log.v("IncomingHandler", "<-- Got message: " + msg.toString());
 
       switch (msg.what) {
         case MSG_REGISTER_CLIENT:
           mRemoteMessenger = msg.replyTo;
-          Log.e(TAG, "reply to: " + mRemoteMessenger);
+          Log.v(TAG, "reply to: " + mRemoteMessenger);
           doConnect();
           break;
         case MSG_UNREGISTER_CLIENT:
@@ -279,7 +283,6 @@ public class BackgroundService extends Service {
           synchronized (mCertCheckResult) {
             mCertCheckResult.set(msg.arg1 == 1 ? true : false);// TODO...
             mCertCheckResult.notifyAll();
-            System.out.println("cert_check_result.notifyAll()");
           }
           break;
         default:

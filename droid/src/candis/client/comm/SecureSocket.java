@@ -1,6 +1,5 @@
 package candis.client.comm;
 
-import candis.client.CurrentSystemStatus;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -19,24 +18,24 @@ import javax.net.ssl.X509TrustManager;
  *
  * @author Enrico Joerns
  */
-public final class SecureConnection {// TODO: maybe extend SocketImpl later...
+public final class SecureSocket {// TODO: maybe extend SocketImpl later...
 
-  private static final Logger LOGGER = Logger.getLogger(SecureConnection.class.getName());
-  private Socket socket = null;
+  private static final Logger LOGGER = Logger.getLogger(SecureSocket.class.getName());
+  private Socket mSocket = null;
   private boolean mConnected;
   private X509TrustManager mTrustManager;
 
   /**
-   * Creates new SecureConnection.
+   * Creates new SecureSocket with the specified truststore.
    *
    * @param truststore_R truststore file to be used
    */
-  public SecureConnection(final X509TrustManager tstore) {
+  public SecureSocket(final X509TrustManager tstore) {
     mTrustManager = tstore;
   }
 
   /**
-   * Creates a socket.
+   * Connects socket to server.
    *
    * @param host remote host address to connect with
    * @param port remote port number to connect to
@@ -71,12 +70,9 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
     SSLSocketFactory sf = context.getSocketFactory();
 
     try {
-      socket = sf.createSocket(host, port);
+      mSocket = sf.createSocket(host, port);
       LOGGER.log(Level.INFO, String.format(
-              "Connected to %s:%d", socket.getInetAddress(), socket.getPort()));
-//      System.out.println("getStatus() @ SecureConnection: " + CurrentSystemStatus.getStatus());
-//      CurrentSystemStatus.getStatus().servername = socket.getInetAddress().getHostName();
-//      CurrentSystemStatus.getStatus().serverport = String.valueOf(socket.getPort());
+              "Connected to %s:%d", mSocket.getInetAddress(), mSocket.getPort()));
     }
     catch (UnknownHostException ex) {
       LOGGER.log(Level.SEVERE, "UnknownHostException");
@@ -102,8 +98,8 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
   public void close() {
     LOGGER.log(Level.INFO, "Closing socket...");
     try {
-      if (socket != null) {
-        socket.close();
+      if (mSocket != null) {
+        mSocket.close();
       }
     }
     catch (IOException ex) {
@@ -116,7 +112,7 @@ public final class SecureConnection {// TODO: maybe extend SocketImpl later...
    * @return Socket
    */
   public Socket getSocket() {
-    return socket;
+    return mSocket;
   }
 
   /**

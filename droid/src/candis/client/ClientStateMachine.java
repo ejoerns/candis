@@ -1,14 +1,11 @@
 package candis.client;
 
-//import android.app.FragmentManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.app.NotificationCompat;
 import candis.client.comm.ServerConnection;
 import candis.client.service.BackgroundService;
@@ -80,7 +77,6 @@ public final class ClientStateMachine extends FSM {
           final DroidContext dcontext,
           final Context context,
           final Messenger messenger,
-          final FragmentManager fragmanager,
           final JobCenter jobcenter) {
     mDroitContext = dcontext;
     mContext = context;
@@ -366,13 +362,7 @@ public final class ClientStateMachine extends FSM {
 
     public void handle(Object... obj) {
       mSConn.sendMessage(Message.create(Instruction.ACK));
-      DistributedJobResult djr = mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
-      try {
-        process(ClientTrans.JOB_FINISHED, obj[0], djr);
-      }
-      catch (StateMachineException ex) {
-        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-      }
+      mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
     }
   }
 
@@ -413,13 +403,7 @@ public final class ClientStateMachine extends FSM {
       mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
       mSConn.sendMessage(Message.create(Instruction.ACK));
       DistributedJobParameter djp = mJobCenter.serializeJob();
-      DistributedJobResult djr = mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) djp);
-      try {
-        process(ClientTrans.JOB_FINISHED, obj[0], djr);
-      }
-      catch (StateMachineException ex) {
-        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-      }
+      mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) djp);
     }
   }
 
