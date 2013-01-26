@@ -77,6 +77,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
    */
   public static final int JOB_CENTER_HANDLER = 50;
   //---
+  private static final int NOTIFICATION_ID = 4711;
   /// For showing and hiding our notification.
   private NotificationManager mNM;
   /// Remote target to send messsages to.
@@ -119,7 +120,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     registerReceiver(
             mPowerConnectionReceiver,
             new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-//    showNotification();
   }
 
   @Override
@@ -133,6 +133,10 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     }
     mRunning = true;
 
+    // start this process as a foreground service so that it will not be
+    // killed, even if it does cpu intensive operations etc.
+    startForeground(NOTIFICATION_ID, getNotification("Started..."));
+
     mDroidContext.init((DroidContext) intent.getExtras().getSerializable("DROID_CONTEXT"));
 
     // We want this service to continue running until it is explicitly
@@ -143,10 +147,10 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   @Override
   public void onDestroy() {
     Log.v(TAG, "onDestroy()");
-//    super.onDestroy();
+
     unregisterReceiver(mPowerConnectionReceiver);
 
-    mNM.cancel(R.string.remote_service_started);
+    mNM.cancel(NOTIFICATION_ID);
     // Tell the user we stopped.
     Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
     try {
@@ -155,7 +159,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       }
     }
     catch (StateMachineException ex) {
-      Log.e(TAG, ex.getMessage());
+      Log.w(TAG, "Could not terminate FSM correctly, maybe not initiealized.");
     }
     mRunning = false;
   }
@@ -164,9 +168,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /**
    * Show a notification while this service is running.
    */
-  private void showNotification(CharSequence text) {
-    // In this sample, we'll use the same text for the ticker and the expanded notification
-//    CharSequence text = getText(R.string.remote_service_started);
+  private Notification getNotification(CharSequence text) {
 
     // Set the icon, scrolling text and timestamp
     Notification notification = new Notification(R.drawable.ic_launcher, text,
@@ -177,12 +179,11 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
                                                             new Intent(this, MainActivity.class), 0);
 
     // Set the info for the views that show in the notification panel.
-    notification.setLatestEventInfo(this, "Yeah, Service started...",
+    notification.setLatestEventInfo(this, "Candis client",
                                     text, contentIntent);
 
-    // Send the notification.
-    // We use a string id because it is a unique number.  We use it later to cancel.
-    mNM.notify(R.string.remote_service_started, notification);
+    // return the generated notification.
+    return notification;
   }
 
   /**
@@ -223,9 +224,10 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
           jobcenter.setFSM(mFSM);
           sconn.connect(Settings.getString("masteraddress"),
                         Settings.getInt("masterport"));
+          mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.connected)));
         }
         catch (ConnectException ex) {
-          showNotification(getText(R.string.err_connection_failed));
+          mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
           Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
           return;
         }

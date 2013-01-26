@@ -4,7 +4,6 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -145,9 +144,6 @@ public class MainActivity extends FragmentActivity
       ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
     }
 
-
-    setDefault(Notification.DEFAULT_LIGHTS);
-
     mDroidContext = DroidContext.getInstance();
     // Init droid
     mInitTask = new InitTask(
@@ -160,58 +156,9 @@ public class MainActivity extends FragmentActivity
   private static int MOOD_NOTIFICATIONS = 12341234;
   Notification notification;
 
-  private void setDefault(int defaults) {
-
-    // This method sets the defaults on the notification before posting it.
-
-    // This is who should be launched if the user selects our notification.
-    PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                                                            new Intent(this, MainActivity.class), 0);
-
-    // In this sample, we'll use the same text for the ticker and the expanded notification
-    CharSequence text = "Warum bin ich so fröhlich?";
-
-    notification = new Notification(
-            R.drawable.ic_launcher, // the icon for the status bar
-            text, // the text to display in the ticker
-            System.currentTimeMillis()); // the timestamp for the notification
-
-    notification.setLatestEventInfo(
-            this, // the context to use
-            "Fröhlicher Titel",
-            // the title for the notification
-            text, // the details to display in the notification
-            contentIntent);              // the contentIntent (see above)
-
-    notification.defaults = defaults;
-
-    mNotificationManager.notify(
-            MOOD_NOTIFICATIONS, // we use a string id because it is a unique
-            // number.  we use it later to cancel the notification
-            notification);
-  }
-
   @Override
   public void onNewIntent(Intent intent) {
-    System.out.println("onNewIntent() " + intent.getAction());
-    if (intent.getAction() == null) {
-      mNotificationManager.notify(
-              MOOD_NOTIFICATIONS, // we use a string id because it is a unique
-              // number.  we use it later to cancel the notification
-              notification);      // do nothing
-    }
-    else if (intent.getAction().equals(BackgroundService.CHECK_SERVERCERT)) {
-//      X509Certificate cert = (X509Certificate) intent.getSerializableExtra("X509Certificate");
-//      CertAcceptDialog cad = new CertAcceptDialog(cert, mMessenger);
-//      cad.show(getSupportFragmentManager(), "");
-    }
-    else if (intent.getAction().equals(BackgroundService.SHOW_CHECKCODE)) {
-//      DialogFragment checkDialog = new CheckcodeInputDialog(this);
-//      checkDialog.show(getSupportFragmentManager(), TAG);
-    }
-    else if (intent.getAction().equals(BackgroundService.JOB_CENTER_HANDLER)) {
-//      mLogView.append(intent.getStringExtra("Message").concat("\n"));
-    }
+    Log.v(TAG, "onNewIntent() " + intent.getAction());
   }
 
   /**
@@ -354,6 +301,9 @@ public class MainActivity extends FragmentActivity
     }
   };
 
+  /**
+   *
+   */
   void doBindService() {
     // Establish a connection with the service.  We use an explicit
     // class name because there is no reason to be able to let other
@@ -361,9 +311,11 @@ public class MainActivity extends FragmentActivity
     bindService(new Intent(MainActivity.this,
                            BackgroundService.class), mConnection, Context.BIND_AUTO_CREATE);
     mIsBound = true;
-//    mCallbackText.setText("Binding.");
   }
 
+  /**
+   *
+   */
   void doUnbindService() {
     if (mIsBound) {
       // If we have received the service, and hence registered with

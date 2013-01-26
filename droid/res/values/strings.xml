@@ -65,7 +65,8 @@
   <string name="remote_service_connected">Remote Service connected</string>
   <string name="remote_service_disconnected">Remote Service disconnected</string>
 
-  <!-- Errors -->
+  <!-- Errors and Feedbacks -->
   <string name="err_connection_failed">Connection failed</string>
+  <string name="connected">Connected!</string>
 
 </resources>
