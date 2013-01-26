@@ -180,7 +180,9 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	}
 
 	public void join() throws InterruptedException {
-		mQueueThread.join();
+		if (mQueueThread != null) {
+			mQueueThread.join();
+		}
 	}
 	/*--------------------------------------------------------------------------*/
 	/* Scheduler control functions                                              */

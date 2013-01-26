@@ -1,5 +1,6 @@
 package candis.distributed.test;
 
+import candis.distributed.Scheduler;
 import candis.server.ClientConnection;
 import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
@@ -101,6 +102,9 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 				t.interrupt();
 			}
 		}
-		getCurrentScheduler().abort();
+		Scheduler sch = getCurrentScheduler();
+		if(sch != null) {
+			sch.abort();
+		}
 	}
 }

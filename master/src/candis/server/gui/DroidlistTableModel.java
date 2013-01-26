@@ -15,7 +15,7 @@ import javax.swing.table.AbstractTableModel;
  *
  * @author Enrico Joerns
  */
-class DroidlistTableModel extends AbstractTableModel implements DroidManagerListener {
+public class DroidlistTableModel extends AbstractTableModel implements DroidManagerListener {
 
 	private String[] columnNames = {"", "Device ID", "Model"};
 	private final List<TableData> mTableDataList = new LinkedList<TableData>();
