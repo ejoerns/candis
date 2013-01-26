@@ -135,10 +135,10 @@ public abstract class FSM {
     }
     // Check, if the FSM is in an undefined state
     if (mCurrentState.get() == null) {
-      throw new NullPointerException("No state set");
+      throw new StateMachineException("No state set. Did you forget to call init()?");
     }
     if (mStateMap.get(mCurrentState.get()) == null) {
-      throw new NullPointerException(String.format("State %s not known to FSM", mCurrentState.get()));
+      throw new StateMachineException(String.format("State %s not known to FSM", mCurrentState.get()));
     }
 
     if (!mStateMap.containsKey(mCurrentState.get()) && mStateMap.get(mCurrentState.get()).containsTransition(trans)) {
