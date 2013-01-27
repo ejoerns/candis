@@ -32,9 +32,16 @@
     <TextView
       android:id="@+id/servicetext"
       android:layout_width="fill_parent" 
-      android:layout_height="fill_parent" 
+      android:layout_height="wrap_content" 
       android:gravity="center"
       android:text="@string/service_text_stopped"
+      android:textColor="#F00"/> 
+    <TextView
+      android:id="@+id/connectiontext"
+      android:layout_width="fill_parent" 
+      android:layout_height="wrap_content" 
+      android:gravity="center"
+      android:text="@string/connection_text_unconnected"
       android:textColor="#F00"/> 
   </LinearLayout>
   <LinearLayout 

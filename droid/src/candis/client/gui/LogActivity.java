@@ -7,6 +7,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import candis.client.R;
+import candis.client.service.ActivityLogger;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -33,9 +39,31 @@ public class LogActivity extends Activity implements View.OnClickListener {
     mClearLogButton.setOnClickListener(this);
   }
 
+  @Override
+  public void onResume() {
+    super.onResume();
+    // try to open log file and print its content
+    try {
+      FileInputStream fistream = openFileInput(ActivityLogger.LOGFILE);
+      byte[] data = new byte[fistream.available()];
+      fistream.read(data);
+      fistream.close();
+      mLogView.setText(new String(data));
+    }
+    // if no log file was found, print message
+    catch (FileNotFoundException ex) {
+      mLogView.setText("No log data found.");
+    }
+    catch (IOException ex) {
+      Logger.getLogger(LogActivity.class.getName()).log(Level.SEVERE, null, ex);
+    }
+  }
+
   public void onClick(View v) {
     if (v == mClearLogButton) {
-      mLogView.clearComposingText();
+      // simply delete log file
+      deleteFile(ActivityLogger.LOGFILE);
+      mLogView.setText("Log cleared.");
     }
   }
 }

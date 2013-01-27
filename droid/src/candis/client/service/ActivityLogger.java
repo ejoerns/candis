@@ -1,10 +1,15 @@
 package candis.client.service;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.util.Log;
 import candis.client.JobCenterHandler;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,13 +20,16 @@ import java.util.logging.Logger;
  */
 public class ActivityLogger implements JobCenterHandler {
 
+  public static final String LOGFILE = "log.txt";
+  private FileOutputStream mFileOutputStream;
   private final Messenger mMessenger;
-  Intent intent;
-  android.os.Message msg;
+  private final Context mContext;
+  private final android.os.Message msg;
 
-  public ActivityLogger(Messenger context) {
-    mMessenger = context;
-    msg = android.os.Message.obtain(null, BackgroundService.JOB_CENTER_HANDLER);
+  public ActivityLogger(Messenger messenger, Context context) {
+    mMessenger = messenger;
+    mContext = context;
+    msg = android.os.Message.obtain(null, BackgroundService.LOG_MESSAGE);
   }
 
   public void onBinaryReceived(String runnableID) {
@@ -48,6 +56,18 @@ public class ActivityLogger implements JobCenterHandler {
     }
     catch (RemoteException ex) {
       Logger.getLogger(ActivityLogger.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    // write to logfile
+    try {
+      mFileOutputStream = mContext.openFileOutput(LOGFILE, Context.MODE_APPEND);
+      mFileOutputStream.write(message.getBytes());
+      mFileOutputStream.close();
+    }
+    catch (FileNotFoundException ex) {
+      Log.e(getClass().getName(), "", ex);
+    }
+    catch (IOException ex) {
+      Log.e(getClass().getName(), "", ex);
     }
   }
 

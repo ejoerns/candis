@@ -75,7 +75,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /**
    *
    */
-  public static final int JOB_CENTER_HANDLER = 50;
+  public static final int LOG_MESSAGE = 50;
   //---
   private static final int NOTIFICATION_ID = 4711;
   /// For showing and hiding our notification.
@@ -171,7 +171,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   private Notification getNotification(CharSequence text) {
 
     // Set the icon, scrolling text and timestamp
-    Notification notification = new Notification(R.drawable.ic_launcher, text,
+    Notification notification = new Notification(R.drawable.candis_logo, text,
                                                  System.currentTimeMillis());
 
     // The PendingIntent to launch our activity if the user selects this notification
@@ -199,7 +199,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
 
         // init job center
         final JobCenter jobcenter = new JobCenter(mContext, mClassloaderWrapper);
-        JobCenterHandler jobCenterHandler = new ActivityLogger(mRemoteMessenger);
+        JobCenterHandler jobCenterHandler = new ActivityLogger(mRemoteMessenger, getApplicationContext());
         jobcenter.addHandler(jobCenterHandler);
         // init connection
         ReloadableX509TrustManager tm = null;

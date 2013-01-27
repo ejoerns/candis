@@ -68,5 +68,6 @@
   <!-- Errors and Feedbacks -->
   <string name="err_connection_failed">Connection failed</string>
   <string name="connected">Connected!</string>
+  <string name="connection_text_unconnected">Unconnected</string>
 
 </resources>
