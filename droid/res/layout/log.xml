@@ -20,10 +20,9 @@
     android:layout_marginRight="5dp"
     android:padding="5dp"
     android:background="#FFF"
-    android:textColor="#111"
+    android:textColor="#000"
     android:maxLines="100"
     android:scrollbars="vertical"
     android:typeface="monospace"
-    android:textSize="10sp"
     android:text="" />
 </LinearLayout>   

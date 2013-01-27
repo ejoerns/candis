@@ -60,8 +60,8 @@
   <string name="activity_settings_name">SettingsActivity</string>
   
   <!-- Service -->
-  <string name="remote_service_started">Service started</string>
-  <string name="remote_service_stopped">Service stopped</string>
+  <string name="remote_service_started">Started</string>
+  <string name="remote_service_stopped">Stopped</string>
   <string name="remote_service_connected">Remote Service connected</string>
   <string name="remote_service_disconnected">Remote Service disconnected</string>
 

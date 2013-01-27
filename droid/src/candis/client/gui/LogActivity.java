@@ -3,6 +3,8 @@ package candis.client.gui;
 import android.app.Activity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -57,6 +59,13 @@ public class LogActivity extends Activity implements View.OnClickListener {
     catch (IOException ex) {
       Logger.getLogger(LogActivity.class.getName()).log(Level.SEVERE, null, ex);
     }
+  }
+
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    MenuInflater inflater = getMenuInflater();
+    inflater.inflate(R.menu.settings, menu);
+    return true;
   }
 
   public void onClick(View v) {

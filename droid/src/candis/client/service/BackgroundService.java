@@ -4,7 +4,6 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
@@ -16,7 +15,6 @@ import android.widget.Toast;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
-import candis.client.JobCenterHandler;
 import candis.client.MainActivity;
 import candis.client.R;
 import candis.client.comm.CertAcceptRequestHandler;
@@ -83,8 +81,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /// Remote target to send messsages to.
   private Messenger mRemoteMessenger;
   /// Target we publish for clients to send messages to IncomingHandler.
-  final Messenger mLocalMessenger = new Messenger(new IncomingHandler());
-  private Context mContext;
+  final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
   private final DroidContext mDroidContext;
   private final AtomicBoolean mCertCheckResult = new AtomicBoolean(false);
   /// Used to avoid double-call of service initialization
@@ -104,7 +101,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   @Override
   public IBinder onBind(Intent intent) {
     Log.v(TAG, "onBind()");
-    return mLocalMessenger.getBinder();
+    return mSelfMessenger.getBinder();
   }
 
   @Override
@@ -112,7 +109,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     Log.v(TAG, "onCreate()");
     super.onCreate();
 
-    mContext = getApplicationContext();
     mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
     Settings.load(this.getResources().openRawResource(R.raw.settings));
     // register receiver for battery updates
@@ -136,8 +132,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     // start this process as a foreground service so that it will not be
     // killed, even if it does cpu intensive operations etc.
     startForeground(NOTIFICATION_ID, getNotification("Started..."));
-
-    mDroidContext.init((DroidContext) intent.getExtras().getSerializable("DROID_CONTEXT"));
 
     // We want this service to continue running until it is explicitly
     // stopped, so return sticky.
@@ -198,9 +192,8 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
         mClassloaderWrapper = new ClassLoaderWrapper();// init empty
 
         // init job center
-        final JobCenter jobcenter = new JobCenter(mContext, mClassloaderWrapper);
-        JobCenterHandler jobCenterHandler = new ActivityLogger(mRemoteMessenger, getApplicationContext());
-        jobcenter.addHandler(jobCenterHandler);
+        final JobCenter jobcenter = new JobCenter(getApplicationContext(), mClassloaderWrapper);
+        jobcenter.addHandler(new ActivityLogger(mRemoteMessenger, getApplicationContext()));
         // init connection
         ReloadableX509TrustManager tm = null;
         try {
@@ -217,7 +210,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
                   tm,
                   mClassloaderWrapper,
                   mDroidContext,
-                  mContext,
+                  getApplicationContext(),
                   mRemoteMessenger,
                   jobcenter);
           mFSM = sconn.getFSM();

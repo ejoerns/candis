@@ -46,43 +46,53 @@ public class MainActivity extends FragmentActivity
         implements OnClickListener {
 
   private static final String TAG = MainActivity.class.getName();
+  //-- GUI Elements
   private Button mServiceButton;
   private Button mInfoButton;
   private Button mOptionsButton;
   private Button mLogButton;
   ///
   private InitTask mInitTask;
-  private DroidContext mDroidContext;
+//  private DroidContext mDroidContext;
   private Handler mHandler;
   private boolean mServiceRunning = false;
+  private NotificationManager mNotificationManager;
+//  private static int MOOD_NOTIFICATIONS = 12341234;
+  Notification notification;
+  /// Target we publish for clients to send messages to IncomingHandler.
+  final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
+  /// Messenger for communicating with service.
+  Messenger mServiceMessenger = null;
+  /// Flag indicating whether we have called bind on the service.
+  boolean mIsBound;
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
     Log.e(TAG, "onCreateOptionsMenu()");
     MenuInflater inflater = getMenuInflater();
-//    inflater.inflate(R.menu.settings, menu);
+    inflater.inflate(R.menu.settings, menu);
     return true;
   }
 
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     Intent newintent;
-//    switch (item.getItemId()) {
+    switch (item.getItemId()) {
 //      case android.R.id.home:
 //        return true;
-//      case R.id.menu_info:
-//        newintent = new Intent(this, InfoActivity.class);
-//        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//        startActivity(newintent);
-//        return true;
-//      case R.id.menu_settings:
-//        newintent = new Intent(this, SettingsActivity.class);
-//        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//        startActivity(newintent);
-//        return true;
-//      default:
+      case R.id.menu_info:
+        newintent = new Intent(this, InfoActivity.class);
+        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(newintent);
+        return true;
+      case R.id.menu_settings:
+        newintent = new Intent(this, SettingsActivity.class);
+        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(newintent);
+        return true;
+      default:
     return super.onOptionsItemSelected(item);
-//    }
+    }
   }
 
   @Override
@@ -145,7 +155,7 @@ public class MainActivity extends FragmentActivity
       ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
     }
 
-    mDroidContext = DroidContext.getInstance();
+//    mDroidContext = DroidContext.getInstance();
     // Init droid
     mInitTask = new InitTask(
             this,
@@ -153,9 +163,6 @@ public class MainActivity extends FragmentActivity
             new File(this.getFilesDir(), Settings.getString("profilestore")));
     mInitTask.execute();
   }
-  private NotificationManager mNotificationManager;
-  private static int MOOD_NOTIFICATIONS = 12341234;
-  Notification notification;
 
   @Override
   public void onNewIntent(Intent intent) {
@@ -181,7 +188,7 @@ public class MainActivity extends FragmentActivity
       else {
         mServiceRunning = true; // TODO: replace by real test?
         Log.d(TAG, "onClick: starting service");
-        startService(new Intent(this, BackgroundService.class).putExtra("DROID_CONTEXT", mDroidContext));
+        startService(new Intent(this, BackgroundService.class));
         doBindService();
         mServiceButton.setText(getResources().getString(R.string.service_button_stop));
         ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
@@ -189,6 +196,7 @@ public class MainActivity extends FragmentActivity
       }
     }
     else if (v == mInfoButton) {
+//      Intent newintent = new Intent(this, JobViewActivity.class);
       Intent newintent = new Intent(this, InfoActivity.class);
       newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
       startActivity(newintent);
@@ -219,14 +227,6 @@ public class MainActivity extends FragmentActivity
     }
     return false;
   }
-  /**
-   * Messenger for communicating with service.
-   */
-  Messenger mServiceMessenger = null;
-  /**
-   * Flag indicating whether we have called bind on the service.
-   */
-  boolean mIsBound;
 
   /**
    * Handler of incoming messages from service.
@@ -252,10 +252,6 @@ public class MainActivity extends FragmentActivity
       }
     }
   }
-  /**
-   * Target we publish for clients to send messages to IncomingHandler.
-   */
-  final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
   /**
    * Class for interacting with the main interface of the service.
    */
