@@ -16,7 +16,7 @@ import java.io.FileNotFoundException;
  */
 class InitTask extends AsyncTask<Void, Object, DroidContext> {
 
-  private static final String TAG = "GetIDTask";
+  private static final String TAG = InitTask.class.getName();
   private final Activity mActivity;
   private final File mIDFile;
   private final File mProfileFile;

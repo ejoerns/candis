@@ -23,7 +23,7 @@ import java.util.logging.Logger;
  */
 public class CheckcodeInputDialog extends DialogFragment {
 
-  private static final String TAG = "CheckcodeInputDialog";
+  private static final String TAG = CheckcodeInputDialog.class.getName();
   private final Messenger mMessenger;
 
   public CheckcodeInputDialog(Messenger context) {

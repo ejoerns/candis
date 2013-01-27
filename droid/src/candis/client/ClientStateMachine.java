@@ -32,7 +32,7 @@ import java.util.logging.Logger;
  */
 public final class ClientStateMachine extends FSM {
 
-  private static final String TAG = "ClientStateMachine";
+  private static final String TAG = ClientStateMachine.class.getName();
   private static final Logger LOGGER = Logger.getLogger(TAG);
   private final DroidContext mDroitContext;
   private final ServerConnection mSConn;

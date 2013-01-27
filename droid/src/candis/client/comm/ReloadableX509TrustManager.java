@@ -31,7 +31,7 @@ import javax.net.ssl.X509TrustManager;
 public final class ReloadableX509TrustManager
         implements X509TrustManager {
 
-  private static final String TAG = "X509";
+  private static final String TAG = X509TrustManager.class.getName();
   private static final Logger LOGGER = Logger.getLogger(TAG);
   /// Path to truststore
   private final File mTSFile;

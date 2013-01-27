@@ -15,7 +15,7 @@ import candis.client.R;
  */
 public class ErrorMessageDialog extends DialogFragment {
 
-	private static final String TAG = "CheckcodeInputDialog";
+	private static final String TAG = ErrorMessageDialog.class.getName();
 	private final String mMessage;
 
 	public ErrorMessageDialog(String msg) {
