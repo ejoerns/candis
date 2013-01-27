@@ -7,10 +7,12 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -24,10 +26,14 @@ import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.ServerConnection;
 import candis.client.gui.settings.SettingsActivity;
 import candis.common.ClassLoaderWrapper;
+import candis.common.DroidID;
 import candis.common.Settings;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
+import candis.distributed.droid.StaticProfile;
+import candis.system.StaticProfiler;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.security.cert.X509Certificate;
@@ -42,7 +48,7 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public class BackgroundService extends Service implements CertAcceptRequestHandler {
-  
+
   private static final String TAG = BackgroundService.class.getName();
   // Intent Actions
   /**
@@ -93,7 +99,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   private ClassLoaderWrapper mClassloaderWrapper;
   private PowerConnectionReceiver mPowerConnectionReceiver;
   private SharedPreferences mSharedPref;
-  
+
   public BackgroundService() {
     mDroidContext = DroidContext.getInstance();
   }
@@ -107,22 +113,32 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     Log.v(TAG, "onBind()");
     return mSelfMessenger.getBinder();
   }
-  
+
   @Override
   public void onCreate() {
     Log.v(TAG, "onCreate()");
     super.onCreate();
-    
+
     mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
     Settings.load(this.getResources().openRawResource(R.raw.settings));
     mSharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+    // Setup DroidContext
+    try {
+      mDroidContext.setID(DroidID.readFromFile(
+              new File(this.getFilesDir(), Settings.getString("idstore"))));
+      mDroidContext.setProfile(StaticProfiler.readProfile(
+              new File(this.getFilesDir(), Settings.getString("profilestore"))));
+    }
+    catch (FileNotFoundException ex) {
+      mNM.notify(NOTIFICATION_ID, getNotification("Failed to load profile data"));
+    }
     // register receiver for battery updates
     mPowerConnectionReceiver = new PowerConnectionReceiver(null);// TODO...
     registerReceiver(
             mPowerConnectionReceiver,
             new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
   }
-  
+
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     Log.v(TAG, "onStartCommand()");
@@ -142,13 +158,13 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     // stopped, so return sticky.
     return START_STICKY;
   }
-  
+
   @Override
   public void onDestroy() {
     Log.v(TAG, "onDestroy()");
-    
+
     unregisterReceiver(mPowerConnectionReceiver);
-    
+
     mNM.cancel(NOTIFICATION_ID);
     // Tell the user we stopped.
     Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
@@ -189,11 +205,11 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
    *
    */
   public void doConnect() {
-    
+
     new Thread(new Runnable() {
       public void run() {
         ServerConnection sconn = null;
-        
+
         mClassloaderWrapper = new ClassLoaderWrapper();// init empty
 
         // init job center
@@ -235,28 +251,49 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
         catch (Exception ex) {
           Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         new Thread(sconn).start();
         System.out.println("[THREAD DONE]");
-        
+
       }
     }).start();
-    
+
   }
-  
+
+  @Override
   public boolean userCheckAccept(X509Certificate cert) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    try {
+      Message msg = Message.obtain(null, CHECK_SERVERCERT);
+      Bundle certData = new Bundle();
+      certData.putSerializable("cert", cert);
+      msg.setData(certData);
+      mRemoteMessenger.send(msg);
+    }
+    catch (RemoteException ex) {
+      Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    synchronized (mCertCheckResult) {
+      try {
+        System.out.println("cert_check_result.wait()");
+        mCertCheckResult.wait();
+        System.out.println("cert_check_result.wait() done");
+      }
+      catch (InterruptedException ex) {
+        Log.e(TAG, ex.toString());
+      }
+    }
+    return mCertCheckResult.get();
   }
 
   /**
    * Handler of incoming messages from clients.
    */
   class IncomingHandler extends Handler {
-    
+
     @Override
     public void handleMessage(Message msg) {
       Log.v("IncomingHandler", "<-- Got message: " + msg.toString());
-      
+
       switch (msg.what) {
         case MSG_REGISTER_CLIENT:
           mRemoteMessenger = msg.replyTo;
@@ -275,7 +312,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
           catch (StateMachineException ex) {
             Log.e(TAG, ex.toString());
           }
-          
+
           break;
         case RESULT_CHECK_SERVERCERT:
           synchronized (mCertCheckResult) {

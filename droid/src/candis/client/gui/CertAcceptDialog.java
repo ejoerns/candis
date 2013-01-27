@@ -26,7 +26,7 @@ import java.util.logging.Logger;
  */
 public class CertAcceptDialog extends DialogFragment {
 
-  private static String TAG = "CertAcceptDialog";
+  private static final String TAG = CertAcceptDialog.class.getName();
   private final X509Certificate mCert;
   private boolean has_result;
   private final Messenger mReplyMessenger;

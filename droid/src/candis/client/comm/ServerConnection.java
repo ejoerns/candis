@@ -2,7 +2,6 @@ package candis.client.comm;
 
 import android.content.Context;
 import android.os.Messenger;
-import android.util.Log;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;

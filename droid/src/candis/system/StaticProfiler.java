@@ -13,7 +13,6 @@ import android.support.v4.app.DialogFragment;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import candis.client.R;
-import candis.client.gui.CertAcceptDialog;
 import candis.distributed.droid.StaticProfile;
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,8 +26,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StreamCorruptedException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
@@ -140,7 +137,7 @@ public class StaticProfiler {
         });
       }
       catch (Exception ex) {
-        Logger.getLogger(CertAcceptDialog.class.getName()).log(Level.SEVERE, null, ex);
+        Log.e(TAG, null, ex);
       }
       // Create the AlertDialog object and return it
       return builder.create();

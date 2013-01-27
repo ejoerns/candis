@@ -111,7 +111,15 @@ public final class ClientStateMachine extends FSM {
             .addTransition(
             Instruction.REQUEST_CHECKCODE,
             ClientStates.CHECKCODE_ENTER,
-            new CheckcodeInputHandler());
+            new CheckcodeInputHandler())
+            .addTransition(
+            Instruction.ERROR,
+            ClientStates.UNCONNECTED,
+            new ActionHandler() {
+              public void handle(Object... obj) {
+                LOGGER.severe("An Error occured while connecting to the server");
+              }
+            });
     addState(ClientStates.CHECKCODE_ENTER)
             .addTransition(
             ClientTrans.CHECKCODE_ENTERED,

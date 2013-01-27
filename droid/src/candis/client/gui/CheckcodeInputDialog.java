@@ -61,7 +61,7 @@ public class CheckcodeInputDialog extends DialogFragment {
       });
     }
     catch (Exception ex) {
-      Logger.getLogger(CertAcceptDialog.class.getName()).log(Level.SEVERE, null, ex);
+      Logger.getLogger(CheckcodeInputDialog.class.getName()).log(Level.SEVERE, null, ex);
     }
     // Create the AlertDialog object and return it
     return builder.create();
