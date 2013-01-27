@@ -39,6 +39,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -91,7 +93,7 @@ public class MainActivity extends FragmentActivity
         startActivity(newintent);
         return true;
       default:
-    return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelected(item);
     }
   }
 
@@ -144,6 +146,7 @@ public class MainActivity extends FragmentActivity
     mLogButton.setOnClickListener(this);
 
 
+    mServiceButton.setEnabled(false);
     if (mServiceRunning) {
       mServiceButton.setText(getResources().getString(R.string.service_button_stop));
       ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
@@ -155,13 +158,31 @@ public class MainActivity extends FragmentActivity
       ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
     }
 
-//    mDroidContext = DroidContext.getInstance();
     // Init droid
     mInitTask = new InitTask(
             this,
             new File(this.getFilesDir(), Settings.getString("idstore")),
             new File(this.getFilesDir(), Settings.getString("profilestore")));
     mInitTask.execute();
+    // Wait for InitTask to finish to enable Service button
+    new Thread(new Runnable() {
+      public void run() {
+        try {
+          mInitTask.get();
+          mHandler.post(new Runnable() {
+            public void run() {
+              mServiceButton.setEnabled(true);
+            }
+          });
+        }
+        catch (InterruptedException ex) {
+          Log.e(TAG, null, ex);
+        }
+        catch (ExecutionException ex) {
+          Log.wtf(TAG, null, ex);
+        }
+      }
+    }).start();
   }
 
   @Override

@@ -26,6 +26,7 @@
   <!--Info Activity-->
   <string name="infohead_id_text">ID (SHA-1)</string>
   <string name="infohead_server_text">Connected to server</string>
+  <string name="infohead_profile_text">Profile data (Sent to Master)</string>
 
   <!--Log Activity-->
   <string name="clear_log_button">Clear Log</string>
