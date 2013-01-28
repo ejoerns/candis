@@ -32,6 +32,9 @@ public class IntegerUserParameter extends UserParameter {
 	}
 
 	public int getIntegerValue() {
+		if(String.class.isInstance(mValue)) {
+			return Integer.valueOf(mValue.toString());
+		}
 		return ((Integer) mValue).intValue();
 	}
 
