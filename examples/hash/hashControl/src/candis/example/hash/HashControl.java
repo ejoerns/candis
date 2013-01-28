@@ -27,7 +27,7 @@ public class HashControl implements DistributedControl, ResultReceiver {
 	public Scheduler initScheduler() {
 		UserParameterSet parameters = new UserParameterSet();
 
-		StringUserParameter hashvalue = new StringUserParameter("hash.hashvalue", "Hash", "Hash to Crack", "ab12", new RegexValidator("[0-9a-f]*"));
+		StringUserParameter hashvalue = new StringUserParameter("hash.hashvalue", "Hash", "Hash to Crack", "ab12", new HashInputValidator());
 		parameters.AddParameter(hashvalue);
 
 		StringListUserParameter type = new StringListUserParameter("hash.type", 1, new String[]{"md5", "sha1"});
