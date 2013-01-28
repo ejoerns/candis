@@ -91,7 +91,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   private ClassLoaderWrapper mClassloaderWrapper;
   private PowerConnectionReceiver mPowerConnectionReceiver;
   private SharedPreferences mSharedPref;
-//  Thread mThread;
   Thread mConnectThread;
   ServerConnection sconn;
 
@@ -159,9 +158,15 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     Log.v(TAG, "onDestroy()");
     super.onDestroy();
 
+    // first inform master about termination
+    if (mFSM != null) {
+      mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
+    }
+
+    // unregister registered receiver
     unregisterReceiver(mPowerConnectionReceiver);
 
-//    mThread.interrupt();
+    // stop running threads
     mConnectThread.interrupt();
     try {
       sconn.getSocket().close();
@@ -169,27 +174,18 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     catch (IOException ex) {
       Log.e(TAG, null, ex);
     }
-//          mThread.interrupt();
-    // wait for connectThread to finish
+    // wait for stopped threads to finish
     try {
       mConnectThread.join();
-//            mThread.join();
     }
     catch (InterruptedException ex) {
       Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
     }
 
-    mNM.cancel(NOTIFICATION_ID);
+    // Cancel notification
+//    mNM.cancel(NOTIFICATION_ID);
     // Tell the user we stopped.
     Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
-    try {
-      if (mFSM != null) {
-        mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
-      }
-    }
-    catch (StateMachineException ex) {
-      Log.w(TAG, "Could not terminate FSM correctly, maybe not initiealized.");
-    }
     mRunning = false;
   }
   //----------------------------------------------------------------------------
