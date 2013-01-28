@@ -84,10 +84,6 @@ public class ServerConnection implements Runnable {
         connectCounter++;
         LOGGER.severe("Connection to host " + host + " failed!");
       }
-      // really unknown exception
-//      catch (IOException ex) {
-//        LOGGER.log(Level.SEVERE, "wtf", ex);
-//      }
     }
     while (!success); // && (connectCounter < 3));
     mFSM.init();

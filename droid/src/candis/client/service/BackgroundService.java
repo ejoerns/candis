@@ -66,10 +66,14 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   public static final int RESULT_SHOW_CHECKCODE = 40;
   ///
   public static final int LOG_MESSAGE = 50;
+  /// Indicates that connection to server is in progress
+  public static final int CONNECTING = 100;
   /// Indicates that connection to server succeeded
-  public static final int CONNECTED = 100;
+  public static final int CONNECTED = 105;
   /// Indicates that connection to server failed
-  public static final int CONNECT_FAILED = 105;
+  public static final int CONNECT_FAILED = 110;
+  /// Indicates thate connection was closed
+  public static final int DISCONNECTED = 115;
   //---
   private static final int NOTIFICATION_ID = 4711;
   /// For showing and hiding our notification.
@@ -227,7 +231,14 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
           jobcenter.setFSM(mFSM);
           sconn.connect(mSharedPref.getString(SettingsActivity.HOSTNAME, "not found"),
                         Integer.valueOf(mSharedPref.getString(SettingsActivity.PORTNAME, "0")));
+          // Notify about connecting...
           mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.connected)));
+          try {
+            mRemoteMessenger.send(Message.obtain(null, CONNECTING));
+          }
+          catch (RemoteException ex1) {
+            Log.e(TAG, null, ex1);
+          }
         }
         catch (ConnectException ex) {
           mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
@@ -249,14 +260,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
         }
         catch (Exception ex) {
           Log.wtf(TAG, null, ex);
-        }
-
-        // Notify listeners about connection
-        try {
-          mRemoteMessenger.send(Message.obtain(null, CONNECTED));
-        }
-        catch (RemoteException ex1) {
-          Log.e(TAG, null, ex1);
         }
 
         // Start worker thread

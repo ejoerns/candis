@@ -275,13 +275,21 @@ public class MainActivity extends FragmentActivity
           DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger);
           checkDialog.show(getSupportFragmentManager(), TAG);
           break;
-        case BackgroundService.CONNECT_FAILED:
-          mConnectionState.setText("Connection failed");
-          mConnectionState.setTextColor(Color.rgb(255, 0, 0));
+        case BackgroundService.CONNECTING:
+          mConnectionState.setText("Connecting...");
+          mConnectionState.setTextColor(Color.rgb(255, 255, 0));
           break;
         case BackgroundService.CONNECTED:
           mConnectionState.setText("Connected");
           mConnectionState.setTextColor(Color.rgb(0, 255, 0));
+          break;
+        case BackgroundService.CONNECT_FAILED:
+          mConnectionState.setText("Connection failed");
+          mConnectionState.setTextColor(Color.rgb(255, 0, 0));
+          break;
+        case BackgroundService.DISCONNECTED:
+          mConnectionState.setText("Disconnected");
+          mConnectionState.setTextColor(Color.rgb(170, 170, 170));
           break;
         default:
           super.handleMessage(msg);

@@ -103,7 +103,7 @@ public final class ClientStateMachine extends FSM {
             .addTransition(
             Instruction.ACCEPT_CONNECTION,
             ClientStates.WAIT_FOR_JOB,
-            null)
+            new ConnectionAcceptedHandler())
             .addTransition(
             Instruction.REJECT_CONNECTION,
             ClientStates.UNCONNECTED,
@@ -134,7 +134,7 @@ public final class ClientStateMachine extends FSM {
             .addTransition(
             Instruction.ACCEPT_CONNECTION,
             ClientStates.WAIT_FOR_JOB,
-            null);
+            new ConnectionAcceptedHandler());
     addState(ClientStates.WAIT_FOR_JOB)
             .addTransition(
             Instruction.SEND_JOB,
@@ -219,6 +219,12 @@ public final class ClientStateMachine extends FSM {
     public void handle(final Object... o) {
       System.out.println("DisconnectHandler() called");
       mSConn.sendMessage(Message.create(Instruction.DISCONNECT));
+      try {
+        mMessenger.send(android.os.Message.obtain(null, BackgroundService.DISCONNECTED));
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
   }
 
@@ -287,7 +293,23 @@ public final class ClientStateMachine extends FSM {
     }
   }
 
+  /**
+   * Called when connection was accepted.
+   * Notifies listener about this.
+   */
+  private class ConnectionAcceptedHandler implements ActionHandler {
+
+    public void handle(Object... obj) {
+      try {
+        mMessenger.send(android.os.Message.obtain(null, BackgroundService.CONNECTED));
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+  }
   /*--------------------------------------------------------------------------*/
+
   /**
    *
    */
