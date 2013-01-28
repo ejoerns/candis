@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.security.SecureRandom;
+import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,6 +40,8 @@ public class ServerStateMachine extends FSM {
 	protected final DroidManager mDroidManager;
 	/// Job distributor used for managing tasks and jobs
 	protected final JobDistributionIOServer mJobDistIO;
+	///
+	private PingTimerTask mPingTimerTask;
 
 	/**
 	 * All availbale states for the FSM.
@@ -79,7 +82,8 @@ public class ServerStateMachine extends FSM {
 		SEND_JOB,
 		SEND_INITAL,// TODO...
 		STOP_JOB,// TODO...
-		SEND_PING;
+		SEND_PING,
+		ERROR;
 	}
 
 	public ServerStateMachine(
@@ -204,6 +208,10 @@ public class ServerStateMachine extends FSM {
 						ServerTrans.SEND_PING,
 						null,
 						new SendPingHandler());
+		addGlobalTransition(
+						Instruction.PONG,
+						null,
+						new PongHandler());
 
 		setState(ServerStates.UNCONNECTED);
 	}
@@ -215,26 +223,31 @@ public class ServerStateMachine extends FSM {
 
 		@Override
 		public void handle(Object... obj) {
-			assert obj[0] instanceof DroidID;
+			assert obj != null;
+			assert obj[0] instanceof DroidID : ((Instruction) obj[0]).toString();
 
 			System.out.println("ConnectionRequestedHandler called");
 			if (obj == null) {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
 			}
+
 			DroidID currentID = ((DroidID) obj[0]);
 			Transition trans;
 			Instruction instr;
+
 			// catch invalid messages
 			if (currentID == null) {
+				LOGGER.severe("Connection request with empty ID");
 				trans = ServerTrans.CLIENT_INVALID;
 				instr = Instruction.ERROR;
-				// check if droid is known in db
 			}
+			// check if droid is known in db
 			else {
 				mConnection.setDroidID(currentID.toSHA1());
 				if (mDroidManager.isDroidKnown(currentID)) {
 					System.out.println("Droid ist known: " + currentID.toSHA1());
+					// check if droid is blacklisted
 					if (mDroidManager.isDroidBlacklisted(currentID)) {
 						System.out.println("Droid ist blacklisted");
 						trans = ServerTrans.CLIENT_BLACKLISTED;
@@ -245,6 +258,7 @@ public class ServerStateMachine extends FSM {
 						instr = Instruction.ACCEPT_CONNECTION;
 					}
 				}
+				// seems to be a new droid
 				else {
 					System.out.println("Droid ist unknown: " + currentID.toSHA1());
 					// check if option 'check code auth' is active
@@ -258,15 +272,13 @@ public class ServerStateMachine extends FSM {
 					}
 				}
 			}
+			// Send instruction
 			try {
 				mConnection.sendMessage(Message.create(instr));
-				LOGGER.log(Level.INFO, String.format("Server reply: %s", instr));
 				process(trans);
 			}
-			catch (StateMachineException ex) {
-				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-			}
 			catch (IOException ex) {
+				process(ServerTrans.ERROR);
 				LOGGER.log(Level.SEVERE, null, ex);
 			}
 		}
@@ -291,10 +303,9 @@ public class ServerStateMachine extends FSM {
 				}
 				mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[0]);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
+				// send ACCEPT_CONNECTION to Droid
+				mConnection.sendMessage(Message.create(Instruction.ACCEPT_CONNECTION));
 				process(ServerTrans.PROFILE_VALID);
-			}
-			catch (StateMachineException ex) {
-				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -307,16 +318,27 @@ public class ServerStateMachine extends FSM {
 	 */
 	protected class ClientConnectedHandler implements ActionHandler {
 
-		public ClientConnectedHandler() {
-		}
-
 		@Override
 		public void handle(final Object... o) {
-			mDroidManager.connectDroid(mConnection.getDroidID(), mConnection);
-			LOGGER.log(Level.INFO, String.format("Client %s connected", mConnection.getDroidID()));
 			System.out.println("ClientConnectedHandler() called");
+			mDroidManager.connectDroid(mConnection.getDroidID(), mConnection);
 			mJobDistIO.onDroidConnected(mConnection.getDroidID(), mConnection);
-			//mDroidManager.connectDroid(mCurrentID, mConnection);
+			// Init ping timer
+			Timer pingTimer = new Timer();
+			mPingTimerTask = new PingTimerTask(mConnection);
+			pingTimer.scheduleAtFixedRate(mPingTimerTask, 3000, 3000);
+		}
+	}
+
+	/**
+	 * Invoked if pong is received. Simply clears PingTimerTask flag to indicate
+	 * client is still alive.
+	 */
+	private class PongHandler implements ActionHandler {
+
+		@Override
+		public void handle(Object... obj) {
+			mPingTimerTask.clearFlag();
 		}
 	}
 
@@ -345,7 +367,9 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("ClientDisconnectedHandler() called");
+			mPingTimerTask.cancel();
 			mDroidManager.disconnectDroid(mConnection.getDroidID());
+			// TODO: close socket?
 		}
 	}
 
@@ -421,7 +445,6 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			assert o[0] instanceof String;
-//			assert o[1] instanceof DistributedJobResult;
 
 			System.out.println("ResultHandler() called");
 			CandisLog.v(TAG, "Getting result...");
@@ -470,8 +493,8 @@ public class ServerStateMachine extends FSM {
 
 				mConnection.sendMessage(
 								Message.create(Instruction.SEND_BINARY,
-														mJobDistIO.getCurrentTaskID(),
-														outdata));
+															 mJobDistIO.getCurrentTaskID(),
+															 outdata));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
