@@ -81,32 +81,32 @@ public class TestDroid extends DroidData implements Runnable {
 				// Handle job
 				switch (m_in.getRequest()) {
 					case SEND_BINARY:
-						messageConnection.sendMessage(new Message(Instruction.ACK, (Serializable) null));
+						messageConnection.sendMessage(Message.create(Instruction.ACK, (Serializable) null));
 						break;
 					case SEND_INITIAL:
 						DistributedJobParameter initial = (DistributedJobParameter) m_in.getData(1);
 						task.setInitialParameter(initial);
-						messageConnection.sendMessage(new Message(Instruction.ACK, (Serializable) null));
+						messageConnection.sendMessage(Message.create(Instruction.ACK, (Serializable) null));
 						gotInit = true;
 						if (jobParameter != null) {
 
 							DistributedJobResult result = runTask(jobParameter);
-							Message m_result = new Message(Instruction.SEND_RESULT, m_in.getData(0), result);
+							Message m_result = Message.create(Instruction.SEND_RESULT, m_in.getData(0), result);
 							messageConnection.sendMessage(m_result);
 							jobParameter = null;
 						}
 						break;
 					case SEND_JOB:
 						if (!gotInit) {
-							messageConnection.sendMessage(new Message(Instruction.REQUEST_INITIAL, m_in.getData(0)));
+							messageConnection.sendMessage(Message.create(Instruction.REQUEST_INITIAL, m_in.getData(0)));
 							jobParameter = (DistributedJobParameter) m_in.getData(1);
 							break;
 						}
 						jobParameter = null;
-						messageConnection.sendMessage(new Message(Instruction.ACK, (Serializable) null));
+						messageConnection.sendMessage(Message.create(Instruction.ACK, (Serializable) null));
 						DistributedJobParameter parameters = (DistributedJobParameter) m_in.getData(1);
 						DistributedJobResult result = runTask(parameters);
-						Message m_result = new Message(Instruction.SEND_RESULT, m_in.getData(0), result);
+						Message m_result = Message.create(Instruction.SEND_RESULT, m_in.getData(0), result);
 						messageConnection.sendMessage(m_result);
 						break;
 				}
