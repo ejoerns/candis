@@ -32,7 +32,7 @@ public abstract class ParameterContainer {
 	public final UserParameter mUserParameter;
 	public JComponent mJComponent;
 	public final JLabel mNameLabel;
-	//public final JLabel mDescriptionLabel;
+	private UserParameterDialog mDialog;
 	public final JLabel mErrorLabel;
 
 	protected ParameterContainer(UserParameter mUserParameter) {
@@ -44,7 +44,11 @@ public abstract class ParameterContainer {
 
 	public abstract Object getValue();
 
-	public boolean validate() {
+	public boolean validateAll() {
+		return mDialog.validateAll();
+	}
+
+	public boolean updateValidateion() {
 		mUserParameter.SetValue(this.getValue());
 		boolean valid = mUserParameter.validate();
 		mErrorLabel.setText(mUserParameter.getValidatorMessage() + " ");
@@ -69,7 +73,9 @@ public abstract class ParameterContainer {
 		return null;
 	}
 
-	public void addToDialog(JPanel panel, int position) {
+	public void addToDialog(UserParameterDialog dialog, int position) {
+		mDialog = dialog;
+		JPanel panel = dialog.mParametersPanel;
 		GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = position * 2;
@@ -116,7 +122,7 @@ public abstract class ParameterContainer {
 			box.addItemListener(new ItemListener() {
 				@Override
 				public void itemStateChanged(ItemEvent ie) {
-					validate();
+					validateAll();
 				}
 			});
 			mJComponent = box;
@@ -138,7 +144,7 @@ public abstract class ParameterContainer {
 			checkBox.addChangeListener(new ChangeListener() {
 				@Override
 				public void stateChanged(ChangeEvent ce) {
-					validate();
+					validateAll();
 				}
 			});
 			mJComponent = checkBox;
@@ -169,7 +175,7 @@ public abstract class ParameterContainer {
 			spinner.addChangeListener(new ChangeListener() {
 				@Override
 				public void stateChanged(ChangeEvent ce) {
-					validate();
+					validateAll();
 				}
 			});
 			mJComponent = spinner;
@@ -192,17 +198,17 @@ public abstract class ParameterContainer {
 			text.getDocument().addDocumentListener(new DocumentListener() {
 				@Override
 				public void insertUpdate(DocumentEvent de) {
-					validate();
+					validateAll();
 				}
 
 				@Override
 				public void removeUpdate(DocumentEvent de) {
-					validate();
+					validateAll();
 				}
 
 				@Override
 				public void changedUpdate(DocumentEvent de) {
-					validate();
+					validateAll();
 				}
 			});
 			d.width = 300;
@@ -250,7 +256,7 @@ public abstract class ParameterContainer {
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
 
 						mFileLabel.setText(fileChooser.getSelectedFile().getPath());
-						validate();
+						validateAll();
 					}
 				}
 			});
