@@ -2,6 +2,7 @@ package candis.client.comm;
 
 import android.content.Context;
 import android.os.Messenger;
+import android.util.Log;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
@@ -12,10 +13,12 @@ import candis.common.QueuedMessageConnection;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.ConnectException;
+import java.net.Socket;
+import java.net.SocketException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -64,10 +67,11 @@ public class ServerConnection implements Runnable {
       // if previous connection failed, first wait 3 seconds
       else if (connectCounter > 0) {
         try {
-          Thread.sleep(3000);
+          Thread.sleep(RECONNECT_DELAY);
         }
         catch (InterruptedException ex) {
-          LOGGER.log(Level.SEVERE, null, ex);
+          mSecureSocket.close();
+          throw new ConnectException("Connection thread interrupted");
         }
       }
       // try to connect
@@ -98,21 +102,27 @@ public class ServerConnection implements Runnable {
   }
 
   /**
+   *
+   * @return
+   */
+  public Socket getSocket() {
+    return mSecureSocket.getSocket();
+  }
+
+  /**
    * Thread to handle incoming requests.
    */
   @Override
   public void run() {
     // start message queue
-    new Thread(mQueuedMessageConnection).start();
 
-    try {
-      mFSM.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
-    }
-    catch (StateMachineException ex) {
-      LOGGER.log(Level.SEVERE, null, ex);
-    }
+    Thread qmcThread = new Thread(mQueuedMessageConnection);
+    qmcThread.setDaemon(true);
+    qmcThread.start();
 
-    while (!isStopped) {
+    mFSM.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
+
+    while ((!isStopped) && (!Thread.interrupted())) {
       try {
         Message msg = mQueuedMessageConnection.readMessage();
         try {
@@ -120,11 +130,11 @@ public class ServerConnection implements Runnable {
             mFSM.process(((Message) msg).getRequest());
           }
           else if (msg.getRequest() == Instruction.PING) {
-            LOGGER.fine("Got PING request, sending PONG");
+            Log.w(TAG, "Got PING request, sending PONG");
             sendMessage(Message.create(Instruction.PONG));
           }
           else {
-            LOGGER.fine("Got Message: " + msg.getRequest());
+            Log.w(TAG, "Got Message: " + msg.getRequest());
             mFSM.process(msg.getRequest(), (Object[]) msg.getData());
           }
         }
@@ -132,11 +142,24 @@ public class ServerConnection implements Runnable {
           Logger.getLogger(ServerConnection.class.getName()).log(Level.SEVERE, null, ex);
         }
       }
+      // The thread was interrupted
+      catch (InterruptedIOException ex) {
+        LOGGER.info("Interrupted ServerConnection Thread");
+        isStopped = true;
+        qmcThread.interrupt();
+      }
+      // The socket was close of any reason
+      catch (SocketException ex) {
+        LOGGER.warning("Socket was closed");
+        isStopped = true;
+        qmcThread.interrupt();
+      }
       catch (IOException ex) {
         LOGGER.log(Level.SEVERE, null, ex);
         isStopped = true;
       }
     }
+    Log.i(TAG, "[[ServerConnection THREAD done]]");
   }
 
   /**
