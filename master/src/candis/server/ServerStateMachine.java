@@ -381,16 +381,17 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("ValidateCheckcodeHandler() called");
-			try {
-				if (mDroidManager.validateCheckCode((String) o[0])) {
-					process(ServerTrans.CHECKCODE_VALID);
-				}
-				else {
+			if (mDroidManager.validateCheckCode((String) o[0])) {
+				process(ServerTrans.CHECKCODE_VALID);
+			}
+			else {
+				try {
+					mConnection.sendMessage(Message.create(Instruction.INVALID_CHECKCODE));
 					process(ServerTrans.CHECKCODE_INVALID);
 				}
-			}
-			catch (StateMachineException ex) {
-				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+				catch (IOException ex) {
+					Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+				}
 			}
 		}
 	}

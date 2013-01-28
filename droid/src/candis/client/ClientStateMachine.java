@@ -105,10 +105,6 @@ public final class ClientStateMachine extends FSM {
             ClientStates.WAIT_FOR_JOB,
             new ConnectionAcceptedHandler())
             .addTransition(
-            Instruction.REJECT_CONNECTION,
-            ClientStates.UNCONNECTED,
-            new ConnectionRejectedHandler())
-            .addTransition(
             Instruction.REQUEST_CHECKCODE,
             ClientStates.CHECKCODE_ENTER,
             new CheckcodeInputHandler())
@@ -129,7 +125,11 @@ public final class ClientStateMachine extends FSM {
             .addTransition(
             Instruction.REQUEST_PROFILE,
             ClientStates.PROFILE_SENT,
-            new ProfileRequestHandler());
+            new ProfileRequestHandler())
+            .addTransition(
+            Instruction.INVALID_CHECKCODE,
+            ClientStates.UNCONNECTED,
+            new InvalidCheckcodeHandler());
     addState(ClientStates.PROFILE_SENT)
             .addTransition(
             Instruction.ACCEPT_CONNECTION,
@@ -187,6 +187,10 @@ public final class ClientStateMachine extends FSM {
             ClientTrans.DISCONNECT,
             ClientStates.UNCONNECTED,
             new DisconnectHandler());
+    addGlobalTransition(
+            Instruction.REJECT_CONNECTION,
+            ClientStates.UNCONNECTED,
+            new ConnectionRejectedHandler());
     setState(ClientStates.UNCONNECTED);
   }
 
@@ -199,14 +203,20 @@ public final class ClientStateMachine extends FSM {
     @Override
     public void handle(final Object... obj) {
       System.out.println("ConnectionRejectedHandler() called");
-      Notification noti = new NotificationCompat.Builder(mContext)
-              //      Notification noti = new Notification.Builder(mContext)
-              .setContentTitle("Connection Rejected")
-              .setContentText("Server rejected connection")
-              .setSmallIcon(R.drawable.ic_launcher)
-              .setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_launcher))
-              .build();
-      mNotificationManager.notify(42, noti);
+//      Notification noti = new NotificationCompat.Builder(mContext)
+//              //      Notification noti = new Notification.Builder(mContext)
+//              .setContentTitle("Connection Rejected")
+//              .setContentText("Server rejected connection")
+//              .setSmallIcon(R.drawable.ic_launcher)
+//              .setLargeIcon(BitmapFactory.decodeResource(mContext.getResources(), R.drawable.ic_launcher))
+//              .build();
+//      mNotificationManager.notify(42, noti);
+      try {
+        mMessenger.send(android.os.Message.obtain(null, BackgroundService.CONNECT_FAILED));
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
   }
 
@@ -290,6 +300,23 @@ public final class ClientStateMachine extends FSM {
     public void handle(final Object... o) {
       System.out.println("CheckcodeSendHandler() called");
       mSConn.sendMessage(Message.create(Instruction.SEND_CHECKCODE, (String) o[0]));
+    }
+  }
+
+  /**
+   * Sends entered checkcode to server.
+   */
+  private class InvalidCheckcodeHandler implements ActionHandler {
+
+    @Override
+    public void handle(final Object... o) {
+      System.out.println("CheckcodeSendHandler() called");
+      try {
+        mMessenger.send(android.os.Message.obtain(null, BackgroundService.INVALID_CHECKCODE));
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
   }
 
