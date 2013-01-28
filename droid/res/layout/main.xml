@@ -9,6 +9,8 @@
     android:layout_margin="10dp"
     android:layout_alignParentTop="true"
     android:text="The programm runs in a foreground service that can be started and stopped with the settings below."/>
+  <!--Will run unless it is stopped-->
+  <!--Notification icon!-->
   <TextView
     android:id="@+id/service_separator"
     style="?android:attr/listSeparatorTextViewStyle"
@@ -34,7 +36,7 @@
     android:layout_alignParentLeft="true"
     android:layout_marginLeft="10dp"
     android:text="@string/connection_text_unconnected"
-    android:textColor="#F00"/> 
+    android:textColor="#AAA"/> 
   <Button
     android:id="@+id/service_button"
     android:layout_width="wrap_content" 

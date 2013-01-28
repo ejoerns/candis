@@ -211,7 +211,7 @@ public final class ClientStateMachine extends FSM {
   }
 
   /**
-   * Sends disconnect instruction to master.setAccessingle
+   * Sends disconnect instruction to master.
    */
   private class DisconnectHandler implements ActionHandler {
 
@@ -229,7 +229,14 @@ public final class ClientStateMachine extends FSM {
 
     @Override
     public void handle(final Object... obj) {
+      assert obj != null;
+
       System.out.println("SocketConnectedHandler() called");
+      if (mDroitContext.getID() == null) {
+        LOGGER.severe("Will not request connection for an empty ID");
+        return;
+      }
+      System.out.println("mDroitContext.getID():" + mDroitContext.getID());
       mSConn.sendMessage(Message.create(Instruction.REQUEST_CONNECTION, mDroitContext.getID()));
     }
   }

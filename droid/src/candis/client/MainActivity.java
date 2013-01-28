@@ -53,6 +53,8 @@ public class MainActivity extends FragmentActivity
   private Button mInfoButton;
   private Button mOptionsButton;
   private Button mLogButton;
+  private TextView mServiceState;
+  private TextView mConnectionState;
   ///
   private InitTask mInitTask;
 //  private DroidContext mDroidContext;
@@ -67,35 +69,6 @@ public class MainActivity extends FragmentActivity
   Messenger mServiceMessenger = null;
   /// Flag indicating whether we have called bind on the service.
   boolean mIsBound;
-
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    Log.e(TAG, "onCreateOptionsMenu()");
-    MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.settings, menu);
-    return true;
-  }
-
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-    Intent newintent;
-    switch (item.getItemId()) {
-//      case android.R.id.home:
-//        return true;
-      case R.id.menu_info:
-        newintent = new Intent(this, InfoActivity.class);
-        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(newintent);
-        return true;
-      case R.id.menu_settings:
-        newintent = new Intent(this, SettingsActivity.class);
-        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(newintent);
-        return true;
-      default:
-        return super.onOptionsItemSelected(item);
-    }
-  }
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -139,23 +112,24 @@ public class MainActivity extends FragmentActivity
     mInfoButton = (Button) findViewById(R.id.info_button);
     mOptionsButton = (Button) findViewById(R.id.settings_button);
     mLogButton = (Button) findViewById(R.id.log_button);
+    mServiceState = (TextView) findViewById(R.id.servicetext);
+    mConnectionState = (TextView) findViewById(R.id.connectiontext);
     // add handlers
     mServiceButton.setOnClickListener(this);
     mInfoButton.setOnClickListener(this);
     mOptionsButton.setOnClickListener(this);
     mLogButton.setOnClickListener(this);
 
-
     mServiceButton.setEnabled(false);
     if (mServiceRunning) {
       mServiceButton.setText(getResources().getString(R.string.service_button_stop));
-      ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
-      ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(0, 255, 0));
+      mServiceState.setText(R.string.service_text_started);
+      mServiceState.setTextColor(Color.rgb(0, 255, 0));
     }
     else {
       mServiceButton.setText(getResources().getString(R.string.service_button_start));
-      ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_stopped);
-      ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
+      mServiceState.setText(R.string.service_text_stopped);
+      mServiceState.setTextColor(Color.rgb(255, 0, 0));
     }
 
     // Init droid
@@ -186,6 +160,35 @@ public class MainActivity extends FragmentActivity
   }
 
   @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    Log.e(TAG, "onCreateOptionsMenu()");
+    MenuInflater inflater = getMenuInflater();
+    inflater.inflate(R.menu.settings, menu);
+    return true;
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    Intent newintent;
+    switch (item.getItemId()) {
+//      case android.R.id.home:
+//        return true;
+      case R.id.menu_info:
+        newintent = new Intent(this, InfoActivity.class);
+        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(newintent);
+        return true;
+      case R.id.menu_settings:
+        newintent = new Intent(this, SettingsActivity.class);
+        newintent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(newintent);
+        return true;
+      default:
+        return super.onOptionsItemSelected(item);
+    }
+  }
+
+  @Override
   public void onNewIntent(Intent intent) {
     Log.v(TAG, "onNewIntent() " + intent.getAction());
   }
@@ -198,22 +201,26 @@ public class MainActivity extends FragmentActivity
 
     if (v == mServiceButton) {
       if (mServiceRunning) {
-        mServiceRunning = false; // TODO: replace by real test?
         Log.d(TAG, "onClick: stopping service");
         doUnbindService();
         stopService(new Intent(this, BackgroundService.class));
-        mServiceButton.setText(getResources().getString(R.string.service_button_start));
-        ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_stopped);
-        ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(255, 0, 0));
       }
       else {
-        mServiceRunning = true; // TODO: replace by real test?
         Log.d(TAG, "onClick: starting service");
         startService(new Intent(this, BackgroundService.class));
         doBindService();
+      }
+      if (isBackgroundServiceRunning()) {
+        mServiceRunning = true;
         mServiceButton.setText(getResources().getString(R.string.service_button_stop));
-        ((TextView) findViewById(R.id.servicetext)).setText(R.string.service_text_started);
-        ((TextView) findViewById(R.id.servicetext)).setTextColor(Color.rgb(0, 255, 0));
+        mServiceState.setText(R.string.service_text_started);
+        mServiceState.setTextColor(Color.rgb(0, 255, 0));
+      }
+      else {
+        mServiceRunning = false;
+        mServiceButton.setText(getResources().getString(R.string.service_button_start));
+        mServiceState.setText(R.string.service_text_stopped);
+        mServiceState.setTextColor(Color.rgb(255, 0, 0));
       }
     }
     else if (v == mInfoButton) {
@@ -267,6 +274,14 @@ public class MainActivity extends FragmentActivity
         case BackgroundService.SHOW_CHECKCODE:
           DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger);
           checkDialog.show(getSupportFragmentManager(), TAG);
+          break;
+        case BackgroundService.CONNECT_FAILED:
+          mConnectionState.setText("Connection failed");
+          mConnectionState.setTextColor(Color.rgb(255, 0, 0));
+          break;
+        case BackgroundService.CONNECTED:
+          mConnectionState.setText("Connected");
+          mConnectionState.setTextColor(Color.rgb(0, 255, 0));
           break;
         default:
           super.handleMessage(msg);

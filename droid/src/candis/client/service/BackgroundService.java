@@ -30,16 +30,15 @@ import candis.common.DroidID;
 import candis.common.Settings;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
-import candis.distributed.droid.StaticProfile;
 import candis.system.StaticProfiler;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.ConnectException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLHandshakeException;
 
 /**
  * Background service that manages connection to master, receives tasks,
@@ -51,38 +50,26 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
 
   private static final String TAG = BackgroundService.class.getName();
   // Intent Actions
-  /**
-   *
-   */
+  ///
   public static final int MSG_REGISTER_CLIENT = 1;
-  /**
-   *
-   */
+  ///
   public static final int MSG_UNREGISTER_CLIENT = 2;
-  /**
-   *
-   */
+  ///
   public static final int MSG_SET_VALUE = 3;
-  /**
-   *
-   */
+  ///
   public static final int CHECK_SERVERCERT = 10;
-  /**
-   *
-   */
+  ///
   public static final int RESULT_CHECK_SERVERCERT = 20;
-  /**
-   *
-   */
+  ///
   public static final int SHOW_CHECKCODE = 30;
-  /**
-   *
-   */
+  ///
   public static final int RESULT_SHOW_CHECKCODE = 40;
-  /**
-   *
-   */
+  ///
   public static final int LOG_MESSAGE = 50;
+  /// Indicates that connection to server succeeded
+  public static final int CONNECTED = 100;
+  /// Indicates that connection to server failed
+  public static final int CONNECT_FAILED = 105;
   //---
   private static final int NOTIFICATION_ID = 4711;
   /// For showing and hiding our notification.
@@ -162,6 +149,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   @Override
   public void onDestroy() {
     Log.v(TAG, "onDestroy()");
+    super.onDestroy();
 
     unregisterReceiver(mPowerConnectionReceiver);
 
@@ -223,7 +211,8 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
                   Settings.getString("truststore")));
         }
         catch (Exception ex) {
-          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+          Log.wtf(TAG, null, ex);
+          return;
         }
         tm.setCertAcceptDialog(BackgroundService.this);
         try {
@@ -242,16 +231,35 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
         }
         catch (ConnectException ex) {
           mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
-          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+          Log.e(TAG, ex.getMessage());
           return;
         }
-        catch (IOException ex) {
-          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+        // SSL handshake failed (maybe user rejected certificate)
+        catch (SSLHandshakeException ex) {
+          Log.e(TAG, ex.getMessage());
+          mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
+          try {
+            mRemoteMessenger.send(Message.obtain(null, CONNECT_FAILED));
+          }
+          catch (RemoteException ex1) {
+            Log.e(TAG, null, ex1);
+          }
+          // TODO: kill process?
+          return;
         }
         catch (Exception ex) {
-          Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+          Log.wtf(TAG, null, ex);
         }
 
+        // Notify listeners about connection
+        try {
+          mRemoteMessenger.send(Message.obtain(null, CONNECTED));
+        }
+        catch (RemoteException ex1) {
+          Log.e(TAG, null, ex1);
+        }
+
+        // Start worker thread
         new Thread(sconn).start();
         System.out.println("[THREAD DONE]");
 
@@ -274,9 +282,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     }
     synchronized (mCertCheckResult) {
       try {
-        System.out.println("cert_check_result.wait()");
         mCertCheckResult.wait();
-        System.out.println("cert_check_result.wait() done");
       }
       catch (InterruptedException ex) {
         Log.e(TAG, ex.toString());

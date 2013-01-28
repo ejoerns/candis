@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -50,7 +51,7 @@ public class ServerConnection implements Runnable {
     isStopped = false;
   }
 
-  public void connect(String host, int port) throws ConnectException {
+  public void connect(String host, int port) throws ConnectException, IOException {
     boolean success = false;
     int connectCounter = 0;
     // try to connect for some iterations...
@@ -84,9 +85,9 @@ public class ServerConnection implements Runnable {
         LOGGER.severe("Connection to host " + host + " failed!");
       }
       // really unknown exception
-      catch (IOException ex) {
-        LOGGER.log(Level.SEVERE, null, ex);
-      }
+//      catch (IOException ex) {
+//        LOGGER.log(Level.SEVERE, "wtf", ex);
+//      }
     }
     while (!success); // && (connectCounter < 3));
     mFSM.init();
@@ -137,6 +138,7 @@ public class ServerConnection implements Runnable {
       }
       catch (IOException ex) {
         LOGGER.log(Level.SEVERE, null, ex);
+        isStopped = true;
       }
     }
   }

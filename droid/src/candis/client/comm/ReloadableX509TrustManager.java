@@ -16,7 +16,6 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.TrustManager;
@@ -40,7 +39,7 @@ public final class ReloadableX509TrustManager
   private final List<Certificate> mTempCertList = new LinkedList<Certificate>();
   private CertAcceptRequestHandler mCAR;
   /// Boolean for synchronization
-  private final AtomicBoolean accepted = new AtomicBoolean(false);
+//  private final AtomicBoolean accepted = new AtomicBoolean(false);
 
   /**
    * Creates instance of ReloadableX509TrustManager that accepts server
@@ -184,17 +183,19 @@ public final class ReloadableX509TrustManager
    * @param cert Certificate to add
    * @param permanent If true, certificate will be added permanent, otherwise it
    * will be added temporary
+   * @return true if adding server cert succeeded, false otherwise
    */
-  private void addServerCertAndReload(final X509Certificate cert, final boolean permanent) {
+  private void addServerCertAndReload(final X509Certificate cert, final boolean permanent) throws java.security.cert.CertificateException {
 
     // Calls handler...
-    accepted.set(mCAR.userCheckAccept(cert));
+    boolean accepted = mCAR.userCheckAccept(cert);
 
-    if (accepted.get()) {
+    if (accepted) {
       LOGGER.log(Level.INFO, "Certificate ACCEPTED");
     }
     else {
       LOGGER.log(Level.INFO, "Certificate REJECTED");
+      throw new java.security.cert.CertificateException("User rejected Certificated");
     }
 
     try {
@@ -211,7 +212,7 @@ public final class ReloadableX509TrustManager
         ts.setCertificateEntry("candiscert", cert);
 
         for (Enumeration<String> en = ts.aliases(); en.hasMoreElements();) {
-          LOGGER.log(Level.INFO, "Alias found: {0}", en.nextElement());
+          LOGGER.log(Level.INFO, String.format("Alias found: %s", en.nextElement()));
         }
 
         // write truststore to file
@@ -235,10 +236,10 @@ public final class ReloadableX509TrustManager
   /**
    * Sets the cert accept dialog.
    *
-   * @param cad Class that implements the CertAcceptRequest interface
+   * @param carhandler Class that implements the CertAcceptRequest interface
    */
-  public void setCertAcceptDialog(final CertAcceptRequestHandler cad) {
-    this.mCAR = cad;
+  public void setCertAcceptDialog(final CertAcceptRequestHandler carhandler) {
+    mCAR = carhandler;
   }
 
   /**
