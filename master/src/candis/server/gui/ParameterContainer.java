@@ -38,18 +38,17 @@ public abstract class ParameterContainer {
 	protected ParameterContainer(UserParameter mUserParameter) {
 		this.mUserParameter = mUserParameter;
 		this.mNameLabel = new JLabel(mUserParameter.getTitle());
-		//this.mDescriptionLabel = new JLabel(mUserParameter.getDescription());
 		this.mErrorLabel = new JLabel(" ");
 	}
 
 	public abstract Object getValue();
 
 	public boolean validateAll() {
+		mUserParameter.SetValue(this.getValue());
 		return mDialog.validateAll();
 	}
 
 	public boolean updateValidateion() {
-		mUserParameter.SetValue(this.getValue());
 		boolean valid = mUserParameter.validate();
 		mErrorLabel.setText(mUserParameter.getValidatorMessage() + " ");
 		return valid;
@@ -164,7 +163,7 @@ public abstract class ParameterContainer {
 			JSpinner spinner = new JSpinner();
 			if (IntegerUserParameter.class.isInstance(userParameter)) {
 				IntegerUserParameter integerParemeter = (IntegerUserParameter) userParameter;
-				spinner.setModel(new SpinnerNumberModel(integerParemeter.getIngegerValue(),
+				spinner.setModel(new SpinnerNumberModel(integerParemeter.getIntegerValue(),
 																								integerParemeter.getMin(),
 																								integerParemeter.getMax(),
 																								integerParemeter.getStep()));

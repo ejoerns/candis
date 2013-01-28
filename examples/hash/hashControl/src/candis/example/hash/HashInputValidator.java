@@ -32,17 +32,17 @@ public class HashInputValidator extends UserParameterValidator {
 		String data = (String) param.getValue();
 		if (typeString.equals("md5")) {
 			// MD5: 128 bits
-			result = data.matches("[0-9a-f]{16}");
+			result = data.matches("[0-9a-f]{32}");
 		}
 		else if (typeString.equals("sha1")) {
 			// SHA-1: 160 bits
-			result = data.matches("[0-9a-f]{20}");
+			result = data.matches("[0-9a-f]{40}");
 		}
 		else {
 			message = String.format("Unknown Hash-Type %s", typeString);
 			return false;
 		}
-		if(result) {
+		if (result) {
 			message = "";
 		}
 		else {
