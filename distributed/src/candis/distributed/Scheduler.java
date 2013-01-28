@@ -82,9 +82,9 @@ public abstract class Scheduler {
 		}
 	}
 
-  public int getParametersLeft() {
-    return mParams.size();
-  }
+	public int getParametersLeft() {
+		return mParams.size();
+	}
 
 	/**
 	 * Implement this method to create your own nice and fancy Scheduler.
@@ -206,7 +206,7 @@ public abstract class Scheduler {
 			mResults.put(p, result);
 			releaseResult(p, result);
 			LOGGER.log(Level.INFO, "Param {0} on {1} done with {2}", new Object[]{p, droidID, result});
-      //LOGGER.warning("-- RESULTS: " + mResults.size());
+			//LOGGER.warning("-- RESULTS: " + mResults.size());
 		}
 		synchronized (mSchedulabeDroids) {
 			mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
@@ -232,7 +232,11 @@ public abstract class Scheduler {
 	}
 
 	public boolean isDone() {
-    LOGGER.log(Level.FINE,
+		// A disabled Scheduler is done! Fact!
+		if (!mEnabled) {
+			return true;
+		}
+		LOGGER.log(Level.FINE,
 							 "running {0}, params {1}, available Droids {2}",
 							 new Object[]{
 							mRunningDroidsList.size(),

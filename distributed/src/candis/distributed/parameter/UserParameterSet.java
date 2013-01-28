@@ -19,6 +19,9 @@ public class UserParameterSet implements Iterable<UserParameter> {
 		mParameters.put(param.getName(), param);
 	}
 
+	public UserParameter getParameter(String name) {
+		return mParameters.get(name);
+	}
 	public Iterator<UserParameter> iterator() {
 		return mParameters.values().iterator();
 	}

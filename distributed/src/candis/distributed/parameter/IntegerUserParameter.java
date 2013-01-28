@@ -12,6 +12,13 @@ public class IntegerUserParameter extends UserParameter {
 	final int mMax;
 	final int mStep;
 
+	public IntegerUserParameter(String name, String title, String description, int defaultValue, int min, int max, int step, UserParameterValidator validator) {
+		super(name, title, description, Integer.valueOf(defaultValue), validator);
+		mMin = min;
+		mMax = max;
+		mStep = step;
+	}
+
 	public IntegerUserParameter(String name, int defaultValue, int min, int max, int step, UserParameterValidator validator) {
 		super(name, Integer.valueOf(defaultValue), validator);
 		mMin = min;
@@ -24,7 +31,10 @@ public class IntegerUserParameter extends UserParameter {
 		return new UserParameterCtrl(InputType.INTEGER);
 	}
 
-	public int getIngegerValue() {
+	public int getIntegerValue() {
+		if(String.class.isInstance(mValue)) {
+			return Integer.valueOf(mValue.toString());
+		}
 		return ((Integer) mValue).intValue();
 	}
 

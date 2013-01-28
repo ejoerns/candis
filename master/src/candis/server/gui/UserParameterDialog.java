@@ -19,6 +19,7 @@ public class UserParameterDialog extends javax.swing.JDialog {
 	public boolean parametersAreValid() {
 		return mValidParameters;
 	}
+
 	/**
 	 * Creates new form UserParameterDialog
 	 */
@@ -38,7 +39,7 @@ public class UserParameterDialog extends javax.swing.JDialog {
 		int i = 0;
 		for (UserParameter param : mUserParameterSet) {
 			ParameterContainer cont = ParameterContainer.getContainer(param);
-			cont.addToDialog(mParametersPanel, i++);
+			cont.addToDialog(this, i++);
 			mParameterContainers.add(cont);
 		}
 		pack();
@@ -67,6 +68,9 @@ public class UserParameterDialog extends javax.swing.JDialog {
     addWindowListener(new java.awt.event.WindowAdapter() {
       public void windowClosing(java.awt.event.WindowEvent evt) {
         formWindowClosing(evt);
+      }
+      public void windowActivated(java.awt.event.WindowEvent evt) {
+        formWindowActivated(evt);
       }
     });
     getContentPane().setLayout(new java.awt.GridBagLayout());
@@ -133,12 +137,8 @@ public class UserParameterDialog extends javax.swing.JDialog {
   }// </editor-fold>//GEN-END:initComponents
 
   private void mOKButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOKButtonActionPerformed
-		boolean valid = true;
-		for (ParameterContainer cont : mParameterContainers) {
-			valid &= cont.validate();
-		}
-		mValidParameters = valid;
-		if (valid) {
+		mValidParameters = validateAll();
+		if (mValidParameters) {
 			this.setVisible(false);
 		}
 		else {
@@ -159,6 +159,10 @@ public class UserParameterDialog extends javax.swing.JDialog {
 			mValidParameters = false;
 		}
   }//GEN-LAST:event_formWindowClosing
+
+  private void formWindowActivated(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowActivated
+		validateAll();
+  }//GEN-LAST:event_formWindowActivated
 
 	/**
 	 * @param args the command line arguments
@@ -208,7 +212,16 @@ public class UserParameterDialog extends javax.swing.JDialog {
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JButton mCancelButton;
   private javax.swing.JButton mOKButton;
-  private javax.swing.JPanel mParametersPanel;
+  public javax.swing.JPanel mParametersPanel;
   private javax.swing.JLabel mTopLabel;
   // End of variables declaration//GEN-END:variables
+
+	public boolean validateAll() {
+		boolean result = true;
+		for (ParameterContainer cont : mParameterContainers) {
+			result &= cont.updateValidateion();
+		}
+
+		return result;
+	}
 }
