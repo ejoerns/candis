@@ -89,6 +89,11 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
     setTitle("Candis Master");
+    addWindowListener(new java.awt.event.WindowAdapter() {
+      public void windowClosing(java.awt.event.WindowEvent evt) {
+        formWindowClosing(evt);
+      }
+    });
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
     jScrollPane2.setPreferredSize(new java.awt.Dimension(440, 150));
@@ -431,6 +436,11 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		mJobDistIO.stopScheduler();
   }//GEN-LAST:event_mStopButtonActionPerformed
 
+  private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+	mJobDistIO.stopScheduler();
+  }//GEN-LAST:event_formWindowClosing
+
+
 	/**
 	 * @param args the command line arguments
 	 */
@@ -490,6 +500,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 				}
 			});
 		}
+		System.out.println("Im done here!");
 
 	}
   // Variables declaration - do not modify//GEN-BEGIN:variables

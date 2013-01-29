@@ -68,6 +68,9 @@ public class Connection {
     // read header
     for (int i = 0; i < 4; i++) {
       header[i] = (byte) mInputStream.read();                   // 4 byte header wird zuerst gelesen
+			if(header[i] == -1) {
+				throw new IOException("End of stream");
+			}
       // If read failed, try again.
       if (header[i] == -1) {
         i--;
@@ -76,7 +79,7 @@ public class Connection {
     int dataLength = byteArrayToInt(header);       // Puffergröße wird bestimmt
 
     if (dataLength > 0) {
-      bytes = new byte[dataLength];                  // Datenpuffer   
+      bytes = new byte[dataLength];                  // Datenpuffer
     }
     else {
       System.out.println("EE: Array size zero or negative!");
@@ -85,7 +88,12 @@ public class Connection {
 
     // read bytes from input stream to byte array
     do {
-      offset += mInputStream.read(bytes, offset, dataLength - offset);                   // 
+			int read = mInputStream.read(bytes, offset, dataLength - offset);
+			if(read == -1) {
+				throw new IOException("End of stream");
+			}
+      offset += read;
+
     }
     while (offset < dataLength);
 
