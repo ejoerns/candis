@@ -114,7 +114,7 @@ public abstract class Scheduler {
 				System.out.println("SS: run()");
 				while (mEnabled) {
 					synchronized (mSchedulabeDroids) {
-						if (hasParameter()) {
+						if (hasParametersLeft()) {
 							System.out.println("hasParameter -> schedule");
 							schedule(mSchedulabeDroids, mJobDistIO);
 						}
@@ -264,7 +264,7 @@ public abstract class Scheduler {
 	 *
 	 * @return
 	 */
-	protected boolean hasParameter() {
+	protected boolean hasParametersLeft() {
 		return !mParams.empty();
 	}
 
