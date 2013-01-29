@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Message;
 import android.os.SystemClock;
@@ -36,11 +37,11 @@ import java.util.regex.Pattern;
 public class StaticProfiler {
 
   private static final String TAG = StaticProfiler.class.getName();
-  private final Context mActivity;
+  private final Context mContext;
   private final AtomicBoolean accepted = new AtomicBoolean(false);
 
   public StaticProfiler(final Context act) {
-    mActivity = act;
+    mContext = act;
   }
 
   /**
@@ -205,20 +206,25 @@ public class StaticProfiler {
   /**
    * Returns the device ID.
    *
-   * This might be either the IMEI,
+   * This might be either the IMEI oder the MAC address
    *
    * @return
    */
   public String getDeviecID() {
-    TelephonyManager tm = (TelephonyManager) mActivity.getSystemService(Context.TELEPHONY_SERVICE);
+    TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
     // get IMEI
     String imei = tm.getDeviceId();// depends on device, but may be not available
-    // If no IMEI available, get android_id
+    // If no IMEI available, get MAC
     if (imei == null) {
-      imei = Settings.Secure.getString(mActivity.getContentResolver(), Settings.Secure.ANDROID_ID);
+      WifiManager wifiMgr = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
+      imei = wifiMgr.getConnectionInfo().getMacAddress();
+    }
+    // If no MAC available, get android_id
+    if (imei == null) {
+      imei = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
     }
     // imei =  Settings.Secure.ANDROID_ID;// depends on installation, but may be not unique
-    Log.v(TAG, "IMEI/ID: " + imei);
+    Log.v(TAG, "IMEI/MAC: " + imei);
     return imei;
   }
 
