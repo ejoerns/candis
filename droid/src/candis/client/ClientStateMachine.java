@@ -63,13 +63,8 @@ public final class ClientStateMachine extends FSM {
     CHECKCODE_ENTERED,
     JOB_FINISHED,
     DISCONNECT,
-    KNOWN,
-    UNKNOWN;
-  }
-
-  private enum ClientHandlerID implements HandlerID {
-
-    MY_ID;
+    KNOWN_TASK,
+    UNKNOWN_TASK;
   }
 
   public ClientStateMachine(
@@ -146,11 +141,11 @@ public final class ClientStateMachine extends FSM {
             new CheckInitialParameterHandler());
     addState(ClientStates.JOB_RECEIVED)
             .addTransition(
-            ClientTrans.KNOWN,
+            ClientTrans.KNOWN_TASK,
             ClientStates.JOB_PROCESSING,
             new ProcessJobHandler())
             .addTransition(
-            ClientTrans.UNKNOWN,
+            ClientTrans.UNKNOWN_TASK,
             ClientStates.JOB_BINARY_REQUESTED,
             new RequestBinaryHandler());
     addState(ClientStates.JOB_BINARY_REQUESTED)
@@ -165,11 +160,11 @@ public final class ClientStateMachine extends FSM {
             new AddInitialAndProcessHandler());
     addState(ClientStates.INIT_RECEIVED)
             .addTransition(
-            ClientTrans.KNOWN,
+            ClientTrans.KNOWN_TASK,
             ClientStates.WAIT_FOR_JOB,
             new AddInitialParameterHandler())
             .addTransition(
-            ClientTrans.UNKNOWN,
+            ClientTrans.UNKNOWN_TASK,
             ClientStates.INIT_BINARY_REQUESTED,
             new RequestBinaryHandler());
     addState(ClientStates.INIT_BINARY_REQUESTED)
@@ -345,38 +340,17 @@ public final class ClientStateMachine extends FSM {
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
       assert (obj[1] instanceof DistributedJobParameter) || (obj[1] instanceof byte[]);
-
       System.out.println("CheckJobHandler...");
-      try {
-        if (mJobCenter.isTaskAvailable((String) obj[0])) {
-          process(ClientTrans.KNOWN, obj);
-        }
-        else {
-          try {
-            mJobCenter.setLastUnserializedJob((byte[]) obj[1]);
-          }
-          // we may fail if we loaded the same task with different IDs
-          // then we simply serialize the result again
-          catch (ClassCastException ccex) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos;
-            try {
-              oos = new ObjectOutputStream(baos);
-              oos.writeObject(obj[1]);
-              oos.close();
-            }
-            catch (IOException ex) {
-              LOGGER.log(Level.SEVERE, null, ex);
-            }
-            mJobCenter.setLastUnserializedJob(baos.toByteArray());
-          }
-          process(ClientTrans.UNKNOWN, obj);
-        }
+
+      mJobCenter.setCurrentUnserializedJob((String) obj[0], (byte[]) obj[1]);
+      if (mJobCenter.isTaskAvailable((String) obj[0])) {
+        LOGGER.info(String.format("Task for ID %s available in cache", (String) obj[0]));
+        process(ClientTrans.KNOWN_TASK, obj[0], mJobCenter.serializeCurrentJob());
       }
-      catch (StateMachineException ex) {
-        Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+      else {
+        LOGGER.info(String.format("Task for ID %s not found in cache", (String) obj[0]));
+        process(ClientTrans.UNKNOWN_TASK, obj[0]);
       }
-      System.out.println("done.");
     }
   }
 
@@ -392,7 +366,24 @@ public final class ClientStateMachine extends FSM {
       assert obj.length == 2;
 
       System.out.println("JobFinishedHandler() called");
-      mSConn.sendMessage(Message.create(Instruction.SEND_RESULT, (String) obj[0], (Serializable) obj[1]));
+      // Serialize Result
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      ObjectOutputStream oos;
+      try {
+        oos = new ObjectOutputStream(baos);
+        oos.writeObject(obj[1]);
+        oos.close();
+      }
+      catch (IOException ex) {
+        LOGGER.log(Level.SEVERE, null, ex);
+      }
+      byte[] bytes = baos.toByteArray();
+
+      // Send result
+      mSConn.sendMessage(Message.create(
+              Instruction.SEND_RESULT,
+              (String) obj[0],
+              bytes));
     }
   }
 
@@ -407,10 +398,10 @@ public final class ClientStateMachine extends FSM {
     public void handle(Object... obj) {
       try {
         if (mJobCenter.isTaskAvailable((String) obj[0])) {
-          process(ClientTrans.KNOWN, obj[0], obj[1]);
+          process(ClientTrans.KNOWN_TASK, obj[0], obj[1]);
         }
         else {
-          process(ClientTrans.UNKNOWN, obj[0], obj[1]);
+          process(ClientTrans.UNKNOWN_TASK, obj[0], obj[1]);
         }
       }
       catch (StateMachineException ex) {
@@ -466,7 +457,7 @@ public final class ClientStateMachine extends FSM {
 
       mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
       mSConn.sendMessage(Message.create(Instruction.ACK));
-      DistributedJobParameter djp = mJobCenter.serializeJob();
+      DistributedJobParameter djp = mJobCenter.serializeCurrentJob();
       mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) djp);
     }
   }
@@ -480,9 +471,7 @@ public final class ClientStateMachine extends FSM {
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
 
-      System.out.println("Sending request for a shit fucking binary...");
       mSConn.sendMessage(Message.create(Instruction.REQUEST_BINARY, (Serializable) obj[0]));
-      System.out.println("Request for a shit fucking binary done...");
     }
   }
 }

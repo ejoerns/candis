@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.ClassLoaderWrapper;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.MessageConnection;
@@ -33,7 +34,7 @@ public class ClientConnection extends MessageConnection implements Runnable {
 					final Socket socket,
 					final DroidManager droidmanager,
 					final JobDistributionIOServer jobDistIO) throws IOException {
-		super(socket, jobDistIO.getCDBLoader().getClassLoaderWrapper());
+		super(socket, new ClassLoaderWrapper());
 		mDroidManager = droidmanager;
 		mJobDistIO = jobDistIO;
 		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
@@ -44,7 +45,7 @@ public class ClientConnection extends MessageConnection implements Runnable {
 					final OutputStream out,
 					final DroidManager droidmanager,
 					final JobDistributionIOServer jobDistIO) throws IOException {
-		super(in, out, jobDistIO.getCDBLoader().getClassLoaderWrapper());
+		super(in, out, new ClassLoaderWrapper());// TODO...
 		mDroidManager = droidmanager;
 		mJobDistIO = jobDistIO;
 		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);

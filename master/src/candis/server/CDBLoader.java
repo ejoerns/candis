@@ -51,7 +51,8 @@ public class CDBLoader {
 	private final Map<String, String> mTaskNames = new HashMap<String, String>();
 	private final Map<String, CDBContext> mCDBContextMap = new HashMap<String, CDBContext>();
 	private final Set<String> mKnownTaskIDs = new HashSet<String>();
-	private final ClassLoaderWrapper mClassLoaderWrapper;
+	private final Map<String, ClassLoader> mClassLoaderMap = new HashMap<String, ClassLoader>();
+//	private final ClassLoaderWrapper mClassLoaderWrapper;
 	private static int mCDBid = 42;
 
 	/**
@@ -61,7 +62,7 @@ public class CDBLoader {
 	 * @param cloader Parent ClassLoader
 	 */
 	public CDBLoader() {
-		mClassLoaderWrapper = new ClassLoaderWrapper();
+//		mClassLoaderWrapper = new ClassLoaderWrapper();
 	}
 
 	/**
@@ -85,6 +86,15 @@ public class CDBLoader {
 		}
 		return null;
 
+	}
+
+	/**
+	 *
+	 * @param runnableID
+	 * @return
+	 */
+	public ClassLoader getClassLoader(String runnableID) {
+		return mClassLoaderMap.get(runnableID);
 	}
 
 	/**
@@ -115,10 +125,9 @@ public class CDBLoader {
 	 *
 	 * @return ClassLoader the CDB classes were loaded with
 	 */
-	public ClassLoaderWrapper getClassLoaderWrapper() {
-		return mClassLoaderWrapper;
-	}
-
+//	public ClassLoaderWrapper getClassLoaderWrapper() {
+//		return mClassLoaderWrapper;
+//	}
 	/**
 	 * Loads classes from cdb file.
 	 *
@@ -142,8 +151,7 @@ public class CDBLoader {
 				urls.add(newCDBContext.getLib(i).toURI().toURL());
 			}
 			urls.add(newCDBContext.getServerBin().toURI().toURL());
-			mClassLoaderWrapper.set(
-							new URLClassLoader(
+			mClassLoaderMap.put(newID, new URLClassLoader(
 							urls.toArray(new URL[]{}),
 							this.getClass().getClassLoader()));
 
@@ -153,7 +161,7 @@ public class CDBLoader {
 
 				for (String classname : classList) {
 					// finds the DistributedControl instance
-					Class classToLoad = mClassLoaderWrapper.get().loadClass(classname);
+					Class classToLoad = mClassLoaderMap.get(newID).loadClass(classname);
 					if ((!DistributedJobParameter.class.isAssignableFrom(classToLoad))
 									&& (!DistributedJobResult.class.isAssignableFrom(classToLoad))
 									&& (!DistributedRunnable.class.isAssignableFrom(classToLoad))) {
@@ -174,7 +182,7 @@ public class CDBLoader {
 			for (String classname : classList) {
 				System.out.println("Trying to load class: " + classname);
 				// finds the DistributedControl instance
-				Class classToLoad = mClassLoaderWrapper.get().loadClass(classname);
+				Class classToLoad = mClassLoaderMap.get(newID).loadClass(classname);
 				if (DistributedControl.class.isAssignableFrom(classToLoad)) {
 					LOGGER.log(Level.FINE, "Loaded class : {0}", classToLoad.getName());
 					try {

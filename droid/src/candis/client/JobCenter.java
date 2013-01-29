@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.OptionalDataException;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -41,31 +42,57 @@ public class JobCenter {
   /// context, needed for file storage
   private final Context mContext;
   /// Wrapper to pass ClassLoader
-  private final ClassLoaderWrapper mClassLoader;
+  private final ClassLoaderWrapper mClassLoaderWrapper;
   // --- Maps that holds all info for tasks
   private final Map<String, TaskContext> mTaskContextMap = new HashMap<String, TaskContext>();
   /// List of all registered handlers
   private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
   private FSM mFSM;
-  private byte[] lastUnserializedJob;
+  private String mCurrentRunnableID;
+  private byte[] mCurrentUnserializedJob;
 
   public JobCenter(final Context context, final ClassLoaderWrapper cl) {
     mContext = context;
-    mClassLoader = cl;
+    mClassLoaderWrapper = cl;
   }
 
   public void setFSM(FSM fsm) {
     mFSM = fsm;
   }
 
-  public void setLastUnserializedJob(byte[] lusj) {
-    lastUnserializedJob = lusj;
+//  public void setLastUnserializedJob(byte[] lusj) {
+//    lastUnserializedJob = lusj;
+//  }
+  /**
+   * Stores unserialized job and selects classloader.
+   *
+   * @param runnableID
+   * @param rawdata
+   */
+  public void setCurrentUnserializedJob(String runnableID, byte[] rawdata) {
+    mCurrentRunnableID = runnableID;
+    mCurrentUnserializedJob = rawdata;
   }
 
-  public DistributedJobParameter serializeJob() {
+  /**
+   * Serializes the previous loaded job.
+   *
+   * @return Loaded DistributedJobParameter
+   */
+  public DistributedJobParameter serializeCurrentJob() {
+    //
+    mClassLoaderWrapper.set(mTaskContextMap.get(mCurrentRunnableID).classLoader);
+    Log.i(TAG, "ClassLoaderWrapper now is: " + mClassLoaderWrapper.get().toString());
+    //
+    ObjectInputStream objInstream;
     Object obj = null;
     try {
-      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoader).readObject();
+      objInstream = new ClassloaderObjectInputStream(
+              new ByteArrayInputStream(mCurrentUnserializedJob),
+              mClassLoaderWrapper);
+      obj = objInstream.readObject();
+      objInstream.close();
+//      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoaderWrapper).readObject();
     }
     catch (OptionalDataException ex) {
       Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
@@ -251,14 +278,13 @@ public class JobCenter {
           "XXX: Calling DexClassLoader with jarfile: " + jarfile.getName());
     final File tmpDir = mContext.getDir("dex", 0);
 
-    mClassLoader.set(
-            new DexClassLoader(
+    mTaskContextMap.get(runnableID).classLoader = new DexClassLoader(
             jarfile.getAbsolutePath(),
             tmpDir.getAbsolutePath(),
             null,
-            BackgroundService.class
-            .getClassLoader()));
-
+            BackgroundService.class.getClassLoader());
+    mClassLoaderWrapper.set(mTaskContextMap.get(runnableID).classLoader);
+//    setRunnableID(runnableID);    
 
     // load all available classes
     String path = jarfile.getPath();
@@ -277,7 +303,8 @@ public class JobCenter {
         Log.i(TAG, String.format("found class: %s", className));
         try {
           // TODO: do only forName() here?
-          final Class<Object> loadedClass = (Class<Object>) mClassLoader.get().loadClass(className);
+//          final Class<Object> loadedClass = (Class<Object>) mClassLoaderWrapper.get().loadClass(className);
+          final Class<Object> loadedClass = (Class<Object>) mTaskContextMap.get(runnableID).classLoader.loadClass(className);
           Log.i(TAG, String.format("Loaded class: %s", className));
           // add associated classes to task class list
           if (loadedClass == null) {
@@ -328,19 +355,6 @@ public class JobCenter {
 
   /**
    *
-   * @todo: needed?
-   * @param o
-   */
-//  public boolean loadJob(final String runnableID, final Object o) {
-//    if (!(o instanceof DistributedJobParameter)) {
-//      Log.e(TAG, "Initial Parameter not of class 'DistributedParameter'");
-//      return false;
-//    }
-//    Log.w(TAG, "Job Parameter dummy-loaded");
-//    return true;
-//  }
-  /**
-   *
    * @param handler
    */
   public void addHandler(final JobCenterHandler handler) {
@@ -361,6 +375,8 @@ public class JobCenter {
     public Class taskClass;
     /// Holds initial parameter for Task
     public DistributedJobParameter initialParam;
+    /// Holds the Taks classloader
+    public ClassLoader classLoader;
 
     public TaskContext(String name) {
       this.name = name;
