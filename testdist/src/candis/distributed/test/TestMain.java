@@ -29,6 +29,7 @@ public class TestMain {
 		UserParameterRequester.init(true, config);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
 		String cdbID = comio.getCDBLoader().loadCDB(cdb);
+
 		comio.initDroids(threads, cdbID);
 
 		try {
