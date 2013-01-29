@@ -278,7 +278,7 @@ public class ServerStateMachine extends FSM {
 			}
 			// Send instruction
 			try {
-				mConnection.sendMessage(Message.create(instr));
+				mConnection.sendMessage(new Message(instr));
 				process(trans);
 			}
 			catch (IOException ex) {
@@ -308,7 +308,7 @@ public class ServerStateMachine extends FSM {
 				mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[0]);
 				mDroidManager.store(new File(Settings.getString("droiddb.file")));
 				// send ACCEPT_CONNECTION to Droid
-				mConnection.sendMessage(Message.create(Instruction.ACCEPT_CONNECTION));
+				mConnection.sendMessage(new Message(Instruction.ACCEPT_CONNECTION));
 				process(ServerTrans.PROFILE_VALID);
 			}
 			catch (IOException ex) {
@@ -361,7 +361,7 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object... o) {
 			System.out.println("ConnectionRejectedHandler() called");
 			try {
-				mConnection.sendMessage(Message.create(Instruction.REJECT_CONNECTION));
+				mConnection.sendMessage(new Message(Instruction.REJECT_CONNECTION));
 			}
 			catch (IOException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
@@ -397,7 +397,7 @@ public class ServerStateMachine extends FSM {
 			}
 			else {
 				try {
-					mConnection.sendMessage(Message.create(Instruction.INVALID_CHECKCODE));
+					mConnection.sendMessage(new Message(Instruction.INVALID_CHECKCODE));
 					process(ServerTrans.CHECKCODE_INVALID);
 				}
 				catch (IOException ex) {
@@ -416,7 +416,7 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object... o) {
 			System.out.println("ProfileRequestHandler() called");
 			try {
-				mConnection.sendMessage(Message.create(Instruction.REQUEST_PROFILE));
+				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
 			}
 			catch (IOException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
@@ -492,7 +492,9 @@ public class ServerStateMachine extends FSM {
 	 * Sends binary file to droid.
 	 */
 	protected class SendBinaryHandler implements ActionHandler {
+		public SendBinaryHandler() {
 
+		}
 		@Override
 		public void handle(final Object... binary) {
 			assert binary[0] instanceof String;
@@ -517,7 +519,7 @@ public class ServerStateMachine extends FSM {
 				outdata = buffer.toByteArray();
 
 				mConnection.sendMessage(
-								Message.create(Instruction.SEND_BINARY,
+								new Message(Instruction.SEND_BINARY,
 															 mJobDistIO.getCurrentTaskID(),
 															 outdata));
 			}
@@ -545,7 +547,7 @@ public class ServerStateMachine extends FSM {
 			CandisLog.v(TAG, "Sending initial parameter for task ID " + mJobDistIO.getCurrentTaskID());
 			try {
 				assert mJobDistIO.getCurrentScheduler().getInitialParameter() != null;
-				mConnection.sendMessage(Message.create(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getCurrentScheduler().getInitialParameter()));
+				mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getCurrentScheduler().getInitialParameter()));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
@@ -585,7 +587,7 @@ public class ServerStateMachine extends FSM {
 
 			// send job
 			try {
-				mConnection.sendMessage(Message.create(
+				mConnection.sendMessage(new Message(
 								Instruction.SEND_JOB,
 								(String) params[0],
 								bytes));

@@ -93,7 +93,6 @@ public class TestServerStateMachine extends ServerStateMachine {
 	}
 
 	public void stop() {
-		System.out.println("!!");
 		if (mPingTimer != null) {
 			mPingTimer.cancel();
 		}
