@@ -6,6 +6,7 @@ import candis.server.DroidManager;
 import candis.server.JobDistributionIOServer;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -17,8 +18,9 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 	private static final Logger LOGGER = Logger.getLogger(JobDistributionIOTestServer.class.getName());
 	/// List of all TestDroid and Communication threads
 	private LinkedList<Thread> droidThreads = new LinkedList<Thread>();
+	private LinkedList<TestConnection> mTestConnections = new LinkedList<TestConnection>();
 	/// Default number of droids generated if not specified otherwise
-	private static final int DEFAULT_DROIDAMOUNT = 1;
+	public static final int DEFAULT_DROIDAMOUNT = 4;
 	private boolean isClosed = false;
 
 	public JobDistributionIOTestServer(DroidManager manager) {
@@ -54,7 +56,9 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 		mDroidManager.addDroid((new Integer(id)).toString(), d);
 
 		Thread t = new Thread(d);
-		Thread l = new Thread(new TestConnection(d, mDroidManager, this));
+		TestConnection tc = new TestConnection(d, mDroidManager, this);
+		mTestConnections.add(tc);
+		Thread l = new Thread(tc);
 		droidThreads.add(t);
 		droidThreads.add(l);
 		t.start();
@@ -85,6 +89,7 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 		@Override
 		protected void closeSocket() throws IOException {
 			isClosed = true;
+			((TestServerStateMachine) mStateMachine).stop();
 		}
 
 		@Override
@@ -97,13 +102,21 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 	 * Stops all running TestDroid and DroidListener Threads.
 	 */
 	public void stopDroids() {
+		for (TestConnection tc : mTestConnections) {
+			try {
+				tc.closeSocket();
+			}
+			catch (IOException ex) {
+			}
+		}
 		for (Thread t : droidThreads) {
 			if (t.isAlive() && !t.isInterrupted()) {
 				t.interrupt();
+
 			}
 		}
 		Scheduler sch = getCurrentScheduler();
-		if(sch != null) {
+		if (sch != null) {
 			sch.abort();
 		}
 	}

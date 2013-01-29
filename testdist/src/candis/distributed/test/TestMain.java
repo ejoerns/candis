@@ -1,6 +1,7 @@
 package candis.distributed.test;
 
 import candis.distributed.SchedulerStillRuningException;
+import candis.distributed.parameter.InvalidUserParameterException;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.server.DroidManager;
 import java.io.File;
@@ -21,15 +22,10 @@ import org.apache.commons.cli.PosixParser;
 public class TestMain {
 
 	private static final Logger LOGGER = Logger.getLogger(TestMain.class.getName());
-	private static final int THREADS_DEFAULT = 4;
 
 	public static void runCDBTest(File cdb, File config, int threads) throws Exception {
 		LOGGER.log(Level.INFO, "CDB file {0}", cdb);
 		LOGGER.log(Level.INFO, "Config file {0}", config);
-		/*File configf = null;
-		if (config != null) {
-			configf = new File(config);
-		}*/
 		UserParameterRequester.init(true, config);
 		JobDistributionIOTestServer comio = new JobDistributionIOTestServer(DroidManager.getInstance());
 		String cdbID = comio.getCDBLoader().loadCDB(cdb);
@@ -38,6 +34,9 @@ public class TestMain {
 		try {
 			comio.initScheduler(cdbID);
 			comio.startScheduler();
+		}
+		catch (InvalidUserParameterException ex) {
+			LOGGER.log(Level.SEVERE, "Invalid UserParameter!");
 		}
 		catch (SchedulerStillRuningException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
@@ -70,7 +69,7 @@ public class TestMain {
 		opts.addOption("h", "help", false, "Show this help");
 		//opts.addOption("c", "config", true, "Config File");
 		opts.addOption(OptionBuilder.withLongOpt("threads")
-						.withDescription("Number of Threads (Default: " + THREADS_DEFAULT + ")")
+						.withDescription("Number of Threads (Default: " + JobDistributionIOTestServer.DEFAULT_DROIDAMOUNT + ")")
 						.withType(Number.class)
 						.hasArg()
 						.withArgName("no. of threads")
@@ -90,7 +89,7 @@ public class TestMain {
 				showHelp = true;
 			}
 			else {
-				int threads = THREADS_DEFAULT;
+				int threads = JobDistributionIOTestServer.DEFAULT_DROIDAMOUNT;
 				File config = null;
 				if (cmd.hasOption("t")) {
 					threads = ((Number) cmd.getParsedOptionValue("t")).intValue();
@@ -100,11 +99,11 @@ public class TestMain {
 				}
 				if (cmd.getArgs().length == 1) {
 					File cdb = new File(cmd.getArgs()[0]);
-					if(!cdb.canRead()) {
+					if (!cdb.canRead()) {
 						LOGGER.log(Level.SEVERE, "Could not find CDB file: {0}", cdb.getAbsolutePath());
 						return;
 					}
-					if(config != null && !config.canRead()) {
+					if (config != null && !config.canRead()) {
 						LOGGER.log(Level.SEVERE, "Could not find Config file: {0}", config.getAbsolutePath());
 						return;
 					}

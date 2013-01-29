@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 /**
  * Sends ping message.
  */
-class PingTimerTask extends TimerTask {
+public class PingTimerTask extends TimerTask {
 
 	private boolean mFlag;
 	private final ClientConnection outer;

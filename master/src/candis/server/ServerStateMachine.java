@@ -41,7 +41,8 @@ public class ServerStateMachine extends FSM {
 	/// Job distributor used for managing tasks and jobs
 	protected final JobDistributionIOServer mJobDistIO;
 	///
-	private PingTimerTask mPingTimerTask;
+	protected PingTimerTask mPingTimerTask;
+	protected Timer mPingTimer;
 
 	/**
 	 * All availbale states for the FSM.
@@ -318,15 +319,18 @@ public class ServerStateMachine extends FSM {
 	 */
 	protected class ClientConnectedHandler implements ActionHandler {
 
+		public ClientConnectedHandler() {
+		}
+
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("ClientConnectedHandler() called");
 			mDroidManager.connectDroid(mConnection.getDroidID(), mConnection);
 			mJobDistIO.onDroidConnected(mConnection.getDroidID(), mConnection);
 			// Init ping timer
-			Timer pingTimer = new Timer();
+			mPingTimer = new Timer();
 			mPingTimerTask = new PingTimerTask(mConnection);
-			pingTimer.scheduleAtFixedRate(mPingTimerTask, 3000, 3000);
+			mPingTimer.scheduleAtFixedRate(mPingTimerTask, 3000, 3000);
 		}
 	}
 
@@ -334,7 +338,10 @@ public class ServerStateMachine extends FSM {
 	 * Invoked if pong is received. Simply clears PingTimerTask flag to indicate
 	 * client is still alive.
 	 */
-	private class PongHandler implements ActionHandler {
+	protected class PongHandler implements ActionHandler {
+
+		public PongHandler() {
+		}
 
 		@Override
 		public void handle(Object... obj) {
