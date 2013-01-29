@@ -36,7 +36,7 @@ public class HashRunnable implements DistributedRunnable {
 			}
 			byte[] result = doHash(p.base, i);
 			if (Arrays.equals(mInitial.hash, result)) {
-				return new HashJobResult(true, result);
+				return new HashJobResult(true, new char[]{mInitial.range[i]});
 
 			}
 		}
@@ -44,10 +44,16 @@ public class HashRunnable implements DistributedRunnable {
 	}
 
 	public byte[] doHash(byte[] base, int index) {
-
-		mMessageDigest.reset();
-		mMessageDigest.update(base);
-		return mMessageDigest.digest();
+		try {
+			mMessageDigest.reset();
+			mMessageDigest.update(base);
+			mMessageDigest.update(Character.toString(mInitial.range[index]).getBytes("UTF-8"));
+			return mMessageDigest.digest();
+		}
+		catch (UnsupportedEncodingException ex) {
+			Logger.getLogger(HashRunnable.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		return null;
 	}
 
 	@Override

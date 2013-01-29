@@ -7,7 +7,6 @@ import candis.distributed.JobDistributionIO;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
 import candis.example.hash.HashInitParameter.HashType;
-import com.sun.xml.internal.ws.message.ByteArrayAttachment;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.util.Iterator;
@@ -33,6 +32,7 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 
 		private final List<Integer> mValues = new LinkedList<Integer>();
 		private char[] mRange;
+		boolean first = true;
 
 		public BruteForceString(int initSize, char[] range) {
 			mRange = range;
@@ -54,7 +54,12 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 		}
 
 		public String inc() {
-			inc(0);
+			if(!first){
+				inc(0);
+			}
+			else{
+				first = false;
+			}
 			return toString();
 		}
 
@@ -91,8 +96,9 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 		mMaxDepth = maxDepth;
 		mDone = BigInteger.valueOf(0);
 		mTotal = BigInteger.valueOf(0);
-		for (int i = startLen; i < maxDepth; i++) {
-			mTotal = mTotal.add(BigInteger.valueOf(i).pow(chars.length));
+		System.out.println("chars.length " + chars.length);
+		for (int i = startLen; i < maxDepth - 1; i++) {
+			mTotal = mTotal.add(BigInteger.valueOf(chars.length).pow(i));
 		}
 		HashInitParameter init = new HashInitParameter(type, hexStringToByteArray(hash), chars);
 		setInitialParameter(init);
@@ -120,9 +126,11 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 	public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
 		mDone = mDone.add(BigInteger.ONE);
 		HashJobResult hashResult = (HashJobResult) result;
+		HashJobParameter hashParam = (HashJobParameter) param;
 		if (hashResult.mFoundValue) {
 			try {
-				resultValue = new String(hashResult.mValue, "UTF8");
+				resultValue = new String(hashParam.base, "UTF-8") + new String(hashResult.mValue);
+				//resultValue = new String(hashResult.mValue, "UTF8");
 			}
 			catch (UnsupportedEncodingException ex) {
 				Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);
@@ -130,11 +138,13 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 			this.abort();
 		}
 	}
+
 	@Override
 	protected boolean hasParametersLeft() {
 		return parametersLeft() > 0;
 
 	}
+
 	@Override
 	protected int parametersLeft() {
 		// Abort if result found

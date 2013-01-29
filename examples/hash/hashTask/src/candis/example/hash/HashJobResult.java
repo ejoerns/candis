@@ -9,9 +9,9 @@ public class HashJobResult implements DistributedJobResult {
 
 	/// Some value
 	public final boolean mFoundValue;
-	public final byte[] mValue;
+	public final char[] mValue;
 
-	public HashJobResult(boolean foundValue, byte[] value) {
+	public HashJobResult(boolean foundValue, char[] value) {
 		mFoundValue = foundValue;
 		mValue = value;
 	}
