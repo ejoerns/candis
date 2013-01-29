@@ -73,7 +73,7 @@ public class QueuedMessageConnection extends MessageConnection implements Runnab
       }
     }
     catch (InterruptedException ex) {
-      LOGGER.log(Level.SEVERE, null, ex);
+      mStop = true;
     }
   }
 }

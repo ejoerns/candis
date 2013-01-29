@@ -33,6 +33,7 @@ import candis.common.fsm.StateMachineException;
 import candis.system.StaticProfiler;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -90,6 +91,8 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   private ClassLoaderWrapper mClassloaderWrapper;
   private PowerConnectionReceiver mPowerConnectionReceiver;
   private SharedPreferences mSharedPref;
+  Thread mConnectThread;
+  ServerConnection sconn;
 
   public BackgroundService() {
     mDroidContext = DroidContext.getInstance();
@@ -155,19 +158,34 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     Log.v(TAG, "onDestroy()");
     super.onDestroy();
 
+    // first inform master about termination
+    if (mFSM != null) {
+      mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
+    }
+
+    // unregister registered receiver
     unregisterReceiver(mPowerConnectionReceiver);
 
-    mNM.cancel(NOTIFICATION_ID);
+    // stop running threads
+    mConnectThread.interrupt();
+    try {
+      sconn.getSocket().close();
+    }
+    catch (IOException ex) {
+      Log.e(TAG, null, ex);
+    }
+    // wait for stopped threads to finish
+    try {
+      mConnectThread.join();
+    }
+    catch (InterruptedException ex) {
+      Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+    }
+
+    // Cancel notification
+//    mNM.cancel(NOTIFICATION_ID);
     // Tell the user we stopped.
     Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
-    try {
-      if (mFSM != null) {
-        mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
-      }
-    }
-    catch (StateMachineException ex) {
-      Log.w(TAG, "Could not terminate FSM correctly, maybe not initiealized.");
-    }
     mRunning = false;
   }
   //----------------------------------------------------------------------------
@@ -196,79 +214,86 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /**
    *
    */
-  public void doConnect() {
+  private class ConnectRunnable implements Runnable {
 
-    new Thread(new Runnable() {
-      public void run() {
-        ServerConnection sconn = null;
+    public void run() {
+      sconn = null;
 
-        mClassloaderWrapper = new ClassLoaderWrapper();// init empty
+      mClassloaderWrapper = new ClassLoaderWrapper();// init empty
 
-        // init job center
-        final JobCenter jobcenter = new JobCenter(getApplicationContext(), mClassloaderWrapper);
-        jobcenter.addHandler(new ActivityLogger(mRemoteMessenger, getApplicationContext()));
-        // init connection
-        ReloadableX509TrustManager tm = null;
-        try {
-          tm = new ReloadableX509TrustManager(new File(
-                  getApplicationContext().getFilesDir(),
-                  Settings.getString("truststore")));
-        }
-        catch (Exception ex) {
-          Log.wtf(TAG, null, ex);
-          return;
-        }
-        tm.setCertAcceptDialog(BackgroundService.this);
-        try {
-          sconn = new ServerConnection(
-                  tm,
-                  mClassloaderWrapper,
-                  mDroidContext,
-                  getApplicationContext(),
-                  mRemoteMessenger,
-                  jobcenter);
-          mFSM = sconn.getFSM();
-          jobcenter.setFSM(mFSM);
-          sconn.connect(mSharedPref.getString(SettingsActivity.HOSTNAME, "not found"),
-                        Integer.valueOf(mSharedPref.getString(SettingsActivity.PORTNAME, "0")));
-          // Notify about connecting...
-          mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.connected)));
-          try {
-            mRemoteMessenger.send(Message.obtain(null, CONNECTING));
-          }
-          catch (RemoteException ex1) {
-            Log.e(TAG, null, ex1);
-          }
-        }
-        catch (ConnectException ex) {
-          mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
-          Log.e(TAG, ex.getMessage());
-          return;
-        }
-        // SSL handshake failed (maybe user rejected certificate)
-        catch (SSLHandshakeException ex) {
-          Log.e(TAG, ex.getMessage());
-          mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
-          try {
-            mRemoteMessenger.send(Message.obtain(null, CONNECT_FAILED));
-          }
-          catch (RemoteException ex1) {
-            Log.e(TAG, null, ex1);
-          }
-          // TODO: kill process?
-          return;
-        }
-        catch (Exception ex) {
-          Log.wtf(TAG, null, ex);
-        }
-
-        // Start worker thread
-        new Thread(sconn).start();
-        System.out.println("[THREAD DONE]");
-
+      // init job center
+      final JobCenter jobcenter = new JobCenter(getApplicationContext(), mClassloaderWrapper);
+      jobcenter.addHandler(new ActivityLogger(mRemoteMessenger, getApplicationContext()));
+      // init connection
+      ReloadableX509TrustManager tm = null;
+      try {
+        tm = new ReloadableX509TrustManager(new File(
+                getApplicationContext().getFilesDir(),
+                Settings.getString("truststore")));
       }
-    }).start();
+      catch (Exception ex) {
+        Log.wtf(TAG, null, ex);
+        return;
+      }
+      tm.setCertAcceptDialog(BackgroundService.this);
+      try {
+        sconn = new ServerConnection(
+                tm,
+                mClassloaderWrapper,
+                mDroidContext,
+                getApplicationContext(),
+                mRemoteMessenger,
+                jobcenter);
+        mFSM = sconn.getFSM();
+        jobcenter.setFSM(mFSM);
+        sconn.connect(mSharedPref.getString(SettingsActivity.HOSTNAME, "not found"),
+                      Integer.valueOf(mSharedPref.getString(SettingsActivity.PORTNAME, "0")));
+        // Notify about connecting...
+        mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.connected)));
+        try {
+          mRemoteMessenger.send(Message.obtain(null, CONNECTING));
+        }
+        catch (RemoteException ex1) {
+          Log.e(TAG, null, ex1);
+        }
+      }
+      catch (ConnectException ex) {
+        mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
+        Log.e(TAG, ex.getMessage());
+        if (mRemoteMessenger == null) {
+          return;
+        }
+        try {
+          mRemoteMessenger.send(Message.obtain(null, CONNECT_FAILED));
+        }
+        catch (RemoteException ex1) {
+          Log.w(TAG, "Failed sending Notifiaton message 'CONNECT_FAILED'");
+        }
+        return;
+      }
+      // SSL handshake failed (maybe user rejected certificate)
+      catch (SSLHandshakeException ex) {
+        Log.e(TAG, ex.getMessage());
+        mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
+        if (mRemoteMessenger == null) {
+          return;
+        }
+        try {
+          mRemoteMessenger.send(Message.obtain(null, CONNECT_FAILED));
+        }
+        catch (RemoteException ex1) {
+          Log.w(TAG, "Failed sending Notifiaton message 'CONNECT_FAILED'");
+        }
+        // TODO: kill process?
+        return;
+      }
+      catch (Exception ex) {
+        Log.wtf(TAG, null, ex);
+      }
 
+      // Start worker thread
+      sconn.run();// TODO: catch SocketException?
+    }
   }
 
   @Override
@@ -304,14 +329,19 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       Log.v("IncomingHandler", "<-- Got message: " + msg.toString());
 
       switch (msg.what) {
+        // register client (Activity)
         case MSG_REGISTER_CLIENT:
           mRemoteMessenger = msg.replyTo;
           Log.v(TAG, "reply to: " + mRemoteMessenger);
-          doConnect();
+          mConnectThread = new Thread(new ConnectRunnable());
+          mConnectThread.setDaemon(true);
+          mConnectThread.start();
           break;
+        // unregister client (Activity)
         case MSG_UNREGISTER_CLIENT:
           mRemoteMessenger = null;
           break;
+        // show check code
         case RESULT_SHOW_CHECKCODE:
           try {
             mFSM.process(
@@ -321,14 +351,15 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
           catch (StateMachineException ex) {
             Log.e(TAG, ex.toString());
           }
-
           break;
+        // result of server certificate check
         case RESULT_CHECK_SERVERCERT:
           synchronized (mCertCheckResult) {
             mCertCheckResult.set(msg.arg1 == 1 ? true : false);// TODO...
             mCertCheckResult.notifyAll();
           }
           break;
+        // 
         default:
           super.handleMessage(msg);
       }

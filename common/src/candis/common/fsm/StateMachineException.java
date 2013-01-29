@@ -5,7 +5,7 @@ package candis.common.fsm;
  *
  * @author Enrico Joerns
  */
-public class StateMachineException extends Exception {
+public class StateMachineException extends RuntimeException {
 
   public StateMachineException(StateEnum currentState, Transition transition) {
     super(String.format("Missing Transition %s.%s in State %s", transition.getClass().getName(), transition.toString(), currentState.toString()));
