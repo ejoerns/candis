@@ -2,6 +2,7 @@ package candis.server;
 
 import candis.common.Message;
 import candis.common.MessageConnection;
+import candis.common.QueuedMessageConnection;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.util.logging.Logger;
  *
  * @author Enrico Joerns
  */
-public class ClientConnection extends MessageConnection implements Runnable {
+public class ClientConnection extends QueuedMessageConnection implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(ClientConnection.class.getName());
 	protected final DroidManager mDroidManager;
@@ -62,44 +63,50 @@ public class ClientConnection extends MessageConnection implements Runnable {
 	@Override
 	public void run() {
 
+		Thread receiver = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				// init state machine
+				mStateMachine.init();
+				// Handle incoming client requests
+				while ((!isStopped) && (!isSocketClosed())) {
+					Message msg;
+					try {
+						msg = readMessage();
+					}
+					catch (InterruptedIOException ex) {
+						LOGGER.info("ClientConnection thread interrupted");
+						isStopped = true;
+						continue;
+					}
+					catch (SocketException ex) {
+						LOGGER.warning("Socket ist closed, message will not be sent");
+						isStopped = true;
+						continue;
+					}
+					catch (IOException ex) {
+						LOGGER.log(Level.SEVERE, null, ex);
+						isStopped = true;
+						continue;
+					}
+					try {
+						if (msg.getData() == null) {
+							mStateMachine.process(msg.getRequest());
+						}
+						else {
+							mStateMachine.process(msg.getRequest(), (Object[]) (msg.getData()));
+						}
+					}
+					catch (StateMachineException ex) {
+						Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
+					}
 
-		// init state machine
-		mStateMachine.init();
-
-		// Handle incoming client requests
-		while ((!isStopped) && (!isSocketClosed())) {
-			Message msg;
-			try {
-				msg = readMessage();
-			}
-			catch (InterruptedIOException ex) {
-				LOGGER.info("ClientConnection thread interrupted");
-				isStopped = true;
-				continue;
-			}
-			catch (SocketException ex) {
-				LOGGER.warning("Socket ist closed, message will not be sent");
-				isStopped = true;
-				continue;
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-				isStopped = true;
-				continue;
-			}
-			try {
-				if (msg.getData() == null) {
-					mStateMachine.process(msg.getRequest());
+					LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
 				}
-				else {
-					mStateMachine.process(msg.getRequest(), (Object[]) (msg.getData()));
-				}
 			}
-			catch (StateMachineException ex) {
-				Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
-			}
-
-			LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
-		}
+		});
+		receiver.start();
+		super.run();
+		receiver.interrupt();
 	}
 }
