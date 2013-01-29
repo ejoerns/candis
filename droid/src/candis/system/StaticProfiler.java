@@ -1,6 +1,5 @@
 package candis.system;
 
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -9,6 +8,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Message;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.support.v4.app.DialogFragment;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -36,11 +36,11 @@ import java.util.regex.Pattern;
 public class StaticProfiler {
 
   private static final String TAG = StaticProfiler.class.getName();
-  private final Activity mActivity;
+  private final Context mActivity;
   private final AtomicBoolean accepted = new AtomicBoolean(false);
 
-  public StaticProfiler(final Activity act) {
-    this.mActivity = act;
+  public StaticProfiler(final Context act) {
+    mActivity = act;
   }
 
   /**
@@ -213,8 +213,12 @@ public class StaticProfiler {
     TelephonyManager tm = (TelephonyManager) mActivity.getSystemService(Context.TELEPHONY_SERVICE);
     // get IMEI
     String imei = tm.getDeviceId();// depends on device, but may be not available
+    // If no IMEI available, get android_id
+    if (imei == null) {
+      imei = Settings.Secure.getString(mActivity.getContentResolver(), Settings.Secure.ANDROID_ID);
+    }
     // imei =  Settings.Secure.ANDROID_ID;// depends on installation, but may be not unique
-    Log.v(TAG, "IMEI: " + imei);
+    Log.v(TAG, "IMEI/ID: " + imei);
     return imei;
   }
 

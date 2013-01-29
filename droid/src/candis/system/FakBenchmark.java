@@ -8,7 +8,7 @@ import java.math.BigInteger;
  */
 public class FakBenchmark extends Benchmark {
 
-	private static final int MAX_FAK = 10000;
+	private static final int MAX_FAK = 30000;
 
 	@Override
 	public void run() {
