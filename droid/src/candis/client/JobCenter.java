@@ -72,17 +72,17 @@ public class JobCenter {
    *
    * @param rawdata
    */
-  public void setCurrentUnserializedJob(byte[] rawdata) {
+  public void setCurrentUndeserializedJob(byte[] rawdata) {
     mCurrentUnserializedJob = rawdata;
   }
 
   /**
-   * Serializes current job set by setCurrentUnserializedJob()
+   * Deserializes current job set by setCurrentUnserializedJob()
    *
    * @return
    */
-  public DistributedJobParameter serializeCurrentJob() {
-    return serializeJobParameter(mCurrentUnserializedJob);
+  public DistributedJobParameter deserializeCurrentJob() {
+    return deserializeJobParameter(mCurrentUnserializedJob);
   }
 
   /**
@@ -91,7 +91,7 @@ public class JobCenter {
    * @param rawdata byte array of serialized DJP
    * @return Loaded DistributedJobParameter
    */
-  public DistributedJobParameter serializeJobParameter(byte[] rawdata) {
+  public DistributedJobParameter deserializeJobParameter(byte[] rawdata) {
     //
 //    mClassLoader.set(mTaskContextMap.get(mCurrentRunnableID).classLoader);
     Log.i(TAG, "ClassLoaderWrapper now is: " + mTaskContextMap.get(mCurrentRunnableID).classLoader.toString());
@@ -104,7 +104,6 @@ public class JobCenter {
               mTaskContextMap.get(mCurrentRunnableID).classLoader);
       obj = objInstream.readObject();
       objInstream.close();
-//      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoaderWrapper).readObject();
     }
     catch (OptionalDataException ex) {
       Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);

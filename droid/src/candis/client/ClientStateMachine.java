@@ -1,20 +1,16 @@
 package candis.client;
 
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.BitmapFactory;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.support.v4.app.NotificationCompat;
 import candis.client.comm.ServerConnection;
 import candis.client.service.BackgroundService;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
-import candis.common.fsm.HandlerID;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
@@ -356,10 +352,10 @@ public final class ClientStateMachine extends FSM {
       gotCalled();
 
       mJobCenter.setCurrentRunnableID((String) obj[0]);
-      mJobCenter.setCurrentUnserializedJob((byte[]) obj[1]);
+      mJobCenter.setCurrentUndeserializedJob((byte[]) obj[1]);
       if (mJobCenter.isTaskAvailable((String) obj[0])) {
         LOGGER.info(String.format("Task for ID %s available in cache", (String) obj[0]));
-        process(ClientTrans.KNOWN_TASK, obj[0], mJobCenter.serializeCurrentJob());
+        process(ClientTrans.KNOWN_TASK, obj[0], mJobCenter.deserializeCurrentJob());
       }
       else {
         LOGGER.info(String.format("Task for ID %s not found in cache", (String) obj[0]));
@@ -469,9 +465,9 @@ public final class ClientStateMachine extends FSM {
       assert obj[1] instanceof DistributedJobParameter;
       assert obj.length == 2;
 
-      mJobCenter.setInitialParameter((String) obj[0], mJobCenter.serializeJobParameter((byte[]) obj[1]));
+      mJobCenter.setInitialParameter((String) obj[0], mJobCenter.deserializeJobParameter((byte[]) obj[1]));
       mSConn.sendMessage(Message.create(Instruction.ACK));
-      DistributedJobParameter djp = mJobCenter.serializeCurrentJob();
+      DistributedJobParameter djp = mJobCenter.deserializeCurrentJob();
       mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) djp);
     }
   }
