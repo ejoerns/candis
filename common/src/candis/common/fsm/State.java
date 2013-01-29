@@ -88,8 +88,13 @@ public class State {
       throw new StateMachineException(name, trans);
     }
     else {
-      mCurrentState.set(mTransitionMap.get(trans));
-      CandisLog.d(TAG, String.format("Updated state to %s", mCurrentState.toString()));
+      if (mTransitionMap.get(trans) == null) {
+        CandisLog.d(TAG, String.format("Kept state %s", mCurrentState.toString()));
+      }
+      else {
+        mCurrentState.set(mTransitionMap.get(trans));
+        CandisLog.d(TAG, String.format("Updated state to %s", mCurrentState.toString()));
+      }
     }
     CandisLog.d(TAG, String.format("FSM: New State: %s", mCurrentState.get()));
 

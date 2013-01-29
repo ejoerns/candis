@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -17,18 +18,15 @@ import java.net.Socket;
 public class ObjectConnection extends Connection {
 
   private static final String TAG = ObjectConnection.class.getName();
-  private final ClassLoaderWrapper mClassLoaderWrapper;
   // Holds the raw data of the laste received element, can be used for deserialization
   private byte[] mRawData;
 
-  public ObjectConnection(Socket socket, ClassLoaderWrapper clw) throws IOException {
+  public ObjectConnection(Socket socket) throws IOException {
     super(socket);
-    mClassLoaderWrapper = clw;
   }
 
-  public ObjectConnection(InputStream in, OutputStream out, ClassLoaderWrapper clw) {
+  public ObjectConnection(InputStream in, OutputStream out) {
     super(in, out);
-    mClassLoaderWrapper = clw;
   }
 
   /*
@@ -83,7 +81,7 @@ public class ObjectConnection extends Connection {
 
     CandisLog.v(TAG, "recieved " + mRawData.length + " bytes ...");
 
-    Object obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(mRawData), mClassLoaderWrapper).readObject();
+    Object obj = new ObjectInputStream(new ByteArrayInputStream(mRawData)).readObject();
 
     return (Serializable) obj;
   }

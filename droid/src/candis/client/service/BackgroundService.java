@@ -65,6 +65,8 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   public static final int SHOW_CHECKCODE = 30;
   ///
   public static final int RESULT_SHOW_CHECKCODE = 40;
+  /// User entered invalid checkcode
+  public static final int INVALID_CHECKCODE = 45;
   ///
   public static final int LOG_MESSAGE = 50;
   /// Indicates that connection to server is in progress
@@ -160,7 +162,12 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
 
     // first inform master about termination
     if (mFSM != null) {
-      mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
+      try {
+        mFSM.process(ClientStateMachine.ClientTrans.DISCONNECT);
+      }
+      catch (StateMachineException ex) {
+        Log.w(TAG, "FSM failed to processs DISCONNECT Transition");
+      }
     }
 
     // unregister registered receiver
@@ -168,12 +175,19 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
 
     // stop running threads
     mConnectThread.interrupt();
-    try {
-      sconn.getSocket().close();
-    }
-    catch (IOException ex) {
-      Log.e(TAG, null, ex);
-    }
+    new Thread(new Runnable() {
+      public void run() {
+        if (sconn.getSocket() != null) {
+          try {
+            sconn.getSocket().close();
+          }
+          catch (IOException ex) {
+            Log.e(TAG, null, ex);
+          }
+        }
+      }
+    }).start();
+
     // wait for stopped threads to finish
     try {
       mConnectThread.join();
@@ -185,10 +199,11 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     // Cancel notification
 //    mNM.cancel(NOTIFICATION_ID);
     // Tell the user we stopped.
-    Toast.makeText(this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
+    Toast.makeText(
+            this, R.string.remote_service_stopped, Toast.LENGTH_SHORT).show();
     mRunning = false;
   }
-  //----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
 
   /**
    * Show a notification while this service is running.
@@ -204,8 +219,9 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
                                                             new Intent(this, MainActivity.class), 0);
 
     // Set the info for the views that show in the notification panel.
-    notification.setLatestEventInfo(this, "Candis client",
-                                    text, contentIntent);
+    notification.setLatestEventInfo(
+            this, "Candis client",
+            text, contentIntent);
 
     // return the generated notification.
     return notification;
@@ -304,9 +320,14 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       certData.putSerializable("cert", cert);
       msg.setData(certData);
       mRemoteMessenger.send(msg);
+
+
+
+
     }
     catch (RemoteException ex) {
-      Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
+      Logger.getLogger(BackgroundService.class
+              .getName()).log(Level.SEVERE, null, ex);
     }
     synchronized (mCertCheckResult) {
       try {
@@ -317,6 +338,10 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       }
     }
     return mCertCheckResult.get();
+
+
+
+
   }
 
   /**

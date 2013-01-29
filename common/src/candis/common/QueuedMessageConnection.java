@@ -26,12 +26,12 @@ public class QueuedMessageConnection extends MessageConnection implements Runnab
   private final List<Message> mMessageQueue = new LinkedList<Message>();
   private boolean mStop = false; // TODO: use? :)
 
-  public QueuedMessageConnection(Socket socket, ClassLoaderWrapper clw) throws IOException {
-    super(socket, clw);
+  public QueuedMessageConnection(Socket socket) throws IOException {
+    super(socket);
   }
 
-  public QueuedMessageConnection(InputStream in, OutputStream out, ClassLoaderWrapper clw) {
-    super(in, out, clw);
+  public QueuedMessageConnection(InputStream in, OutputStream out) {
+    super(in, out);
   }
 
   @Override

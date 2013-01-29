@@ -20,12 +20,12 @@ public class MessageConnection extends ObjectConnection {
   private static final int MAX_MSG_ID = 10;
   private static final LinkedList mMessageBuffer = new LinkedList();
 
-  public MessageConnection(Socket socket, ClassLoaderWrapper clw) throws IOException {
-    super(socket, clw);
+  public MessageConnection(Socket socket) throws IOException {
+    super(socket);
   }
 
-  public MessageConnection(InputStream in, OutputStream out, ClassLoaderWrapper clw) {
-    super(in, out, clw);
+  public MessageConnection(InputStream in, OutputStream out) {
+    super(in, out);
   }
 
   public void sendMessage(final Message msg) throws IOException {

@@ -14,17 +14,17 @@ import java.io.ObjectStreamClass;
  */
 public class ClassloaderObjectInputStream extends ObjectInputStream {
 
-  private final ClassLoaderWrapper mClassLoaderWrapper;
+  private final ClassLoader mClassLoader;
 
-  public ClassloaderObjectInputStream(InputStream in, ClassLoaderWrapper cloaderwrap) throws IOException {
+  public ClassloaderObjectInputStream(InputStream in, ClassLoader cloader) throws IOException {
     super(in);
-    mClassLoaderWrapper = cloaderwrap;
+    mClassLoader = cloader;
   }
 
   @Override
   public Class resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
     try {
-      return mClassLoaderWrapper.get().loadClass(desc.getName());
+      return mClassLoader.loadClass(desc.getName());
     }
     catch (Exception e) {
       return super.resolveClass(desc);

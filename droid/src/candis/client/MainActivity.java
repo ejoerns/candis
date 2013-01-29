@@ -275,6 +275,11 @@ public class MainActivity extends FragmentActivity
           DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger);
           checkDialog.show(getSupportFragmentManager(), TAG);
           break;
+        case BackgroundService.INVALID_CHECKCODE:
+          Toast.makeText(getApplicationContext(), "The entered checkcode was invalid", Toast.LENGTH_LONG).show();
+          mConnectionState.setText("Invalid checkcode entered");
+          mConnectionState.setTextColor(Color.rgb(255, 0, 0));
+          break;
         case BackgroundService.CONNECTING:
           mConnectionState.setText("Connecting...");
           mConnectionState.setTextColor(Color.rgb(255, 255, 0));
@@ -371,6 +376,7 @@ public class MainActivity extends FragmentActivity
         catch (RemoteException e) {
           // There is nothing special we need to do if the service
           // has crashed.
+          Log.w(TAG, null, e);
         }
       }
 

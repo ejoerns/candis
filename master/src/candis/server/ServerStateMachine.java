@@ -1,6 +1,7 @@
 package candis.server;
 
 import candis.common.CandisLog;
+import candis.common.ClassloaderObjectInputStream;
 import candis.common.DroidID;
 import candis.common.Instruction;
 import candis.common.Message;
@@ -9,17 +10,19 @@ import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
-import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.droid.StaticProfile;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OptionalDataException;
 import java.security.SecureRandom;
 import java.util.Timer;
 import java.util.logging.Level;
@@ -389,16 +392,17 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			System.out.println("ValidateCheckcodeHandler() called");
-			try {
-				if (mDroidManager.validateCheckCode((String) o[0])) {
-					process(ServerTrans.CHECKCODE_VALID);
-				}
-				else {
+			if (mDroidManager.validateCheckCode((String) o[0])) {
+				process(ServerTrans.CHECKCODE_VALID);
+			}
+			else {
+				try {
+					mConnection.sendMessage(Message.create(Instruction.INVALID_CHECKCODE));
 					process(ServerTrans.CHECKCODE_INVALID);
 				}
-			}
-			catch (StateMachineException ex) {
-				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+				catch (IOException ex) {
+					Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+				}
 			}
 		}
 	}
@@ -451,19 +455,35 @@ public class ServerStateMachine extends FSM {
 		}
 
 		@Override
-		public void handle(final Object... o) {
-			assert o[0] instanceof String;
-
+		public void handle(final Object... obj) {
+			assert obj[0] instanceof String;
 			System.out.println("ResultHandler() called");
+
+			ObjectInputStream objInstream;
+			Object object = null;
+			try {
+				objInstream = new ClassloaderObjectInputStream(
+								new ByteArrayInputStream((byte[]) obj[1]),
+								mJobDistIO.getCDBLoader().getClassLoader((String) obj[0])); // TODO...
+				object = objInstream.readObject();
+				objInstream.close();
+//      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoaderWrapper).readObject();
+			}
+			catch (OptionalDataException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+			catch (ClassNotFoundException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+			catch (IOException ex) {
+				LOGGER.log(Level.SEVERE, null, ex);
+			}
+
 			CandisLog.v(TAG, "Getting result...");
-			DistributedJobResult result = null;
-			if (o == null) {
-				LOGGER.log(Level.WARNING, "Received Result: null");
-			}
-			else {
-				LOGGER.log(Level.INFO, "Received Result");
-				result = (DistributedJobResult) o[1];
-			}
+			DistributedJobResult result = (DistributedJobResult) object;
+
+
+			// Handle result
 			mJobDistIO.onJobDone(mConnection.getDroidID(), result);
 		}
 	}
@@ -472,9 +492,6 @@ public class ServerStateMachine extends FSM {
 	 * Sends binary file to droid.
 	 */
 	protected class SendBinaryHandler implements ActionHandler {
-
-		public SendBinaryHandler() {
-		}
 
 		@Override
 		public void handle(final Object... binary) {
@@ -552,11 +569,26 @@ public class ServerStateMachine extends FSM {
 
 			System.out.println("SendJobHandler() called");
 			CandisLog.v(TAG, "Sending job for task ID " + params[0]);
+
+			// Serialize to byte array
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos;
+			try {
+				oos = new ObjectOutputStream(baos);
+				oos.writeObject(params[1]);
+				oos.close();
+			}
+			catch (IOException ex) {
+				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
+			byte[] bytes = baos.toByteArray();
+
+			// send job
 			try {
 				mConnection.sendMessage(Message.create(
 								Instruction.SEND_JOB,
 								(String) params[0],
-								(Serializable) params[1]));
+								bytes));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

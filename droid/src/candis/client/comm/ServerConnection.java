@@ -6,7 +6,6 @@ import android.util.Log;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
-import candis.common.ClassLoaderWrapper;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.QueuedMessageConnection;
@@ -38,16 +37,13 @@ public class ServerConnection implements Runnable {
   private final FSM mFSM;
   private final Messenger mMessenger;
   private final SecureSocket mSecureSocket;
-  private final ClassLoaderWrapper mClassLoaderWrapper;
   private QueuedMessageConnection mQueuedMessageConnection;
 
   public ServerConnection(final X509TrustManager tmanager,
-                          final ClassLoaderWrapper cloader,
                           final DroidContext dcontext,
                           final Context context,
                           final Messenger messenger,
                           final JobCenter jobcenter) throws IOException {
-    mClassLoaderWrapper = cloader;
     mMessenger = messenger;
     mSecureSocket = new SecureSocket(tmanager);
     mFSM = new ClientStateMachine(this, dcontext, context, messenger, jobcenter);
@@ -78,9 +74,7 @@ public class ServerConnection implements Runnable {
       try {
         mSecureSocket.connect(host, port);
 
-        mQueuedMessageConnection = new QueuedMessageConnection(
-                mSecureSocket.getSocket(),
-                mClassLoaderWrapper);
+        mQueuedMessageConnection = new QueuedMessageConnection(mSecureSocket.getSocket());
         success = true;
       }
       // if connect failed, increase connectCounter
