@@ -1,7 +1,5 @@
 package candis.server;
 
-import candis.common.ClassLoaderWrapper;
-import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.MessageConnection;
 import candis.common.fsm.FSM;
@@ -12,8 +10,6 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,7 +30,7 @@ public class ClientConnection extends MessageConnection implements Runnable {
 					final Socket socket,
 					final DroidManager droidmanager,
 					final JobDistributionIOServer jobDistIO) throws IOException {
-		super(socket, new ClassLoaderWrapper());
+		super(socket);
 		mDroidManager = droidmanager;
 		mJobDistIO = jobDistIO;
 		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
@@ -45,7 +41,7 @@ public class ClientConnection extends MessageConnection implements Runnable {
 					final OutputStream out,
 					final DroidManager droidmanager,
 					final JobDistributionIOServer jobDistIO) throws IOException {
-		super(in, out, new ClassLoaderWrapper());// TODO...
+		super(in, out);// TODO...
 		mDroidManager = droidmanager;
 		mJobDistIO = jobDistIO;
 		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
@@ -95,12 +91,6 @@ public class ClientConnection extends MessageConnection implements Runnable {
 				if (msg.getData() == null) {
 					mStateMachine.process(msg.getRequest());
 				}
-				// IF PONG received, clear flag
-//				else if (msg.getRequest() == Instruction.PONG) {
-//					LOGGER.fine("Got PONG reply, client is alive");
-//					mStateMachine.process(null);
-//					ptt.clearFlag();
-//				}
 				else {
 					mStateMachine.process(msg.getRequest(), (Object[]) (msg.getData()));
 				}

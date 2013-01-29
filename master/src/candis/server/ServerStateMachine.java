@@ -1,7 +1,6 @@
 package candis.server;
 
 import candis.common.CandisLog;
-import candis.common.ClassLoaderWrapper;
 import candis.common.ClassloaderObjectInputStream;
 import candis.common.DroidID;
 import candis.common.Instruction;
@@ -11,7 +10,6 @@ import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
-import candis.common.fsm.StateMachineException;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -25,7 +23,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OptionalDataException;
-import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.Timer;
 import java.util.logging.Level;
@@ -459,7 +456,7 @@ public class ServerStateMachine extends FSM {
 			try {
 				objInstream = new ClassloaderObjectInputStream(
 								new ByteArrayInputStream((byte[]) obj[1]),
-								new ClassLoaderWrapper(mJobDistIO.getCDBLoader().getClassLoader((String) obj[0]))); // TODO...
+								mJobDistIO.getCDBLoader().getClassLoader((String) obj[0])); // TODO...
 				object = objInstream.readObject();
 				objInstream.close();
 //      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoaderWrapper).readObject();

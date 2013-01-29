@@ -342,7 +342,8 @@ public final class ClientStateMachine extends FSM {
       assert (obj[1] instanceof DistributedJobParameter) || (obj[1] instanceof byte[]);
       System.out.println("CheckJobHandler...");
 
-      mJobCenter.setCurrentUnserializedJob((String) obj[0], (byte[]) obj[1]);
+      mJobCenter.setCurrentRunnableID((String) obj[0]);
+      mJobCenter.setCurrentUnserializedJob((byte[]) obj[1]);
       if (mJobCenter.isTaskAvailable((String) obj[0])) {
         LOGGER.info(String.format("Task for ID %s available in cache", (String) obj[0]));
         process(ClientTrans.KNOWN_TASK, obj[0], mJobCenter.serializeCurrentJob());
@@ -455,7 +456,7 @@ public final class ClientStateMachine extends FSM {
       assert obj[1] instanceof DistributedJobParameter;
       assert obj.length == 2;
 
-      mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
+      mJobCenter.setInitialParameter((String) obj[0], mJobCenter.serializeJobParameter((byte[]) obj[1]));
       mSConn.sendMessage(Message.create(Instruction.ACK));
       DistributedJobParameter djp = mJobCenter.serializeCurrentJob();
       mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) djp);

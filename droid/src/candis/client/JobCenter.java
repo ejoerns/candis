@@ -3,7 +3,6 @@ package candis.client;
 import android.content.Context;
 import android.util.Log;
 import candis.client.service.BackgroundService;
-import candis.common.ClassLoaderWrapper;
 import candis.common.ClassloaderObjectInputStream;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateMachineException;
@@ -42,7 +41,6 @@ public class JobCenter {
   /// context, needed for file storage
   private final Context mContext;
   /// Wrapper to pass ClassLoader
-  private final ClassLoaderWrapper mClassLoaderWrapper;
   // --- Maps that holds all info for tasks
   private final Map<String, TaskContext> mTaskContextMap = new HashMap<String, TaskContext>();
   /// List of all registered handlers
@@ -51,45 +49,59 @@ public class JobCenter {
   private String mCurrentRunnableID;
   private byte[] mCurrentUnserializedJob;
 
-  public JobCenter(final Context context, final ClassLoaderWrapper cl) {
+  public JobCenter(final Context context) {
     mContext = context;
-    mClassLoaderWrapper = cl;
   }
 
   public void setFSM(FSM fsm) {
     mFSM = fsm;
   }
 
-//  public void setLastUnserializedJob(byte[] lusj) {
-//    lastUnserializedJob = lusj;
-//  }
   /**
    * Stores unserialized job and selects classloader.
    *
    * @param runnableID
    * @param rawdata
    */
-  public void setCurrentUnserializedJob(String runnableID, byte[] rawdata) {
+  public void setCurrentRunnableID(String runnableID) {
     mCurrentRunnableID = runnableID;
+  }
+
+  /**
+   * Sets the current unseriealized Job.
+   *
+   * @param rawdata
+   */
+  public void setCurrentUnserializedJob(byte[] rawdata) {
     mCurrentUnserializedJob = rawdata;
   }
 
   /**
-   * Serializes the previous loaded job.
+   * Serializes current job set by setCurrentUnserializedJob()
    *
-   * @return Loaded DistributedJobParameter
+   * @return
    */
   public DistributedJobParameter serializeCurrentJob() {
+    return serializeJobParameter(mCurrentUnserializedJob);
+  }
+
+  /**
+   * Serializes the provided serialized DistributedJobParameter
+   *
+   * @param rawdata byte array of serialized DJP
+   * @return Loaded DistributedJobParameter
+   */
+  public DistributedJobParameter serializeJobParameter(byte[] rawdata) {
     //
-    mClassLoaderWrapper.set(mTaskContextMap.get(mCurrentRunnableID).classLoader);
-    Log.i(TAG, "ClassLoaderWrapper now is: " + mClassLoaderWrapper.get().toString());
+//    mClassLoader.set(mTaskContextMap.get(mCurrentRunnableID).classLoader);
+    Log.i(TAG, "ClassLoaderWrapper now is: " + mTaskContextMap.get(mCurrentRunnableID).classLoader.toString());
     //
     ObjectInputStream objInstream;
     Object obj = null;
     try {
       objInstream = new ClassloaderObjectInputStream(
-              new ByteArrayInputStream(mCurrentUnserializedJob),
-              mClassLoaderWrapper);
+              new ByteArrayInputStream(rawdata),
+              mTaskContextMap.get(mCurrentRunnableID).classLoader);
       obj = objInstream.readObject();
       objInstream.close();
 //      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoaderWrapper).readObject();
@@ -283,7 +295,7 @@ public class JobCenter {
             tmpDir.getAbsolutePath(),
             null,
             BackgroundService.class.getClassLoader());
-    mClassLoaderWrapper.set(mTaskContextMap.get(runnableID).classLoader);
+    mTaskContextMap.get(mCurrentRunnableID).classLoader = mTaskContextMap.get(runnableID).classLoader;
 //    setRunnableID(runnableID);    
 
     // load all available classes

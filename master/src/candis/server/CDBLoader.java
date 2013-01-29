@@ -1,6 +1,5 @@
 package candis.server;
 
-import candis.common.ClassLoaderWrapper;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
