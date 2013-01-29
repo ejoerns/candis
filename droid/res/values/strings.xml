@@ -43,16 +43,16 @@
   <!--Powermode-->
   <string name="pref_powermode_title">Powermode</string>
   <string name="pref_powermode_dtitle">Calculates If</string>
-  <string name="pref_powermode_default">Always On</string>
+  <string name="pref_powermode_default">battery_not_low</string>
   <string-array name="pref_powermode_entries">
     <item>Always</item>
-    <item>Battery >50%</item>
+    <item>Battery not low</item>
     <item>Power connected</item>
   </string-array>
   <string-array name="pref_powermode_values">
-    <item>Always On</item>
-    <item>Battery 50%</item>
-    <item>Power connected</item>
+    <item>always_on</item>
+    <item>battery_not_low</item>
+    <item>power_connected</item>
   </string-array>
   <!--Menus-->
   <string name="menu_settings">Settings</string>
@@ -67,8 +67,10 @@
   <string name="remote_service_disconnected">Remote Service disconnected</string>
 
   <!-- Errors and Feedbacks -->
-  <string name="err_connection_failed">Connection failed</string>
-  <string name="connected">Connected!</string>
-  <string name="connection_text_unconnected">Unconnected</string>
+  <!-- Status Messages for connection to Master  -->
+  <string name="status_disconnected">Disconnected</string>
+  <string name="status_connecting">Connecting...</string>
+  <string name="status_connected">Connected.</string>
+  <string name="status_connection_failed">Connection failed</string>
 
 </resources>

@@ -3,6 +3,7 @@ package candis.client.service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.BatteryManager;
 import android.util.Log;
 import candis.client.CurrentSystemStatus;
@@ -14,19 +15,19 @@ import candis.client.CurrentSystemStatus;
  */
 public class PowerConnectionReceiver extends BroadcastReceiver {
 
-//  private CurrentSystemStatus mSystemStatus = new CurrentSystemStatus();
+  SharedPreferences.Editor mSharedPrefEditor;
 
-  public PowerConnectionReceiver(CurrentSystemStatus systemStatus) {
-//    mSystemStatus = systemStatus;
+  public PowerConnectionReceiver(Context context) {
+    mSharedPrefEditor = context.getSharedPreferences(CurrentSystemStatus.CURRENT_SYSTEM_STATUS, Context.MODE_PRIVATE).edit();
   }
 
   @Override
   public void onReceive(Context context, Intent batteryIntent) {
     // get charging state
     int status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-//    mSystemStatus.charging = status == BatteryManager.BATTERY_STATUS_CHARGING
-//            || status == BatteryManager.BATTERY_STATUS_FULL;
-//    Log.w("PowerConnectionReceiver", "Charging: " + mSystemStatus.charging);
+    boolean charging = status == BatteryManager.BATTERY_STATUS_CHARGING
+            || status == BatteryManager.BATTERY_STATUS_FULL;
+    Log.w("PowerConnectionReceiver", "Charging: " + charging);
 
     // get connected adapters (not used)
     int chargePlug = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
@@ -37,12 +38,18 @@ public class PowerConnectionReceiver extends BroadcastReceiver {
 
     // get battery level
     int rawlevel = batteryIntent.getIntExtra("level", -1);
-    double scale = batteryIntent.getIntExtra("scale", -1);
-//    mSystemStatus.chargingState = -1;
+    float scale = (float) batteryIntent.getIntExtra("scale", -1);
+    float level = (float) -1.0;
     if (rawlevel >= 0 && scale > 0) {
-//      mSystemStatus.chargingState = rawlevel / scale;
+      level = rawlevel / scale;
     }
+    Log.w("PowerConnectionReceiver", "Level: " + level);
 
-//    Log.w("PowerConnectionReceiver", "Level: " + mSystemStatus.chargingState);
+    // store and commit data
+    mSharedPrefEditor
+            .putBoolean(CurrentSystemStatus.POWER_CHARGING, charging)
+            .putFloat(CurrentSystemStatus.POWER_LEVEL, level)
+            .commit();
+
   }
 }

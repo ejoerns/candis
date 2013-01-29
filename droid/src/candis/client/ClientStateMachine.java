@@ -3,6 +3,7 @@ package candis.client;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.os.Messenger;
 import android.os.RemoteException;
@@ -40,6 +41,7 @@ public final class ClientStateMachine extends FSM {
   private final Messenger mMessenger;
   private final NotificationManager mNotificationManager;
   private final JobCenter mJobCenter;
+  private SharedPreferences.Editor mSystemStateEditor;
 
   private enum ClientStates implements StateEnum {
 
@@ -81,6 +83,10 @@ public final class ClientStateMachine extends FSM {
 
     mNotificationManager =
             (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+    mSystemStateEditor = mContext.getSharedPreferences(
+            CurrentSystemStatus.CURRENT_SYSTEM_STATUS,
+            Context.MODE_PRIVATE).edit();
+
   }
 
   @Override
@@ -323,7 +329,14 @@ public final class ClientStateMachine extends FSM {
 
     public void handle(Object... obj) {
       try {
+        mSystemStateEditor
+                .putString(CurrentSystemStatus.SERVER_NAME, mSConn.getSocket().getInetAddress().toString())
+                .putInt(CurrentSystemStatus.SERVER_PORT, mSConn.getSocket().getPort())
+                .commit();
         mMessenger.send(android.os.Message.obtain(null, BackgroundService.CONNECTED));
+        mNotificationManager.notify(
+                BackgroundService.NOTIFICATION_ID,
+                BackgroundService.getNotification(mContext, mContext.getText(R.string.status_connected)));
       }
       catch (RemoteException ex) {
         Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
