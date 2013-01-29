@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.cert.X509Certificate;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -69,6 +70,7 @@ public class MainActivity extends FragmentActivity
   Messenger mServiceMessenger = null;
   /// Flag indicating whether we have called bind on the service.
   boolean mIsBound;
+  SharedPreferences mSharedPrefs;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -88,7 +90,7 @@ public class MainActivity extends FragmentActivity
     Settings.load(this.getResources().openRawResource(R.raw.settings));
     // load Shared Preferences
     PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
-    SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+    mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
     // load logger.properties from /res/raw/logger.properties
     // Must be loaded in order to get default logging levels below INFO working
@@ -203,6 +205,12 @@ public class MainActivity extends FragmentActivity
     doUnbindService();
   }
 
+  @Override
+  public void onResume() {
+    super.onResume();
+    Log.v("BUH", "value is: " + PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(SettingsActivity.HOSTNAME, "not found"));
+  }
+
   /**
    *
    * @param v
@@ -219,6 +227,7 @@ public class MainActivity extends FragmentActivity
         Log.d(TAG, "onClick: starting service");
         startService(new Intent(this, BackgroundService.class));
         doBindService();
+        sendSharedPreferences();
       }
       if (isBackgroundServiceRunning()) {
         mServiceRunning = true;
@@ -394,6 +403,36 @@ public class MainActivity extends FragmentActivity
       unbindService(mConnection);
       mIsBound = false;
       Log.i(TAG, "Unbinding.");
+    }
+  }
+
+  void sendSharedPreferences() {
+
+    Bundle bundle = new Bundle();
+
+    for (Map.Entry<String, ?> pref : mSharedPrefs.getAll().entrySet()) {
+      if (pref.getValue() instanceof String) {
+        bundle.putString(pref.getKey(), (String) pref.getValue());
+        Log.e(TAG, "putString: " + pref.getKey() + ", " + pref.getValue());
+      }
+      else if (pref.getValue() instanceof Integer) {
+        bundle.putInt(pref.getKey(), (Integer) pref.getValue());
+        Log.e(TAG, "putInteger: " + pref.getKey() + ", " + pref.getValue());
+      }
+      else {
+        Log.e(TAG, "Unknown preference");
+      }
+    }
+    // send
+    Message msg = Message.obtain(null, BackgroundService.PREFERENCE_UPDATE);
+    msg.setData(bundle);
+    try {
+      if (mServiceMessenger != null) {
+        mServiceMessenger.send(msg);
+      }
+    }
+    catch (RemoteException ex) {
+      Logger.getLogger(SettingsActivity.class.getName()).log(Level.SEVERE, null, ex);
     }
   }
 }

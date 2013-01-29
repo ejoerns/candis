@@ -18,7 +18,6 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 import candis.client.ClientStateMachine;
-import candis.client.CurrentSystemStatus;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
 import candis.client.MainActivity;
@@ -78,6 +77,8 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   public static final int CONNECT_FAILED = 110;
   /// Indicates thate connection was closed
   public static final int DISCONNECTED = 115;
+  ///
+  public static final int PREFERENCE_UPDATE = 200;
   //---
   public static final int NOTIFICATION_ID = 4711;
   /// For showing and hiding our notification.
@@ -117,7 +118,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
 
     mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
     Settings.load(this.getResources().openRawResource(R.raw.settings));
-    mSharedPref = PreferenceManager.getDefaultSharedPreferences(this);
     // Setup DroidContext
     try {
       mDroidContext.setID(DroidID.readFromFile(
@@ -140,11 +140,20 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     Log.v(TAG, "onStartCommand()");
     super.onStartCommand(intent, flags, startId);
 
+    Log.v("BAAAH", "value is: " + PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(SettingsActivity.HOSTNAME, "not found"));
+
     // if service running, only handle intent
     if (mRunning) {
       return START_STICKY;
     }
     mRunning = true;
+
+    if (mSharedPref != null) {
+      Log.e(TAG, "First is: " + mSharedPref.getString(SettingsActivity.HOSTNAME, "foo"));
+    }
+    // loader shared preferences
+    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+    Log.e(TAG, "Now is: " + mSharedPref.getString(SettingsActivity.HOSTNAME, "bar"));
 
     // start this process as a foreground service so that it will not be
     // killed, even if it does cpu intensive operations etc.
@@ -297,8 +306,21 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
         catch (RemoteException ex1) {
           Log.w(TAG, "Failed sending Notifiaton message 'CONNECT_FAILED'");
         }
-        // TODO: kill process?
         return;
+      }
+      // Mainly "stream closed", i.e. server died
+      catch (IOException ex) {
+        Log.w(TAG, ex.getMessage());
+        mNM.notify(NOTIFICATION_ID, getNotification(BackgroundService.this, getText(R.string.status_disconnected)));
+        if (mRemoteMessenger == null) {
+          return;
+        }
+        try {
+          mRemoteMessenger.send(Message.obtain(null, DISCONNECTED));
+        }
+        catch (RemoteException ex1) {
+          Log.w(TAG, "Failed sending Notifiaton message 'CONNECT_FAILED'");
+        }
       }
       catch (Exception ex) {
         Log.wtf(TAG, null, ex);
@@ -372,6 +394,24 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
             mCertCheckResult.set(msg.arg1 == 1 ? true : false);// TODO...
             mCertCheckResult.notifyAll();
           }
+          break;
+        case PREFERENCE_UPDATE:
+          SharedPreferences.Editor editor = mSharedPref.edit();
+          for (String str : msg.getData().keySet()) {
+            Object obj = msg.getData().get(str);
+            Log.e(TAG, "Got new Key: " + str + ", " + obj);
+            if (obj instanceof String) {
+              editor.putString(str, (String) obj);
+            }
+            else if (obj instanceof Integer) {
+              editor.putInt(str, (Integer) obj);
+            }
+            else {
+              Log.e(TAG, "Can't load sharedPref: " + str);
+            }
+          }
+          editor.apply();
+          editor.commit();
           break;
         // 
         default:
