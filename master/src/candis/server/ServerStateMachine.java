@@ -375,6 +375,7 @@ public class ServerStateMachine extends FSM {
 		public void handle(final Object... o) {
 			System.out.println("ClientDisconnectedHandler() called");
 			mPingTimerTask.cancel();
+			mPingTimer.cancel();
 			mDroidManager.disconnectDroid(mConnection.getDroidID());
 			// TODO: close socket?
 		}
