@@ -241,7 +241,7 @@ public abstract class Scheduler {
 							mRunningDroidsList.size(),
 							mParams.size(),
 							mSchedulabeDroids.size()});
-		return (mRunningDroidsList.size() + parametersLeft()) == 0;
+		return (mRunningDroidsList.size() + getParametersLeft()) == 0;
 	}
 
 	public void abort() {
@@ -278,9 +278,5 @@ public abstract class Scheduler {
 			return null;
 		}
 		return mParams.pop();
-	}
-
-	protected int parametersLeft() {
-		return mParams.size();
 	}
 }

@@ -54,10 +54,10 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 		}
 
 		public String inc() {
-			if(!first){
+			if (!first) {
 				inc(0);
 			}
-			else{
+			else {
 				first = false;
 			}
 			return toString();
@@ -141,12 +141,12 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 
 	@Override
 	protected boolean hasParametersLeft() {
-		return parametersLeft() > 0;
+		return getParametersLeft() > 0;
 
 	}
 
 	@Override
-	protected int parametersLeft() {
+	public int getParametersLeft() {
 		// Abort if result found
 		if (resultValue != null) {
 			return 0;
@@ -160,7 +160,8 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 			return mParams.pop();
 		}
 		try {
-			return new HashJobParameter(mString.inc().getBytes("UTF-8"));
+			System.out.println(mString.inc());
+			return new HashJobParameter(mString.toString().getBytes("UTF-8"));
 		}
 		catch (UnsupportedEncodingException ex) {
 			Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);

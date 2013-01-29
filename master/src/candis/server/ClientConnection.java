@@ -75,7 +75,7 @@ public class ClientConnection extends MessageConnection implements Runnable {
 			catch (InterruptedIOException ex) {
 				LOGGER.info("ClientConnection thread interrupted");
 				isStopped = true;
-				continue;
+				break;
 			}
 			catch (SocketException ex) {
 				LOGGER.warning("Socket ist closed, message will not be sent");
@@ -83,9 +83,10 @@ public class ClientConnection extends MessageConnection implements Runnable {
 				continue;
 			}
 			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
+				LOGGER.warning(ex.getMessage());
+				//LOGGER.log(Level.SEVERE, null, ex);
 				isStopped = true;
-				continue;
+				break;
 			}
 			try {
 				if (msg.getData() == null) {
@@ -101,5 +102,6 @@ public class ClientConnection extends MessageConnection implements Runnable {
 
 			LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
 		}
+		mStateMachine.process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
 	}
 }
