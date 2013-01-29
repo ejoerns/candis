@@ -73,7 +73,7 @@ public class ClientConnection extends MessageConnection implements Runnable {
 				msg = readMessage();
 			}
 			catch (InterruptedIOException ex) {
-				LOGGER.warning("ClientConnection thread interrupted");
+				LOGGER.info("ClientConnection thread interrupted");
 				isStopped = true;
 				continue;
 			}
