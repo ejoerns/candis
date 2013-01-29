@@ -223,14 +223,14 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Invoked if server got connection from a client.
 	 */
-	private class ConnectionRequestedHandler implements ActionHandler {
+	private class ConnectionRequestedHandler extends ActionHandler {
 
 		@Override
 		public void handle(Object... obj) {
 			assert obj != null;
 			assert obj[0] instanceof DroidID : ((Instruction) obj[0]).toString();
 
-			System.out.println("ConnectionRequestedHandler called");
+			gotCalled();
 			if (obj == null) {
 				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
 				return;
@@ -294,11 +294,11 @@ public class ServerStateMachine extends FSM {
 	 * Checks if profile data is valid and processes either CHECKCODE_VALID or
 	 * CHECKCODE_INVALID
 	 */
-	private class ReceivedProfileHandler implements ActionHandler {
+	private class ReceivedProfileHandler extends ActionHandler {
 
 		@Override
 		public void handle(final Object... obj) {
-			System.out.println("ReceivedProfileHandler called");
+			gotCalled();
 			try {
 				// store profile data
 				if (!(obj[0] instanceof StaticProfile)) {
@@ -320,14 +320,14 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Connects droid to DroidManager.
 	 */
-	protected class ClientConnectedHandler implements ActionHandler {
+	protected class ClientConnectedHandler extends ActionHandler {
 
 		public ClientConnectedHandler() {
 		}
 
 		@Override
 		public void handle(final Object... o) {
-			System.out.println("ClientConnectedHandler() called");
+			gotCalled();
 			mDroidManager.connectDroid(mConnection.getDroidID(), mConnection);
 			mJobDistIO.onDroidConnected(mConnection.getDroidID(), mConnection);
 			// Init ping timer
@@ -341,7 +341,7 @@ public class ServerStateMachine extends FSM {
 	 * Invoked if pong is received. Simply clears PingTimerTask flag to indicate
 	 * client is still alive.
 	 */
-	protected class PongHandler implements ActionHandler {
+	protected class PongHandler extends ActionHandler {
 
 		public PongHandler() {
 		}
@@ -355,11 +355,11 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Gets called if client should be rejected.
 	 */
-	private class ConnectionRejectedHandler implements ActionHandler {
+	private class ConnectionRejectedHandler extends ActionHandler {
 
 		@Override
 		public void handle(final Object... o) {
-			System.out.println("ConnectionRejectedHandler() called");
+			gotCalled();
 			try {
 				mConnection.sendMessage(new Message(Instruction.REJECT_CONNECTION));
 			}
@@ -372,11 +372,11 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Disconnects droid from DroidManager.
 	 */
-	private class ClientDisconnectedHandler implements ActionHandler {
+	private class ClientDisconnectedHandler extends ActionHandler {
 
 		@Override
 		public void handle(final Object... o) {
-			System.out.println("ClientDisconnectedHandler() called");
+			gotCalled();
 			mPingTimerTask.cancel();
 			mPingTimer.cancel();
 			mDroidManager.disconnectDroid(mConnection.getDroidID());
@@ -387,11 +387,11 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Compares received check code from droid with server generated one.
 	 */
-	private class ValidateCheckcodeHandler implements ActionHandler {
+	private class ValidateCheckcodeHandler extends ActionHandler {
 
 		@Override
 		public void handle(final Object... o) {
-			System.out.println("ValidateCheckcodeHandler() called");
+			gotCalled();
 			if (mDroidManager.validateCheckCode((String) o[0])) {
 				process(ServerTrans.CHECKCODE_VALID);
 			}
@@ -410,11 +410,12 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Requests profile without check.
 	 */
-	private class ProfileRequestHandler implements ActionHandler {
+	private class ProfileRequestHandler extends ActionHandler {
 
 		@Override
 		public void handle(final Object... o) {
-			System.out.println("ProfileRequestHandler() called");
+			gotCalled();
+			gotCalled();
 			try {
 				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
 			}
@@ -427,11 +428,11 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Generates new check code (6 digits) and shows it via DroidManager.
 	 */
-	private class CheckCodeRequestedHandler implements ActionHandler {
+	private class CheckCodeRequestedHandler extends ActionHandler {
 
 		@Override
 		public void handle(final Object... o) {
-			System.out.println("CheckCodeRequestedHandler() called");
+			gotCalled();
 			// generate 6digit string
 			final SecureRandom random = new SecureRandom();
 			final byte[] byteCode = new byte[3];
@@ -449,7 +450,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Gets called if JOB_DONE was received.
 	 */
-	protected class ResultHandler implements ActionHandler {
+	protected class ResultHandler extends ActionHandler {
 
 		public ResultHandler() {
 		}
@@ -457,7 +458,7 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... obj) {
 			assert obj[0] instanceof String;
-			System.out.println("ResultHandler() called");
+			gotCalled();
 
 			ObjectInputStream objInstream;
 			Object object = null;
@@ -491,7 +492,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends binary file to droid.
 	 */
-	protected class SendBinaryHandler implements ActionHandler {
+	protected class SendBinaryHandler extends ActionHandler {
 		public SendBinaryHandler() {
 
 		}
@@ -500,7 +501,7 @@ public class ServerStateMachine extends FSM {
 			assert binary[0] instanceof String;
 			assert binary.length == 1;
 
-			System.out.println("SendBinaryHandler() called");
+			gotCalled();
 			CandisLog.v(TAG, "Sending binary for task ID " + mJobDistIO.getCurrentTaskID());
 			try {
 				final File file = (File) mJobDistIO.getCDBLoader().getDroidBinary((String) binary[0]);// TODO:..
@@ -532,7 +533,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends the initial parameter to the droid. arguments: none (called by ACK)
 	 */
-	protected class SendInitialParameterHandler implements ActionHandler {
+	protected class SendInitialParameterHandler extends ActionHandler {
 
 		public SendInitialParameterHandler() {
 		}
@@ -543,7 +544,7 @@ public class ServerStateMachine extends FSM {
 //			assert param[0] instanceof String;
 //			assert param[1] instanceof DistributedJobParameter;
 
-			System.out.println("SendInitialParameterHandler() called");
+			gotCalled();
 			CandisLog.v(TAG, "Sending initial parameter for task ID " + mJobDistIO.getCurrentTaskID());
 			try {
 				assert mJobDistIO.getCurrentScheduler().getInitialParameter() != null;
@@ -558,7 +559,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends the job to the droid.
 	 */
-	protected class SendJobHandler implements ActionHandler {
+	protected class SendJobHandler extends ActionHandler {
 
 		public SendJobHandler() {
 		}
@@ -569,7 +570,7 @@ public class ServerStateMachine extends FSM {
 			assert params[1] instanceof DistributedJobParameter;
 			assert params.length == 2;
 
-			System.out.println("SendJobHandler() called");
+			gotCalled();
 			CandisLog.v(TAG, "Sending job for task ID " + params[0]);
 
 			// Serialize to byte array
@@ -601,7 +602,7 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Sends PING to client.
 	 */
-	private class SendPingHandler implements ActionHandler {
+	private class SendPingHandler extends ActionHandler {
 
 		@Override
 		public void handle(Object... obj) {
