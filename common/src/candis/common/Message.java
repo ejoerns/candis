@@ -9,47 +9,37 @@ import java.io.Serializable;
  */
 public class Message implements Serializable {
 
-	private Serializable[] data;
-	private Instruction req;
-	private static final Message mInstance = new Message(Instruction.NO_MSG);
+  private Serializable[] data;
+  private Instruction req;
+  private static final Message mInstance = new Message(Instruction.NO_MSG);
 
+  public Message(final Instruction req, final Serializable... data) {
+    this.req = req;
+    this.data = data;
+  }
 
+  /**
+   * Currently the same as new Message()
+   * @param instr
+   * @param data
+   * @return 
+   */
+  public static Message create(final Instruction instr, final Serializable... data) {
+    return new Message(instr, data);
+  }
 
-	public Message(final Instruction req, final Serializable... data) {
-		this.req = req;
-		this.data = data;
-	}
+  public Instruction getRequest() {
+    return req;
+  }
 
-	/**
-	 * Uses static instance of Message
-	 * IMPORTANT: not thread safe!!
-	 * @param instr
-	 * @return
-	 */
-	public static Message create(final Instruction instr) {
-		mInstance.req = instr;
-		mInstance.data = null;
-		return mInstance;
-	}
+  public Serializable getData(final int idx) {
+    if (data == null) {
+      return null;
+    }
+    return data[idx];
+  }
 
-	public static Message create(final Instruction instr, final Serializable... data) {
-		mInstance.req = instr;
-		mInstance.data = data;
-		return mInstance;
-	}
-
-	public Instruction getRequest() {
-		return req;
-	}
-
-	public Serializable getData(final int idx) {
-		if (data == null) {
-			return null;
-		}
-		return data[idx];
-	}
-
-	public Serializable[] getData() {
-		return data;
-	}
+  public Serializable[] getData() {
+    return data;
+  }
 }
