@@ -7,15 +7,19 @@ import candis.distributed.DistributedJobParameter;
  */
 public class HashInitParameter implements DistributedJobParameter {
 
-	/// Some example Value
-	public final int offset;
+	public enum HashType {
 
-	/**
-	 * Initializes the Initial Parameters for MiniTask
-	 *
-	 * @param offset some integer value
-	 */
-	public HashInitParameter(final int offset) {
-		this.offset = offset;
+		MD5,
+		SHA1;
+	};
+	public final HashType type;
+	public final byte[] hash;
+	public final char[] range;
+
+	public HashInitParameter(HashType type, byte[] hash, char[] range) {
+		this.type = type;
+		this.hash = hash;
+		this.range = range;
+
 	}
 }

@@ -220,7 +220,6 @@ public abstract class Scheduler {
 	 * @param droidID
 	 * @param error
 	 */
-	// ups..
 	public void onDroidError(String id, DistributedJobError error) {
 		LOGGER.log(Level.SEVERE, "Droid {0}, Error {1}", new Object[]{id, error});
 		// removed Droids won't stay in the id List
@@ -242,7 +241,7 @@ public abstract class Scheduler {
 							mRunningDroidsList.size(),
 							mParams.size(),
 							mSchedulabeDroids.size()});
-		return (mRunningDroidsList.size() + mParams.size()) == 0;
+		return (mRunningDroidsList.size() + parametersLeft()) == 0;
 	}
 
 	public void abort() {
@@ -279,5 +278,9 @@ public abstract class Scheduler {
 			return null;
 		}
 		return mParams.pop();
+	}
+
+	protected int parametersLeft() {
+		return mParams.size();
 	}
 }
