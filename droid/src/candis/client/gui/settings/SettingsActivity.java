@@ -2,13 +2,11 @@ package candis.client.gui.settings;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.util.Log;
-import android.widget.Toast;
 import candis.client.R;
 
 /**
@@ -26,6 +24,8 @@ public class SettingsActivity extends PreferenceActivity
   private EditTextPreference mHostnamePreference;
   private EditTextPreference mPortnamePreference;
   private ListPreference mPowermodePreference;
+  //
+  SharedPreferences mSharedPreferences;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -46,10 +46,10 @@ public class SettingsActivity extends PreferenceActivity
     getPreferenceScreen().getSharedPreferences()
             .registerOnSharedPreferenceChangeListener(this);
 
-    SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
-    mHostnamePreference.setSummary(sharedPreferences.getString(HOSTNAME, ""));
-    mPortnamePreference.setSummary(sharedPreferences.getString(PORTNAME, ""));
-    mPowermodePreference.setSummary(sharedPreferences.getString(POWERMODE, ""));
+    mSharedPreferences = getPreferenceScreen().getSharedPreferences();
+    mHostnamePreference.setSummary(mHostnamePreference.getText());
+    mPortnamePreference.setSummary(mPortnamePreference.getText());
+    mPowermodePreference.setSummary(mPowermodePreference.getEntry());
   }
 
   @Override
@@ -61,12 +61,17 @@ public class SettingsActivity extends PreferenceActivity
 
   @Override
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+    Preference pref = findPreference(key);
 
     Log.i("SettingsActivity", "onSharedPreferenceChanged");
     // Let's do something a preference value changes
-    if (key.equals(HOSTNAME)) {
-      Preference hostPref = findPreference(key);
-      hostPref.setSummary(sharedPreferences.getString(key, ""));
+    if (pref instanceof EditTextPreference) {
+      EditTextPreference listPref = (EditTextPreference) pref;
+      pref.setSummary(listPref.getText());
+    }
+    else if (pref instanceof ListPreference) {
+      ListPreference listPref = (ListPreference) pref;
+      pref.setSummary(listPref.getEntry());
     }
   }
 }

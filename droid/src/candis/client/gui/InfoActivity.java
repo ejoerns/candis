@@ -1,7 +1,9 @@
 package candis.client.gui;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -12,8 +14,6 @@ import candis.client.CurrentSystemStatus;
 import candis.client.DroidContext;
 import candis.client.R;
 import candis.client.gui.settings.SettingsActivity;
-import candis.common.Settings;
-import java.io.File;
 
 /**
  * Shows some informations about client.
@@ -57,9 +57,16 @@ public class InfoActivity extends Activity {
   public void onResume() {
     Log.i("InfoActivity", "onResume()");
     super.onResume();
-    // load droid context
+    // load droid context and shared preference
     DroidContext droidContext = DroidContext.getInstance();
-//    mServerInfo.setText(String.format("%s:%s",  CurrentSystemStatus.getStatus().servername, mCurrentSystemStatus.serverport));
+    SharedPreferences mSharedPrefs = getSharedPreferences(
+            CurrentSystemStatus.CURRENT_SYSTEM_STATUS,
+            Context.MODE_PRIVATE);
+    //
+    mServerInfo.setText(String.format(
+            "%s:%d",
+            mSharedPrefs.getString(CurrentSystemStatus.SERVER_NAME, "unknown"),
+            mSharedPrefs.getInt(CurrentSystemStatus.SERVER_PORT, 0)));
     mIDInfo.setText(droidContext.getID().toSHA1());
     mProfileModel.setText(droidContext.getProfile().model);
     mProfileID.setText(droidContext.getProfile().id);

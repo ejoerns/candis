@@ -2,10 +2,10 @@ package candis.client.gui;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Message;
+import android.support.v4.app.DialogFragment;
 import candis.client.R;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,7 +44,7 @@ public class KillProcessesDialogFragment extends DialogFragment {
 			});
 		}
 		catch (Exception ex) {
-			Logger.getLogger(CertAcceptDialog.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(KillProcessesDialogFragment.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		// Create the AlertDialog object and return it
 		return builder.create();

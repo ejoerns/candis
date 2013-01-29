@@ -101,8 +101,11 @@ public class MainActivity extends FragmentActivity
       Logger.getAnonymousLogger().severe(e.getMessage());
     }
 
-    // Check for background service
+    // Check for background service and bind if running
     mServiceRunning = isBackgroundServiceRunning();
+    if (mServiceRunning) {
+      doBindService();
+    }
 
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main);
@@ -191,6 +194,13 @@ public class MainActivity extends FragmentActivity
   @Override
   public void onNewIntent(Intent intent) {
     Log.v(TAG, "onNewIntent() " + intent.getAction());
+  }
+
+  @Override
+  public void onPause() {
+    Log.d(TAG, "onPause()");
+    super.onPause();
+    doUnbindService();
   }
 
   /**

@@ -35,7 +35,7 @@
     android:layout_below="@id/servicetext"
     android:layout_alignParentLeft="true"
     android:layout_marginLeft="10dp"
-    android:text="@string/connection_text_unconnected"
+    android:text="@string/status_disconnected"
     android:textColor="#AAA"/> 
   <Button
     android:id="@+id/service_button"

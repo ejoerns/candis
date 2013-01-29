@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -17,6 +18,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 import candis.client.ClientStateMachine;
+import candis.client.CurrentSystemStatus;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
 import candis.client.MainActivity;
@@ -25,7 +27,6 @@ import candis.client.comm.CertAcceptRequestHandler;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.ServerConnection;
 import candis.client.gui.settings.SettingsActivity;
-import candis.common.ClassLoaderWrapper;
 import candis.common.DroidID;
 import candis.common.Settings;
 import candis.common.fsm.FSM;
@@ -78,7 +79,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /// Indicates thate connection was closed
   public static final int DISCONNECTED = 115;
   //---
-  private static final int NOTIFICATION_ID = 4711;
+  public static final int NOTIFICATION_ID = 4711;
   /// For showing and hiding our notification.
   private NotificationManager mNM;
   /// Remote target to send messsages to.
@@ -90,7 +91,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /// Used to avoid double-call of service initialization
   private boolean mRunning = false;
   private FSM mFSM;
-  private ClassLoaderWrapper mClassloaderWrapper;
   private PowerConnectionReceiver mPowerConnectionReceiver;
   private SharedPreferences mSharedPref;
   Thread mConnectThread;
@@ -126,10 +126,10 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
               new File(this.getFilesDir(), Settings.getString("profilestore"))));
     }
     catch (FileNotFoundException ex) {
-      mNM.notify(NOTIFICATION_ID, getNotification("Failed to load profile data"));
+      mNM.notify(NOTIFICATION_ID, getNotification(this, "Failed to load profile data"));
     }
     // register receiver for battery updates
-    mPowerConnectionReceiver = new PowerConnectionReceiver(null);// TODO...
+    mPowerConnectionReceiver = new PowerConnectionReceiver(this);// TODO...
     registerReceiver(
             mPowerConnectionReceiver,
             new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -148,7 +148,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
 
     // start this process as a foreground service so that it will not be
     // killed, even if it does cpu intensive operations etc.
-    startForeground(NOTIFICATION_ID, getNotification("Started..."));
+    startForeground(NOTIFICATION_ID, getNotification(this, "Started..."));
 
     // We want this service to continue running until it is explicitly
     // stopped, so return sticky.
@@ -208,19 +208,19 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /**
    * Show a notification while this service is running.
    */
-  private Notification getNotification(CharSequence text) {
+  public static Notification getNotification(Context context, CharSequence text) {
 
     // Set the icon, scrolling text and timestamp
     Notification notification = new Notification(R.drawable.candis_logo, text,
                                                  System.currentTimeMillis());
 
     // The PendingIntent to launch our activity if the user selects this notification
-    PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                                                            new Intent(this, MainActivity.class), 0);
+    PendingIntent contentIntent = PendingIntent.getActivity(context, 0,
+                                                            new Intent(context, MainActivity.class), 0);
 
     // Set the info for the views that show in the notification panel.
     notification.setLatestEventInfo(
-            this, "Candis client",
+            context, "Candis client",
             text, contentIntent);
 
     // return the generated notification.
@@ -235,10 +235,8 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     public void run() {
       sconn = null;
 
-      mClassloaderWrapper = new ClassLoaderWrapper();// init empty
-
       // init job center
-      final JobCenter jobcenter = new JobCenter(getApplicationContext(), mClassloaderWrapper);
+      final JobCenter jobcenter = new JobCenter(getApplicationContext());
       jobcenter.addHandler(new ActivityLogger(mRemoteMessenger, getApplicationContext()));
       // init connection
       ReloadableX509TrustManager tm = null;
@@ -255,7 +253,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       try {
         sconn = new ServerConnection(
                 tm,
-                mClassloaderWrapper,
                 mDroidContext,
                 getApplicationContext(),
                 mRemoteMessenger,
@@ -265,7 +262,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
         sconn.connect(mSharedPref.getString(SettingsActivity.HOSTNAME, "not found"),
                       Integer.valueOf(mSharedPref.getString(SettingsActivity.PORTNAME, "0")));
         // Notify about connecting...
-        mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.connected)));
+        mNM.notify(NOTIFICATION_ID, getNotification(BackgroundService.this, getText(R.string.status_connecting)));
         try {
           mRemoteMessenger.send(Message.obtain(null, CONNECTING));
         }
@@ -274,7 +271,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
         }
       }
       catch (ConnectException ex) {
-        mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
+        mNM.notify(NOTIFICATION_ID, getNotification(BackgroundService.this, getText(R.string.status_connection_failed)));
         Log.e(TAG, ex.getMessage());
         if (mRemoteMessenger == null) {
           return;
@@ -290,7 +287,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       // SSL handshake failed (maybe user rejected certificate)
       catch (SSLHandshakeException ex) {
         Log.e(TAG, ex.getMessage());
-        mNM.notify(NOTIFICATION_ID, getNotification(getText(R.string.err_connection_failed)));
+        mNM.notify(NOTIFICATION_ID, getNotification(BackgroundService.this, getText(R.string.status_connection_failed)));
         if (mRemoteMessenger == null) {
           return;
         }
@@ -320,10 +317,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       certData.putSerializable("cert", cert);
       msg.setData(certData);
       mRemoteMessenger.send(msg);
-
-
-
-
     }
     catch (RemoteException ex) {
       Logger.getLogger(BackgroundService.class
@@ -338,10 +331,6 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
       }
     }
     return mCertCheckResult.get();
-
-
-
-
   }
 
   /**

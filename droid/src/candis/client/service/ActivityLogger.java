@@ -1,7 +1,6 @@
 package candis.client.service;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Messenger;
 import android.os.RemoteException;
@@ -33,22 +32,22 @@ public class ActivityLogger implements JobCenterHandler {
   }
 
   public void onBinaryReceived(String runnableID) {
-    sendMsg(String.format("Task with ID %s received", runnableID));
+    putLog(String.format("Task with ID %s received", runnableID));
   }
 
   public void onInitialParameterReceived(String runnableID) {
-    sendMsg(String.format("Initial Paramater for Task with ID %s received", runnableID));
+    putLog(String.format("Initial Paramater for Task with ID %s received", runnableID));
   }
 
   public void onJobExecutionStart(String runnableID) {
-    sendMsg(String.format("Job for Task with ID %s started", runnableID));
+    putLog(String.format("Job for Task with ID %s started", runnableID));
   }
 
   public void onJobExecutionDone(String runnableID) {
-    sendMsg(String.format("Job for Task with ID %s stopped", runnableID));
+    putLog(String.format("Job for Task with ID %s stopped", runnableID));
   }
 
-  private void sendMsg(String message) {
+  private void putLog(String message) {
     Bundle bundle = new Bundle();
     bundle.putString("Message", message);
     try {
@@ -61,6 +60,7 @@ public class ActivityLogger implements JobCenterHandler {
     try {
       mFileOutputStream = mContext.openFileOutput(LOGFILE, Context.MODE_APPEND);
       mFileOutputStream.write(message.getBytes());
+      mFileOutputStream.write("\n".getBytes());
       mFileOutputStream.close();
     }
     catch (FileNotFoundException ex) {

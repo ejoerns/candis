@@ -23,6 +23,7 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
   private boolean mGenerateID = false;
   private boolean mGeneradeProfile = false;
   private final DroidContext mDroidContext;
+  private Toast mToast;
 
   public InitTask(final Activity act, final File idfile, final File profilefile) {
     mActivity = act;
@@ -48,13 +49,13 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
     if (!mIDFile.exists()) {
       Log.v(TAG, "ID file " + mIDFile + " does not exist. Will be generated...");
       mGenerateID = true;
-      publishProgress("Generating ID...", Toast.LENGTH_SHORT);
+//      publishProgress("Generating ID...", Toast.LENGTH_SHORT);
     }
     // load or generate ID
     DroidID id = null;
     if (mGenerateID) {
       id = DroidID.init(mIDFile);
-      publishProgress("ID (SHA-1): " + id.toSHA1(), Toast.LENGTH_LONG);
+      publishProgress("Generated ID (SHA-1): " + id.toSHA1(), Toast.LENGTH_LONG);
     }
     else {
       try {
@@ -73,17 +74,18 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
     // load or generate profile
     StaticProfile profile;
     if (mGeneradeProfile) {
-      profile = new StaticProfiler(mActivity).profile();
+      profile = new StaticProfiler(mActivity.getApplicationContext()).profile();
       StaticProfiler.writeProfile(mProfileFile, profile);
-      publishProgress("Profile generated", Toast.LENGTH_SHORT);
+//      publishProgress("Profile generated", Toast.LENGTH_SHORT);
     }
     else {
       profile = StaticProfiler.readProfile(mProfileFile);
     }
     mDroidContext.setID(id);
-    System.out.println("InitTask: id now: " + id.toSHA1());
+    Log.v(TAG, "InitTask: id now: " + id.toSHA1());
     mDroidContext.setProfile(profile);
-    System.out.println("InitTask done...");
+    publishProgress("Initialization done", Toast.LENGTH_SHORT);
+    Log.v(TAG, "InitTask done...");
     return mDroidContext;
   }
 
@@ -94,6 +96,10 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
    */
   @Override
   protected void onProgressUpdate(Object... msg) {
-    Toast.makeText(mActivity.getApplicationContext(), (String) msg[0], (Integer) msg[1]).show();
+    if (mToast != null) {
+      mToast.cancel();
+    }
+    mToast = Toast.makeText(mActivity.getApplicationContext(), (String) msg[0], (Integer) msg[1]);
+    mToast.show();
   }
 }
