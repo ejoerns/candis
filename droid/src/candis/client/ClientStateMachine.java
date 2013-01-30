@@ -374,7 +374,7 @@ public final class ClientStateMachine extends FSM {
       assert obj[0] instanceof String;
       assert obj[1] instanceof DistributedJobResult;
       assert obj.length == 2;
-			
+
       gotCalled();
       // Serialize Result
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -388,6 +388,10 @@ public final class ClientStateMachine extends FSM {
         LOGGER.log(Level.SEVERE, null, ex);
       }
       byte[] bytes = baos.toByteArray();
+
+      mNotificationManager.notify(
+              BackgroundService.NOTIFICATION_ID,
+              BackgroundService.getNotification(mContext, "Job done."));
 
       // Send result
       mSConn.sendMessage(Message.create(
@@ -428,6 +432,9 @@ public final class ClientStateMachine extends FSM {
     public void handle(Object... obj) {
       mSConn.sendMessage(Message.create(Instruction.ACK));
       mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
+      mNotificationManager.notify(
+              BackgroundService.NOTIFICATION_ID,
+              BackgroundService.getNotification(mContext, String.format("Processing job for Task %s", obj[0])));
     }
   }
 
