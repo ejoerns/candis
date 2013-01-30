@@ -98,8 +98,4 @@ public class UserParameterRequester {
 			throw new InvalidUserParameterException();
 		}
 	}
-
-	private void retquestUi(UserParameterSet parameters) {
-		throw new UnsupportedOperationException("UI Not yet implemented");
-	}
 }
