@@ -15,6 +15,8 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,26 +121,37 @@ public class CDBLoader {
 	}
 
 	/**
-	 * Returns the ClassLoader the CDB classes were loaded with. Use this
-	 * ClassLoader to process handling of cdb classes!
-	 *
-	 * @return ClassLoader the CDB classes were loaded with
-	 */
-//	public ClassLoaderWrapper getClassLoaderWrapper() {
-//		return mClassLoaderWrapper;
-//	}
-	/**
 	 * Loads classes from cdb file.
 	 *
 	 * Returns ID that can be used to acces CDB data later on.
 	 *
 	 * @param cdbfile
-	 * @return ID for the CDB file.
+	 * @return ID for the CDB file, null if the file has already been loaded
 	 */
 	public String loadCDB(final File cdbfile) throws Exception {
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
 		List<String> classList;
-		String newID = String.format("%05d", mCDBid++);
+		
+		// Create MD5 sum as ID for CDB
+		final MessageDigest digest = MessageDigest.getInstance("MD5");
+		final byte[] data = new byte[(int) cdbfile.length()];
+		final FileInputStream fis = new FileInputStream(cdbfile);
+		try {
+			fis.read(data);
+		}
+		finally {
+			fis.close();
+		}
+		// Reads it all at one go. Might be better to chunk it.
+		digest.update(data);
+		String newID = toHex(digest.digest());
+
+		// check if already loaded
+		if (mKnownTaskIDs.contains(newID)) {
+			LOGGER.log(Level.WARNING, "File with ID {0} already loaded.", newID);
+			return null;
+		}
+
 		LOGGER.log(Level.INFO, "Loading CDB file with ID {0}", newID);
 
 		final CDBContext newCDBContext = new CDBContext(projectPath);
@@ -381,6 +394,15 @@ public class CDBLoader {
 		}
 
 		return filename.substring(0, extensionIndex);
+	}
+
+	public static String toHex(byte[] a) {
+		StringBuilder sb = new StringBuilder(a.length * 2);
+		for (int i = 0; i < a.length; i++) {
+			sb.append(Character.forDigit((a[i] & 0xf0) >> 4, 16));
+			sb.append(Character.forDigit(a[i] & 0x0f, 16));
+		}
+		return sb.toString();
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package candis.server.gui;
 
+import candis.common.CandisLog;
 import candis.common.Settings;
 import candis.distributed.JobDistributionIOHandler;
 import candis.distributed.SchedulerStillRuningException;
@@ -151,7 +152,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 4;
-    gridBagConstraints.gridy = 3;
+    gridBagConstraints.gridy = 4;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
     getContentPane().add(mExecuteButton, gridBagConstraints);
@@ -196,7 +197,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 3;
-    gridBagConstraints.gridy = 3;
+    gridBagConstraints.gridy = 4;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.weighty = 0.1;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
@@ -211,7 +212,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 5;
-    gridBagConstraints.gridy = 3;
+    gridBagConstraints.gridy = 4;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 5);
     getContentPane().add(mStopButton, gridBagConstraints);
@@ -282,6 +283,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
     gridBagConstraints.gridx = 3;
     gridBagConstraints.gridy = 1;
     gridBagConstraints.gridwidth = 3;
+    gridBagConstraints.gridheight = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.PAGE_START;
     gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
@@ -370,16 +372,20 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				mCurrentTaskID = mJobDistIO.getCDBLoader().loadCDB(fileChooser.getSelectedFile());
-				mTaskPanel.addTask(mCurrentTaskID);
-				mTaskPanel.selectTask(mCurrentTaskID);
-				mTaskPanelHolder.revalidate();
-				mExecuteButton.setEnabled(true);
-				this.pack();
 			}
 			catch (Exception ex) {
 				LOGGER.log(Level.SEVERE, null, ex);
 				JOptionPane.showMessageDialog(this, ex, "Error", JOptionPane.ERROR_MESSAGE);
 			}
+			if (mCurrentTaskID == null) {
+				JOptionPane.showMessageDialog(this, "File already loaded", "Error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			mTaskPanel.addTask(mCurrentTaskID);
+			mTaskPanel.selectTask(mCurrentTaskID);
+			mTaskPanelHolder.revalidate();
+			mExecuteButton.setEnabled(true);
+			this.pack();
 
 		}
   }//GEN-LAST:event_mOpenButtonActionPerformed
@@ -437,10 +443,8 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
   }//GEN-LAST:event_mStopButtonActionPerformed
 
   private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
-	mJobDistIO.stopScheduler();
+		mJobDistIO.stopScheduler();
   }//GEN-LAST:event_formWindowClosing
-
-
 	/**
 	 * @param args the command line arguments
 	 */
