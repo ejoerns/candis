@@ -2,10 +2,12 @@ package candis.client.comm;
 
 import android.content.Context;
 import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
+import candis.client.service.BackgroundService;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.QueuedMessageConnection;
@@ -38,6 +40,7 @@ public class ServerConnection implements Runnable {
   private final Messenger mMessenger;
   private final SecureSocket mSecureSocket;
   private QueuedMessageConnection mQueuedMessageConnection;
+  Thread mQMCThread;
 
   public ServerConnection(final X509TrustManager tmanager,
                           final DroidContext dcontext,
@@ -110,9 +113,9 @@ public class ServerConnection implements Runnable {
   public void run() {
     // start message queue
 
-    Thread qmcThread = new Thread(mQueuedMessageConnection);
-    qmcThread.setDaemon(true);
-    qmcThread.start();
+    mQMCThread = new Thread(mQueuedMessageConnection);
+    mQMCThread.setDaemon(true);
+    mQMCThread.start();
 
     mFSM.process(ClientStateMachine.ClientTrans.SOCKET_CONNECTED);
 
@@ -138,22 +141,29 @@ public class ServerConnection implements Runnable {
       }
       // The thread was interrupted
       catch (InterruptedIOException ex) {
-        LOGGER.info("Interrupted ServerConnection Thread");
-        isStopped = true;
-        qmcThread.interrupt();
+        closeConnection(ex);
       }
       // The socket was close of any reason
       catch (SocketException ex) {
-        LOGGER.warning("Socket was closed");
-        isStopped = true;
-        qmcThread.interrupt();
+        closeConnection(ex);
       }
       catch (IOException ex) {
-        LOGGER.log(Level.SEVERE, null, ex);
-        isStopped = true;
+        closeConnection(ex);
       }
     }
     Log.i(TAG, "[[ServerConnection THREAD done]]");
+  }
+
+  private void closeConnection(Exception ex) {
+    LOGGER.warning(ex.getMessage());
+    isStopped = true;
+    mQMCThread.interrupt();
+    try {
+      mMessenger.send(android.os.Message.obtain(null, BackgroundService.DISCONNECTED));
+    }
+    catch (RemoteException ex1) {
+      LOGGER.log(Level.SEVERE, null, ex1);
+    }
   }
 
   /**

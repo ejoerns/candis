@@ -96,9 +96,6 @@
           </Constraints>
         </Component>
         <Component class="javax.swing.JLabel" name="mRunningValue">
-          <Properties>
-            <Property name="text" type="java.lang.String" value="stopped"/>
-          </Properties>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout$GridBagConstraintsDescription">
               <GridBagConstraints gridX="2" gridY="1" gridWidth="1" gridHeight="1" fill="0" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="10" insetsBottom="5" insetsRight="0" anchor="22" weightX="0.1" weightY="0.0"/>

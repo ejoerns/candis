@@ -128,8 +128,6 @@ public class TaskPanelElement extends javax.swing.JPanel {
     gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
     gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 0);
     jPanel1.add(mResultsValue, gridBagConstraints);
-
-    mRunningValue.setText("stopped");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 2;
     gridBagConstraints.gridy = 1;
