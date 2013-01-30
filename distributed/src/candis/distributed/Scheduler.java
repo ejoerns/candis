@@ -24,8 +24,6 @@ public abstract class Scheduler {
 	protected JobDistributionIO mJobDistIO;
 	/// Results
 	private final Map<DistributedJobParameter, DistributedJobResult> mResults = new HashMap<DistributedJobParameter, DistributedJobResult>();
-	/// Droids that were already processed, to prevent double initialization
-	protected final Set<String> mKnownDroids = new HashSet<String>();
 	/// Droids that are currently running
 	protected final Map<String, DistributedJobParameter> mRunningDroidsList = new HashMap<String, DistributedJobParameter>();
 	/// Droids that can be scheduled
@@ -140,18 +138,13 @@ public abstract class Scheduler {
 	 */
 	public void registerDroid(String droidID) {
 		System.out.println("SS: onNewDroid()");
-		// check if client was already handled
-		if (mKnownDroids.contains(droidID)) {
-			return;
-		}
 		// Test if droid is acceptable according to our scheduling rules.
 		if (!checkAccepted()) {
 			LOGGER.log(Level.INFO, "Rejected Droid {0}", droidID);
 			return;
 		}
 		LOGGER.log(Level.INFO, "Got new Droid {0}", droidID);
-		// Send Binary
-		mKnownDroids.add(droidID);
+
 		synchronized (mSchedulabeDroids) {
 			mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
 			mSchedulabeDroids.notifyAll();
@@ -169,29 +162,6 @@ public abstract class Scheduler {
 		}
 	}
 
-	/**
-	 * Called when droid received binary.
-	 *
-	 * @param droidID
-	 */
-//  public void onBinarySent(String droidID) {
-//    System.out.println("SS: onBinaryRecieved()");
-//    // Send inital Parameter
-//    mJobDistIO.sendInitialParameter(droidID, mInitalParameter);
-//  }
-	/**
-	 * Called when droid received initial parameter.
-	 *
-	 * @param droidID
-	 */
-//  public void onInitParameterSent(String droidID) {
-//    System.out.println("SS: onInitParameterRecieved()");
-//    // add to list of schedulable tasks
-//    synchronized (mSchedulabeDroids) {
-//      mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
-//      mSchedulabeDroids.notifyAll();
-//    }
-//  }
 	/**
 	 * Is called when a job is done.
 	 *
@@ -220,12 +190,12 @@ public abstract class Scheduler {
 	 * @param droidID
 	 * @param error
 	 */
-	public void onDroidError(String id, DistributedJobError error) {
-		LOGGER.log(Level.SEVERE, "Droid {0}, Error {1}", new Object[]{id, error});
+	public void onDroidError(String droidID, DistributedJobError error) {
+		LOGGER.log(Level.SEVERE, "Droid {0}, Error {1}", new Object[]{droidID, error});
 		// removed Droids won't stay in the id List
 		// therefore it is not neccesary to check, for DROID_LOST in error
-		if (mRunningDroidsList.containsKey(id)) {
-			DistributedJobParameter p = mRunningDroidsList.get(id);
+		if (mRunningDroidsList.containsKey(droidID)) {
+			DistributedJobParameter p = mRunningDroidsList.get(droidID);
 			addParameter(p);
 		}
 	}
