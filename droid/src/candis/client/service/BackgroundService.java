@@ -1,10 +1,12 @@
 package candis.client.service;
 
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -15,7 +17,9 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.text.Editable;
 import android.util.Log;
+import android.widget.EditText;
 import android.widget.Toast;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
@@ -148,12 +152,8 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
     }
     mRunning = true;
 
-    if (mSharedPref != null) {
-      Log.e(TAG, "First is: " + mSharedPref.getString(SettingsActivity.HOSTNAME, "foo"));
-    }
     // loader shared preferences
     mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-    Log.e(TAG, "Now is: " + mSharedPref.getString(SettingsActivity.HOSTNAME, "bar"));
 
     // start this process as a foreground service so that it will not be
     // killed, even if it does cpu intensive operations etc.
@@ -382,6 +382,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
           try {
             mFSM.process(
                     ClientStateMachine.ClientTrans.CHECKCODE_ENTERED,
+                    BackgroundService.this.mDroidContext.getID().toSHA1(),
                     msg.getData().getString("checkcode"));
           }
           catch (StateMachineException ex) {

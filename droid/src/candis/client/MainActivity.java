@@ -34,6 +34,7 @@ import candis.client.gui.InfoActivity;
 import candis.client.gui.LogActivity;
 import candis.client.gui.settings.SettingsActivity;
 import candis.client.service.BackgroundService;
+import candis.common.CandisLog;
 import candis.common.Settings;
 import java.io.File;
 import java.io.IOException;
@@ -75,7 +76,7 @@ public class MainActivity extends FragmentActivity
   @Override
   public void onCreate(Bundle savedInstanceState) {
     System.out.println("onCreate()");
-
+    
     // Check if saved bundle can be found...
     if (savedInstanceState == null) {
       Log.i(TAG, "No savedInstanceState found!");
@@ -292,7 +293,8 @@ public class MainActivity extends FragmentActivity
           cad.show(getSupportFragmentManager(), "");
           break;
         case BackgroundService.SHOW_CHECKCODE:
-          DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger);
+          String yourID = msg.getData().getString("ID");
+          DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger, yourID);
           checkDialog.show(getSupportFragmentManager(), TAG);
           break;
         case BackgroundService.INVALID_CHECKCODE:

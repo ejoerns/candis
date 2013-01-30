@@ -1,6 +1,5 @@
 package candis.server.gui;
 
-import candis.common.CandisLog;
 import candis.common.Settings;
 import candis.distributed.JobDistributionIOHandler;
 import candis.distributed.SchedulerStillRuningException;
@@ -37,7 +36,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 	private final DroidlistTableModel mDroidlistTableModel;
 	private final DroidInfoTableModel mDroidInfoTableModel;
 	private final OptionsDialog mOptionDialog;
-	private final CheckCodeShowDialog mCheckCodeShowDialog;
+	private final CheckCodeHandler mCheckCodeHandler;
 	private CandisLoggerHandler mLoggerHandler;
 	private String mCurrentTaskID = "";
 	private TaskPanel mTaskPanel;
@@ -54,8 +53,8 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		mDroidlistTableModel = droidlisttablemodel;
 		mDroidInfoTableModel = new DroidInfoTableModel();
 		mOptionDialog = new OptionsDialog(this, false);
-		mCheckCodeShowDialog = new CheckCodeShowDialog(this, false);
-		mDroidManager.addListener(mCheckCodeShowDialog);
+		mCheckCodeHandler = new CheckCodeHandler(this);
+		mDroidManager.addListener(mCheckCodeHandler);
 		mJobDistIO.addHandler(new JobDistIOHandler());
 		UserParameterRequester.init(this);
 	}

@@ -1,25 +1,21 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server.gui;
-
-import candis.server.DroidManager;
-import candis.server.DroidManagerEvent;
-import candis.server.DroidManagerListener;
 
 /**
  *
  * @author Enrico Joerns
  */
-public class CheckCodeShowDialog extends javax.swing.JDialog implements DroidManagerListener {
+public class CheckCodeShowDialog extends javax.swing.JDialog {
 
 	/**
 	 * Creates new form CheckCodeShowDialog.
 	 */
-	public CheckCodeShowDialog(java.awt.Frame parent, boolean modal) {
+	public CheckCodeShowDialog(java.awt.Frame parent, boolean modal, String deviceID, String code) {
 		super(parent, modal);
+		setTitle(deviceID);
 		initComponents();
+		mCheckCodeField.setText(code);
+		mHeadLabel.setText("Checkcode for " + deviceID);
+		pack();
 		setLocationRelativeTo(parent);
 	}
 
@@ -79,22 +75,10 @@ public class CheckCodeShowDialog extends javax.swing.JDialog implements DroidMan
 
   private void mCloseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mCloseButtonActionPerformed
 		// TODO add your handling code here:
-		setVisible(false);
   }//GEN-LAST:event_mCloseButtonActionPerformed
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JTextField mCheckCodeField;
   private javax.swing.JButton mCloseButton;
   private javax.swing.JLabel mHeadLabel;
   // End of variables declaration//GEN-END:variables
-
-	@Override
-	public void handle(DroidManagerEvent event, DroidManager manager) {
-		if (event == DroidManagerEvent.CHECK_CODE) {
-			mCheckCodeField.setText(manager.getCheckCode());
-			setVisible(true);
-		}
-		else if (event == DroidManagerEvent.CHECK_CODE_DONE) {
-			setVisible(false);
-		}
-	}
 }

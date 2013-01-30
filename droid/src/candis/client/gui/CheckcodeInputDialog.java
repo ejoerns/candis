@@ -25,9 +25,11 @@ public class CheckcodeInputDialog extends DialogFragment {
 
   private static final String TAG = CheckcodeInputDialog.class.getName();
   private final Messenger mMessenger;
+  private final String mCheckCodeID;
 
-  public CheckcodeInputDialog(Messenger context) {
+  public CheckcodeInputDialog(Messenger context, String checkcodeID) {
     mMessenger = context;
+    mCheckCodeID = checkcodeID;
   }
 
   @Override
@@ -39,7 +41,8 @@ public class CheckcodeInputDialog extends DialogFragment {
     builder.setView(input);
 
     try {
-      builder.setMessage("Enter check code")
+      builder.setMessage("You are: " + mCheckCodeID)
+              .setTitle("Enter check code")
               .setPositiveButton(R.string.accept, new DialogInterface.OnClickListener() {
         public void onClick(DialogInterface dialog, int id) {
           Log.v(TAG, "Positive clicked with checkcode " + input.getText().toString());
@@ -51,6 +54,7 @@ public class CheckcodeInputDialog extends DialogFragment {
                     BackgroundService.RESULT_SHOW_CHECKCODE);
             Bundle bundle = new Bundle();
             bundle.putString("checkcode", input.getText().toString());
+            Log.e(TAG, "checkcode: " + input.getText().toString());
             message.setData(bundle);
             mMessenger.send(message);
           }

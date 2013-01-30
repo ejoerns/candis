@@ -5,6 +5,7 @@ import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,8 @@ public final class DroidManager {
 	 */
 	private final List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
 	/// stores check code for extended client authorization
-	private String mCheckCode;
+	private Map<String, String> mCheckCode = new HashMap<String, String>();
+	private Map<String, String> mCheckCodeID = new HashMap<String, String>();
 
 	/**
 	 * Hidden to match Singleton requirements.
@@ -101,11 +103,11 @@ public final class DroidManager {
 		addDroid(rid, new DroidData(false, profile));
 	}
 
-	public void addDroid(final String rid, DroidData droid) {
-		if (!knownDroids.containsKey(rid)) {
-			LOGGER.log(Level.INFO, "Droid {0} added", rid);
-			knownDroids.put(rid, droid);
-			notifyListeners(DroidManagerEvent.DROID_ADDED);
+	public void addDroid(final String droidID, DroidData droid) {
+		if (!knownDroids.containsKey(droidID)) {
+			LOGGER.log(Level.INFO, "Droid {0} added", droidID);
+			knownDroids.put(droidID, droid);
+			notifyListeners(DroidManagerEvent.DROID_ADDED, droidID);
 		}
 	}
 
@@ -122,16 +124,16 @@ public final class DroidManager {
 	/**
 	 * Removes a Droid from the list of known Droids.
 	 *
-	 * @param rid ID of Droid to remove
+	 * @param droidID ID of Droid to remove
 	 */
-	public void deleteDroid(final String rid) {
-		if (knownDroids.containsKey(rid)) {
-			knownDroids.remove(rid);
-			notifyListeners(DroidManagerEvent.DROID_DELETED);
+	public void deleteDroid(final String droidID) {
+		if (knownDroids.containsKey(droidID)) {
+			knownDroids.remove(droidID);
+			notifyListeners(DroidManagerEvent.DROID_DELETED, droidID);
 		}
-		if (connectedDroids.containsKey(rid)) {
-			LOGGER.log(Level.INFO, "Droid {0} deleted", rid);
-			connectedDroids.remove(rid);
+		if (connectedDroids.containsKey(droidID)) {
+			LOGGER.log(Level.INFO, "Droid {0} deleted", droidID);
+			connectedDroids.remove(droidID);
 			// TODO: close connection
 		}
 	}
@@ -148,15 +150,15 @@ public final class DroidManager {
 	/**
 	 * Blacklists a known Droid.
 	 *
-	 * @param rid Droid to blacklist
+	 * @param droidID Droid to blacklist
 	 */
-	public void blacklistDroid(final String rid) {
-		if (knownDroids.containsKey(rid)) {
-			knownDroids.get(rid).setBlacklist(true);
-			notifyListeners(DroidManagerEvent.DROID_BLACKLISTED);
+	public void blacklistDroid(final String droidID) {
+		if (knownDroids.containsKey(droidID)) {
+			knownDroids.get(droidID).setBlacklist(true);
+			notifyListeners(DroidManagerEvent.DROID_BLACKLISTED, droidID);
 		}
 		else {
-			LOGGER.log(Level.WARNING, "Droid {0} could not be blacklisted", rid);
+			LOGGER.log(Level.WARNING, "Droid {0} could not be blacklisted", droidID);
 		}
 	}
 
@@ -172,15 +174,15 @@ public final class DroidManager {
 	/**
 	 * Whitelists a known Droid.
 	 *
-	 * @param rid Droid to whitelist
+	 * @param droidID Droid to whitelist
 	 */
-	public void whitelistDroid(final String rid) {
-		if (knownDroids.containsKey(rid)) {
-			knownDroids.get(rid).setBlacklist(false);
-			notifyListeners(DroidManagerEvent.DROID_WHITELISTED);
+	public void whitelistDroid(final String droidID) {
+		if (knownDroids.containsKey(droidID)) {
+			knownDroids.get(droidID).setBlacklist(false);
+			notifyListeners(DroidManagerEvent.DROID_WHITELISTED, droidID);
 		}
 		else {
-			LOGGER.log(Level.WARNING, "Droid {0} could not be whitelisted", rid);
+			LOGGER.log(Level.WARNING, "Droid {0} could not be whitelisted", droidID);
 		}
 	}
 
@@ -251,23 +253,23 @@ public final class DroidManager {
 		return isDroidBlacklisted(rid.toString());
 	}
 
-	public StaticProfile getStaticProfile(final String barray) {
-		if (!knownDroids.containsKey(barray)) {
+	public StaticProfile getStaticProfile(final String droidID) {
+		if (!knownDroids.containsKey(droidID)) {
 			return null;
 		}
 
-		return knownDroids.get(barray).getProfile();
+		return knownDroids.get(droidID).getProfile();
 	}
 
 	/**
 	 * Connects droid to droid manager.
 	 *
-	 * @param rid
+	 * @param droidID
 	 */
-	public void connectDroid(final String rid, ClientConnection con) {
-		LOGGER.log(Level.INFO, "Droid {0} connected", rid);
-		connectedDroids.put(rid, con);
-		notifyListeners(DroidManagerEvent.DROID_CONNECTED);
+	public void connectDroid(final String droidID, ClientConnection con) {
+		LOGGER.log(Level.INFO, "Droid {0} connected", droidID);
+		connectedDroids.put(droidID, con);
+		notifyListeners(DroidManagerEvent.DROID_CONNECTED, droidID);
 	}
 
 	public void connectDroid(final DroidID rid, ClientConnection con) {
@@ -277,12 +279,12 @@ public final class DroidManager {
 	/**
 	 * Disconnects droid from droid manager.
 	 *
-	 * @param rid ID of droid that is disconnected
+	 * @param droidID ID of droid that is disconnected
 	 */
-	public void disconnectDroid(final String rid) {
-		LOGGER.log(Level.INFO, "Droid {0} disconnected", rid);
-		connectedDroids.remove(rid);
-		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED);
+	public void disconnectDroid(final String droidID) {
+		LOGGER.log(Level.INFO, "Droid {0} disconnected", droidID);
+		connectedDroids.remove(droidID);
+		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED, droidID);
 	}
 
 	/**
@@ -302,7 +304,7 @@ public final class DroidManager {
 	 */
 	public void load(final File file) throws FileNotFoundException {
 		knownDroids = readFromXMLFile(file);
-		notifyListeners(DroidManagerEvent.UPDATE);
+		notifyListeners();
 	}
 
 	/**
@@ -380,14 +382,14 @@ public final class DroidManager {
 	 *
 	 * @param event Event that should be passed to listeners
 	 */
-	private void notifyListeners(final DroidManagerEvent event) {
+	private void notifyListeners(final DroidManagerEvent event, String droidID) {
 		for (DroidManagerListener d : listeners) {
-			d.handle(event, this);
+			d.handle(event, droidID, this);
 		}
 	}
 
 	private void notifyListeners() {
-		notifyListeners(DroidManagerEvent.UPDATE);
+		notifyListeners(DroidManagerEvent.UPDATE, null);
 	}
 
 	/**
@@ -409,9 +411,10 @@ public final class DroidManager {
 	 *
 	 * @param code Code do show for theck
 	 */
-	void showCheckCode(final String code) {
-		mCheckCode = code;
-		notifyListeners(DroidManagerEvent.CHECK_CODE);
+	void showCheckCode(final String codeID, final String code, final String droidID) {
+		mCheckCodeID.put(droidID, codeID);
+		mCheckCode.put(droidID, code);
+		notifyListeners(DroidManagerEvent.CHECK_CODE, droidID);
 	}
 
 	/**
@@ -420,9 +423,10 @@ public final class DroidManager {
 	 * @param code
 	 * @return
 	 */
-	boolean validateCheckCode(final String code) {
-		notifyListeners(DroidManagerEvent.CHECK_CODE_DONE);
-		return mCheckCode.equals(code);
+	boolean validateCheckCode(final String code, final String droidID) {
+		notifyListeners(DroidManagerEvent.CHECK_CODE_DONE, droidID);
+		mCheckCodeID.remove(droidID);
+		return mCheckCode.remove(droidID).equals(code);
 	}
 
 	/**
@@ -430,7 +434,12 @@ public final class DroidManager {
 	 *
 	 * @return Check code
 	 */
-	public String getCheckCode() {
-		return mCheckCode;
+	public String getCheckCode(String droidID) {
+		return mCheckCode.get(droidID);
 	}
+
+	public String getCheckCodeID(String droidID) {
+		return mCheckCodeID.get(droidID);
+	}
+
 }

@@ -3,6 +3,7 @@ package candis.client;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.os.Messenger;
 import android.os.RemoteException;
 import candis.client.comm.ServerConnection;
@@ -28,7 +29,7 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public final class ClientStateMachine extends FSM {
-
+  
   private static final String TAG = ClientStateMachine.class.getName();
   private static final Logger LOGGER = Logger.getLogger(TAG);
   private final DroidContext mDroitContext;
@@ -38,9 +39,9 @@ public final class ClientStateMachine extends FSM {
   private final NotificationManager mNotificationManager;
   private final JobCenter mJobCenter;
   private SharedPreferences.Editor mSystemStateEditor;
-
+  
   private enum ClientStates implements StateEnum {
-
+    
     UNCONNECTED,
     WAIT_ACCEPT,
     CHECKCODE_ENTER,
@@ -54,17 +55,18 @@ public final class ClientStateMachine extends FSM {
     INIT_RECEIVED,
     INIT_BINARY_REQUESTED;
   }
-
+  
   public enum ClientTrans implements Transition {
-
+    
     SOCKET_CONNECTED,
+    // (droidID, checkcode)
     CHECKCODE_ENTERED,
     JOB_FINISHED,
     DISCONNECT,
     KNOWN_TASK,
     UNKNOWN_TASK;
   }
-
+  
   public ClientStateMachine(
           ServerConnection sconn,
           final DroidContext dcontext,
@@ -76,15 +78,15 @@ public final class ClientStateMachine extends FSM {
     mMessenger = messenger;
     mSConn = sconn;
     mJobCenter = jobcenter;
-
+    
     mNotificationManager =
             (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
     mSystemStateEditor = mContext.getSharedPreferences(
             CurrentSystemStatus.CURRENT_SYSTEM_STATUS,
             Context.MODE_PRIVATE).edit();
-
+    
   }
-
+  
   @Override
   public void init() {
     addState(ClientStates.UNCONNECTED)
@@ -179,7 +181,7 @@ public final class ClientStateMachine extends FSM {
             ClientTrans.JOB_FINISHED,
             ClientStates.WAIT_FOR_JOB,
             new JobFinishedHandler());
-
+    
     addGlobalTransition(
             ClientTrans.DISCONNECT,
             ClientStates.UNCONNECTED,
@@ -196,7 +198,7 @@ public final class ClientStateMachine extends FSM {
    * Shows Error Dialog with short message.
    */
   private class ConnectionRejectedHandler extends ActionHandler {
-
+    
     @Override
     public void handle(final Object... obj) {
       gotCalled();
@@ -221,7 +223,7 @@ public final class ClientStateMachine extends FSM {
    * Sends disconnect instruction to master.
    */
   private class DisconnectHandler extends ActionHandler {
-
+    
     @Override
     public void handle(final Object... o) {
       gotCalled();
@@ -239,11 +241,11 @@ public final class ClientStateMachine extends FSM {
    * Requests connection to server.
    */
   private class SocketConnectedHandler extends ActionHandler {
-
+    
     @Override
     public void handle(final Object... obj) {
       assert obj != null;
-
+      
       gotCalled();
       if (mDroitContext.getID() == null) {
         LOGGER.severe("Will not request connection for an empty ID");
@@ -258,7 +260,7 @@ public final class ClientStateMachine extends FSM {
    * Sends Profile data to Server.
    */
   private class ProfileRequestHandler extends ActionHandler {
-
+    
     @Override
     public void handle(final Object... obj) {
       gotCalled();
@@ -270,9 +272,9 @@ public final class ClientStateMachine extends FSM {
    * Shows input dialog to enter checkcode.
    */
   private class CheckcodeInputHandler extends ActionHandler {
-
+    
     @Override
-    public void handle(final Object... o) {
+    public void handle(final Object... data) {
       gotCalled();
       try {
         //      Intent newintent = new Intent(mContext, MainActivity.class);
@@ -280,7 +282,11 @@ public final class ClientStateMachine extends FSM {
         //              .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         //              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         //      mContext.startActivity(newintent);
-        mMessenger.send(android.os.Message.obtain(null, BackgroundService.SHOW_CHECKCODE));
+        Bundle bundle = new Bundle();
+        bundle.putString("ID", (String) data[0]);
+        android.os.Message message = android.os.Message.obtain(null, BackgroundService.SHOW_CHECKCODE);
+        message.setData(bundle);
+        mMessenger.send(message);
       }
       catch (RemoteException ex) {
         Logger.getLogger(ClientStateMachine.class.getName()).log(Level.SEVERE, null, ex);
@@ -292,11 +298,12 @@ public final class ClientStateMachine extends FSM {
    * Sends entered checkcode to server.
    */
   private class CheckcodeSendHandler extends ActionHandler {
-
+    
     @Override
-    public void handle(final Object... o) {
+    public void handle(final Object... data) {
       gotCalled();
-      mSConn.sendMessage(Message.create(Instruction.SEND_CHECKCODE, (String) o[0]));
+      mSConn.sendMessage(Message.create(
+              Instruction.SEND_CHECKCODE, (String) data[0], (String) data[1]));
     }
   }
 
@@ -304,7 +311,7 @@ public final class ClientStateMachine extends FSM {
    * Sends entered checkcode to server.
    */
   private class InvalidCheckcodeHandler extends ActionHandler {
-
+    
     @Override
     public void handle(final Object... o) {
       gotCalled();
@@ -322,7 +329,7 @@ public final class ClientStateMachine extends FSM {
    * Notifies listener about this.
    */
   private class ConnectionAcceptedHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
       try {
         mSystemStateEditor
@@ -345,12 +352,12 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class CheckJobHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
       assert (obj[1] instanceof DistributedJobParameter) || (obj[1] instanceof byte[]);
       gotCalled();
-
+      
       mJobCenter.setCurrentRunnableID((String) obj[0]);
       mJobCenter.setCurrentUndeserializedJob((byte[]) obj[1]);
       if (mJobCenter.isTaskAvailable((String) obj[0])) {
@@ -368,13 +375,13 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class JobFinishedHandler extends ActionHandler {
-
+    
     @Override
     public void handle(final Object... obj) {
       assert obj[0] instanceof String;
       assert obj[1] instanceof DistributedJobResult;
       assert obj.length == 2;
-
+      
       gotCalled();
       // Serialize Result
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -388,7 +395,7 @@ public final class ClientStateMachine extends FSM {
         LOGGER.log(Level.SEVERE, null, ex);
       }
       byte[] bytes = baos.toByteArray();
-
+      
       mNotificationManager.notify(
               BackgroundService.NOTIFICATION_ID,
               BackgroundService.getNotification(mContext, "Job done."));
@@ -408,7 +415,7 @@ public final class ClientStateMachine extends FSM {
    * param[1]: parameter
    */
   private class CheckInitialParameterHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
       try {
         if (mJobCenter.isTaskAvailable((String) obj[0])) {
@@ -428,7 +435,7 @@ public final class ClientStateMachine extends FSM {
    * Executes the job with given ID.
    */
   private class ProcessJobHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
       mSConn.sendMessage(Message.create(Instruction.ACK));
       mJobCenter.executeTask((String) obj[0], (DistributedJobParameter) obj[1]);
@@ -442,11 +449,11 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class AddBinaryHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
-
+      
       mJobCenter.loadBinary((String) obj[0], (byte[]) obj[1]);
-
+      
       mSConn.sendMessage(Message.create(Instruction.ACK));
     }
   }
@@ -455,7 +462,7 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class AddInitialParameterHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
       mJobCenter.setInitialParameter((String) obj[0], (DistributedJobParameter) obj[1]);
       mSConn.sendMessage(Message.create(Instruction.ACK));
@@ -466,12 +473,12 @@ public final class ClientStateMachine extends FSM {
    *
    */
   private class AddInitialAndProcessHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
       assert obj[1] instanceof DistributedJobParameter;
       assert obj.length == 2;
-
+      
       mJobCenter.setInitialParameter((String) obj[0], mJobCenter.deserializeJobParameter((byte[]) obj[1]));
       mSConn.sendMessage(Message.create(Instruction.ACK));
       DistributedJobParameter djp = mJobCenter.deserializeCurrentJob();
@@ -484,10 +491,10 @@ public final class ClientStateMachine extends FSM {
    * param[0] - id (String)
    */
   private class RequestBinaryHandler extends ActionHandler {
-
+    
     public void handle(Object... obj) {
       assert obj[0] instanceof String;
-
+      
       mSConn.sendMessage(Message.create(Instruction.REQUEST_BINARY, (Serializable) obj[0]));
     }
   }

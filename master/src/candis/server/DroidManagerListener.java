@@ -1,8 +1,5 @@
 package candis.server;
 
-import candis.distributed.DroidData;
-import java.util.Map;
-
 /**
  *
  * @author Enrico Joerns
@@ -16,7 +13,5 @@ public interface DroidManagerListener {
 	 * @param knownDroids List of known Droids
 	 * @param connectedDroids List of connected Droids
 	 */
-	void handle(
-					DroidManagerEvent event,
-					DroidManager manager);
+	void handle(DroidManagerEvent event, String droidID, DroidManager manager);
 }

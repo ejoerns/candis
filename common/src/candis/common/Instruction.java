@@ -34,9 +34,9 @@ public enum Instruction implements Transition {
   /// Droid requests connection to master
   REQUEST_CONNECTION(40, 1, Type.OBJECT),
   /// Master requests check code
-  REQUEST_CHECKCODE(50, 0),
-  /// Droid sends check code
-  SEND_CHECKCODE(55, 1, Type.STRING),
+  REQUEST_CHECKCODE(50, 1, Type.STRING),
+  /// Droid sends check code (droidID, checkcode)
+  SEND_CHECKCODE(55, 2, Type.STRING, Type.STRING),
   /// Master says that checkcode is invalid
   INVALID_CHECKCODE(56, 0),
   /// Master requests profile data from droid

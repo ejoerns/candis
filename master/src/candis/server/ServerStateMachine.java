@@ -24,6 +24,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OptionalDataException;
 import java.security.SecureRandom;
+import java.util.Random;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,6 +75,7 @@ public class ServerStateMachine extends FSM {
 
 		CLIENT_BLACKLISTED,
 		CLIENT_NEW,
+		// (droidID, checkcodeID)
 		CLIENT_NEW_CHECK,
 		CLIENT_ACCEPTED,
 		CHECKCODE_VALID,
@@ -141,7 +143,7 @@ public class ServerStateMachine extends FSM {
 						.addTransition(
 						ServerTrans.CHECKCODE_INVALID,
 						ServerStates.UNCONNECTED,
-						null);
+						null);// TODO...
 		addState(ServerStates.PROFILE_REQUESTED)
 						.addTransition(
 						Instruction.SEND_PROFILE,
@@ -250,10 +252,10 @@ public class ServerStateMachine extends FSM {
 			else {
 				mConnection.setDroidID(currentID.toSHA1());
 				if (mDroidManager.isDroidKnown(currentID)) {
-					System.out.println("Droid ist known: " + currentID.toSHA1());
+					System.out.println("Droid is known: " + currentID.toSHA1());
 					// check if droid is blacklisted
 					if (mDroidManager.isDroidBlacklisted(currentID)) {
-						System.out.println("Droid ist blacklisted");
+						System.out.println("Droid is blacklisted");
 						trans = ServerTrans.CLIENT_BLACKLISTED;
 						instr = Instruction.REJECT_CONNECTION;
 					}
@@ -264,7 +266,7 @@ public class ServerStateMachine extends FSM {
 				}
 				// seems to be a new droid
 				else {
-					System.out.println("Droid ist unknown: " + currentID.toSHA1());
+					System.out.println("Droid is unknown: " + currentID.toSHA1());
 					// check if option 'check code auth' is active
 					if (Settings.getBoolean("pincode_auth")) {
 						trans = ServerTrans.CLIENT_NEW_CHECK;
@@ -278,8 +280,20 @@ public class ServerStateMachine extends FSM {
 			}
 			// Send instruction
 			try {
-				mConnection.sendMessage(new Message(instr));
-				process(trans);
+				// if checkcode is requested, generate a halfway unique id to let the
+				// users identify their devices
+				if (instr == Instruction.REQUEST_CHECKCODE) {
+					Random random = new Random();
+					byte[] bytes = new byte[4];
+					random.nextBytes(bytes);
+					String checkcodeID = Utilities.toHexString(bytes);
+					mConnection.sendMessage(new Message(instr, checkcodeID));
+					process(trans, currentID.toSHA1(), checkcodeID);
+				}
+				else {
+					mConnection.sendMessage(new Message(instr));
+					process(trans, currentID.toSHA1());
+				}
 			}
 			catch (IOException ex) {
 				process(ServerTrans.ERROR);
@@ -390,15 +404,15 @@ public class ServerStateMachine extends FSM {
 	private class ValidateCheckcodeHandler extends ActionHandler {
 
 		@Override
-		public void handle(final Object... o) {
+		public void handle(final Object... data) {
 			gotCalled();
-			if (mDroidManager.validateCheckCode((String) o[0])) {
-				process(ServerTrans.CHECKCODE_VALID);
+			if (mDroidManager.validateCheckCode((String) data[1], (String) data[0])) {
+				process(ServerTrans.CHECKCODE_VALID, data[0]);
 			}
 			else {
 				try {
 					mConnection.sendMessage(new Message(Instruction.INVALID_CHECKCODE));
-					process(ServerTrans.CHECKCODE_INVALID);
+					process(ServerTrans.CHECKCODE_INVALID, data[0]);
 				}
 				catch (IOException ex) {
 					Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
@@ -431,7 +445,7 @@ public class ServerStateMachine extends FSM {
 	private class CheckCodeRequestedHandler extends ActionHandler {
 
 		@Override
-		public void handle(final Object... o) {
+		public void handle(final Object... data) {
 			gotCalled();
 			// generate 6digit string
 			final SecureRandom random = new SecureRandom();
@@ -443,7 +457,7 @@ public class ServerStateMachine extends FSM {
 			for (int i = 0; i < len; i++) {
 				Utilities.byte2hex(byteCode[i], buf);
 			}
-			mDroidManager.showCheckCode(buf.toString());
+			mDroidManager.showCheckCode((String) data[1], buf.toString(), (String) data[0]);
 		}
 	}
 
@@ -493,9 +507,7 @@ public class ServerStateMachine extends FSM {
 	 * Sends binary file to droid.
 	 */
 	protected class SendBinaryHandler extends ActionHandler {
-		public SendBinaryHandler() {
 
-		}
 		@Override
 		public void handle(final Object... binary) {
 			assert binary[0] instanceof String;
@@ -521,8 +533,8 @@ public class ServerStateMachine extends FSM {
 
 				mConnection.sendMessage(
 								new Message(Instruction.SEND_BINARY,
-															 mJobDistIO.getCurrentTaskID(),
-															 outdata));
+														mJobDistIO.getCurrentTaskID(),
+														outdata));
 			}
 			catch (IOException ex) {
 				LOGGER.log(Level.SEVERE, null, ex);

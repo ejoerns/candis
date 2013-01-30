@@ -83,6 +83,7 @@ public class DroidlistTableModel extends AbstractTableModel implements DroidMana
 	@Override
 	public void handle(
 					final DroidManagerEvent event,
+					final String droidID,
 					final DroidManager manager) {
 		//System.out.println("Droid handler in TableModel called with event: " + event);
 		synchronized (mTableDataList) {
