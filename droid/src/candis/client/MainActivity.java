@@ -141,7 +141,8 @@ public class MainActivity extends FragmentActivity
     mInitTask = new InitTask(
             this,
             new File(this.getFilesDir(), Settings.getString("idstore")),
-            new File(this.getFilesDir(), Settings.getString("profilestore")));
+            new File(this.getFilesDir(), Settings.getString("profilestore")),
+            mHandler);
     mInitTask.execute();
     // Wait for InitTask to finish to enable Service button
     new Thread(new Runnable() {

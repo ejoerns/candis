@@ -1,9 +1,17 @@
 package candis.client;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.widget.EditText;
 import android.widget.Toast;
+import candis.client.gui.settings.SettingsActivity;
+import candis.client.service.BackgroundService;
 import candis.common.DroidID;
 import candis.distributed.droid.StaticProfile;
 import candis.system.StaticProfiler;
@@ -24,16 +32,20 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
   private boolean mGeneradeProfile = false;
   private final DroidContext mDroidContext;
   private Toast mToast;
+  private SharedPreferences mSharedPref;
+  private Handler mHandler;
 
-  public InitTask(final Activity act, final File idfile, final File profilefile) {
+  public InitTask(final Activity act, final File idfile, final File profilefile, final Handler handler) {
     mActivity = act;
     mIDFile = idfile;
     mProfileFile = profilefile;
     mDroidContext = DroidContext.getInstance();
+    mHandler = handler;
   }
 
   @Override
   protected void onPreExecute() {
+    mSharedPref = PreferenceManager.getDefaultSharedPreferences(mActivity);
   }
 
   /**
@@ -85,6 +97,10 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
     Log.v(TAG, "InitTask: id now: " + id.toSHA1());
     mDroidContext.setProfile(profile);
     publishProgress("Initialization done", Toast.LENGTH_SHORT);
+
+    // Check for initial hostname setting
+    checkInitialHostname();
+
     Log.v(TAG, "InitTask done...");
     return mDroidContext;
   }
@@ -101,5 +117,36 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
     }
     mToast = Toast.makeText(mActivity.getApplicationContext(), (String) msg[0], (Integer) msg[1]);
     mToast.show();
+  }
+  String enteredHostname;
+
+  public void checkInitialHostname() {
+    // continue only if hostname is not empty
+    if (!mSharedPref.getString(SettingsActivity.HOSTNAME, "").equals("")) {
+      return;
+    }
+    // Set an EditText view to get user input 
+
+    mHandler.post(new Runnable() {
+      public void run() {
+        final EditText input = new EditText(mActivity);
+        new AlertDialog.Builder(mActivity)
+                .setTitle("Server Address")
+                .setMessage("Enter address of server here")
+                .setView(input)
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+          public void onClick(DialogInterface dialog, int whichButton) {
+            // store in shared preference
+            mSharedPref.edit().putString(SettingsActivity.HOSTNAME, input.getText().toString()).apply();
+          }
+        })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+          public void onClick(DialogInterface dialog, int whichButton) {
+            // Do nothing.
+          }
+        }).show();
+      }
+    });
+
   }
 }
