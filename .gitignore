@@ -34,3 +34,5 @@ settings.properties
 droiddb
 config.properties
 /examples/hash/hashTask/nbandroid/
+*.bks
+keystore.jks

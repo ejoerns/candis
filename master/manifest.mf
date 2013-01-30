@@ -1,3 +1,4 @@
 Manifest-Version: 1.0
 X-COMMENT: Main-Class will be added automatically by build
+Class-Path: ./lib/commons-cli-1.2/commons-cli-1.2.jar ./lib/candis.distributed.jar candis.testdist.jar lib/candis.common.jar
 
