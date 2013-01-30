@@ -65,3 +65,23 @@ Using `mkcdb.py` (located in [`tools/`](https://github.com/ejoerns/candis/tree/m
 
 The generated file `miniTask.cdb` is ready to be read by the server-control application.
 
+## Short setup
+
+	>> cd tools/
+
+Download necessary external Libraries
+
+	>> ./initdist.sh
+
+Build candis into `dist/`
+
+	>> ./mkdist.sh
+	
+Generate Server Certificate and remember the password
+	
+	>> ./mkkey.sh
+	>> cd ../dist/
+	
+Now `testdist` and `master` are ready.
+
+use `/ools/mkcdb.py` to generate cdb-files from NetBeans-projects

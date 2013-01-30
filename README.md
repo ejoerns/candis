@@ -137,6 +137,7 @@ public class MiniRunnable implements DistributedRunnable {
 	public DistributedJobResult runJob(DistributedJobParameter parameter) {
 		// Cast incomming Parameter
 		MiniJobParameter p = (MiniJobParameter) parameter;
+		System.out.println(String.format("HEY, I AM THE RUNNABLE, MY PARAMETERS ARE: %s and %s", p.bar, p.foo));
 		return new MiniJobResult(p.foo * p.bar + initial.offset);
 	}
 
@@ -209,10 +210,11 @@ public class MiniControl implements DistributedControl, ResultReceiver {
 	public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
 		/// One result is finished and we can use it, somehow ...
 		MiniJobResult miniResult = (MiniJobResult) result;
-		System.out.println(String.format("%.3f", miniResult.foobar));
+		System.out.println(String.format("Got Result: %.3f", miniResult.foobar));
 
 	}
 }
+
 ```
 
 ### Generate Candis Distributed Bundle (cdb)
@@ -225,4 +227,24 @@ Using `mkcdb.py` (located in [`tools/`](https://github.com/ejoerns/candis/tree/m
 
 The generated file `miniTask.cdb` is ready to be read by the server-control application.
 
+## Short setup
+
+	>> cd tools/
+
+Download necessary external Libraries
+
+	>> ./initdist.sh
+
+Build candis into `dist/`
+
+	>> ./mkdist.sh
+	
+Generate Server Certificate and remember the password
+	
+	>> ./mkkey.sh
+	>> cd ../dist/
+	
+Now `testdist` and `master` are ready.
+
+use `/ools/mkcdb.py` to generate cdb-files from NetBeans-projects
 
