@@ -4,7 +4,6 @@ import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -30,24 +29,46 @@ public class HashRunnable implements DistributedRunnable {
 	public DistributedJobResult runJob(DistributedJobParameter parameter) {
 		// Cast incomming Parameter
 		HashJobParameter p = (HashJobParameter) parameter;
-		for (int i = 0; i < mInitial.range.length; i++) {
+		int[] block = new int[p.depth];
+		//System.out.println(new String(p.base));
+		while (inc(block, p.depth - 1)) {
+
 			if (shouldStopNow) {
 				return new HashJobResult(false, null);
 			}
-			byte[] result = doHash(p.base, i);
+			byte[] result = doHash(p.base, block);
 			if (Arrays.equals(mInitial.hash, result)) {
-				return new HashJobResult(true, new char[]{mInitial.range[i]});
+				char[] found = new char[p.depth];
+				for (int i = 0; i < p.depth; i++) {
+					found[i] = mInitial.range[block[i]];
+				}
+				return new HashJobResult(true, found);
 
 			}
+
 		}
 		return new HashJobResult(false, null);
 	}
 
-	public byte[] doHash(byte[] base, int index) {
+	private boolean inc(int[] array, int pos) {
+		if (pos < 0) {
+			return false;
+		}
+		array[pos]++;
+		if (array[pos] >= mInitial.range.length) {
+			array[pos] = 0;
+			return inc(array, pos - 1);
+		}
+		return true;
+	}
+
+	public byte[] doHash(byte[] base, int[] block) {
 		try {
 			mMessageDigest.reset();
 			mMessageDigest.update(base);
-			mMessageDigest.update(Character.toString(mInitial.range[index]).getBytes("UTF-8"));
+			for (int i : block) {
+				mMessageDigest.update(Character.toString(mInitial.range[i]).getBytes("UTF-8"));
+			}
 			return mMessageDigest.digest();
 		}
 		catch (UnsupportedEncodingException ex) {

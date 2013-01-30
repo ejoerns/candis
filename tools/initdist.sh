@@ -9,7 +9,7 @@ DIST_LIB="../dist/lib/"
 mkdir -p ../dist/lib
 if [ ! -e "$DIST_LIB/commons-cli-$COMMONS_CLI_VERSION/commons-cli-$COMMONS_CLI_VERSION.jar" ]
 then
-wget -O "$DIST_LIB/commons-cli.zip" $COMMONS_CLI_URL
+wget -O "$DIST_LIB/commons-cli.zip" "$COMMONS_CLI_URL"
 unzip -oq -d $DIST_LIB "$DIST_LIB/commons-cli.zip"
 rm "$DIST_LIB/commons-cli.zip"
 fi

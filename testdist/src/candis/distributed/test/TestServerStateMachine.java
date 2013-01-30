@@ -76,7 +76,9 @@ public class TestServerStateMachine extends ServerStateMachine {
 						.addTransition(
 						Instruction.ACK,
 						ServerStates.CONNECTED);
-
+		addGlobalTransition(
+						ServerTrans.CLIENT_DISCONNECTED,
+						ServerStates.UNCONNECTED);
 		addGlobalTransition(
 						Instruction.PONG,
 						null,

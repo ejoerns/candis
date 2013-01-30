@@ -27,20 +27,31 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 	private final BruteForceString mString;
 	private BigInteger mDone;
 	private BigInteger mTotal;
+	private final int mClientDepth;
+	int prepart = 0;
+	int prepart2 = 0;
 
 	class BruteForceString {
 
 		private final List<Integer> mValues = new LinkedList<Integer>();
 		private char[] mRange;
-		boolean first = true;
+		//boolean first = true;
 
 		public BruteForceString(int initSize, char[] range) {
+			if (initSize < 0) {
+				initSize = 0;
+			}
 			mRange = range;
-			if (initSize > 1) {
-				mValues.add(mRange.length - 1);
+			if (initSize > 0) {
+				//first = false;
+
+				if (initSize > 1) {
+					mValues.add(mRange.length - 1);
+				}
 			}
 			for (int i = 0; i < initSize - 2; i++) {
 				mValues.add(0);
+
 			}
 		}
 
@@ -48,18 +59,18 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 		public String toString() {
 			String str = "";
 			for (Integer c : mValues) {
-				str += mRange[c];
+				str = mRange[c] + str;
 			}
 			return str;
 		}
 
 		public String inc() {
-			if(!first){
-				inc(0);
-			}
-			else{
-				first = false;
-			}
+			//if (!first) {
+			inc(0);
+			/*}
+			 else {
+			 first = false;
+			 }*/
 			return toString();
 		}
 
@@ -89,17 +100,27 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 		return data;
 	}
 
-	public BruteForceScheduler(int startLen, char[] chars, int maxDepth, HashType type, String hash) {
+	public BruteForceScheduler(int startLen, char[] chars, int maxDepth, int clientDepth, HashType type, String hash) {
 		super();
 		init();
-		mString = new BruteForceString(startLen - 1, chars);
+		mString = new BruteForceString(startLen - clientDepth, chars);
 		mMaxDepth = maxDepth;
 		mDone = BigInteger.valueOf(0);
 		mTotal = BigInteger.valueOf(0);
-		System.out.println("chars.length " + chars.length);
-		for (int i = startLen; i < maxDepth - 1; i++) {
+		mClientDepth = clientDepth;
+
+		int d = Math.min(clientDepth, maxDepth);
+		for (int i = 0; i <= Math.max(0, maxDepth - mClientDepth); i++) {
 			mTotal = mTotal.add(BigInteger.valueOf(chars.length).pow(i));
 		}
+
+		if (startLen <= d) {
+			prepart = d - startLen + 1;
+			prepart2 = prepart + startLen - 1;
+			mTotal = mTotal.add(BigInteger.valueOf(prepart - 1));
+		}
+
+
 		HashInitParameter init = new HashInitParameter(type, hexStringToByteArray(hash), chars);
 		setInitialParameter(init);
 	}
@@ -141,26 +162,58 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
 
 	@Override
 	protected boolean hasParametersLeft() {
-		return parametersLeft() > 0;
+		return getParametersLeft() > 0;
 
 	}
 
 	@Override
-	protected int parametersLeft() {
+	public int getParametersLeft() {
 		// Abort if result found
 		if (resultValue != null) {
 			return 0;
 		}
 		return mParams.size() + mTotal.subtract(mDone).intValue();
 	}
+	/*
+	 private static void sd(int start, int stop, int step) {
+	 System.out.printf("%d -> %d (%d)\n", start, stop, step);
+	 BruteForceScheduler bs = new BruteForceScheduler(start, new char[]{'0', '1',}, stop, step, HashType.MD5, "ab");
+	 while (bs.hasParametersLeft()) {
+	 HashJobParameter p = (HashJobParameter) bs.popParameters();
+	 bs.mDone = bs.mDone.add(BigInteger.ONE);
+	 System.out.print(new String(p.base));
+	 for (int i = 0; i < p.depth; i++) {
+	 System.out.print("x");
+	 }
+	 System.out.println(" " + p.depth);
+	 }
+	 System.out.println("");
+	 }
+
+	 public static void main(String[] argv) {
+
+	 sd(1, 1, 1);
+	 sd(1, 1, 2);
+	 sd(1, 2, 1);
+	 sd(2, 2, 1);
+	 sd(1, 3, 4);
+	 sd(1, 5, 4);
+	 sd(3, 6, 4);
+	 }*/
 
 	@Override
 	protected DistributedJobParameter popParameters() {
 		if (mParams.size() > 0) {
 			return mParams.pop();
 		}
+
+
 		try {
-			return new HashJobParameter(mString.inc().getBytes("UTF-8"));
+			if (prepart > 0) {
+				prepart--;
+				return new HashJobParameter(mString.toString().getBytes("UTF-8"), prepart2 - prepart);
+			}
+			return new HashJobParameter(mString.inc().getBytes("UTF-8"), Math.min(mClientDepth, mMaxDepth));
 		}
 		catch (UnsupportedEncodingException ex) {
 			Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);

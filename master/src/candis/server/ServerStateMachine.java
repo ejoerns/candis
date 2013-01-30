@@ -11,6 +11,7 @@ import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
+import candis.distributed.DistributedJobError;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.droid.StaticProfile;
@@ -395,6 +396,7 @@ public class ServerStateMachine extends FSM {
 				mPingTimerTask.cancel();
 				mPingTimer.cancel();
 			}
+			mJobDistIO.getCurrentScheduler().onDroidError(mConnection.getDroidID(), DistributedJobError.DROID_LOST);
 			mDroidManager.disconnectDroid(mConnection.getDroidID());
 			// TODO: close socket?
 		}

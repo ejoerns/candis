@@ -8,7 +8,10 @@ import candis.distributed.DistributedJobParameter;
 public class HashJobParameter implements DistributedJobParameter {
 
 	public final byte[] base;
-	public HashJobParameter(final byte[] base) {
+	public final int depth;
+
+	public HashJobParameter(final byte[] base, int depth) {
 		this.base = base;
+		this.depth = depth;
 	}
 }

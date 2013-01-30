@@ -1,0 +1,3 @@
+#!/bin/sh
+read -s -p "Password: " PASS
+java  -Djavax.net.ssl.keyStore=keystore.jks -Djavax.net.ssl.keyStorePassword=$PASS -jar candis.master.jar

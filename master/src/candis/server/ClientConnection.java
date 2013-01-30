@@ -68,6 +68,7 @@ public class ClientConnection extends QueuedMessageConnection implements Runnabl
 			public void run() {
 				// init state machine
 				mStateMachine.init();
+
 				// Handle incoming client requests
 				while ((!isStopped) && (!isSocketClosed())) {
 					Message msg;
@@ -77,7 +78,7 @@ public class ClientConnection extends QueuedMessageConnection implements Runnabl
 					catch (InterruptedIOException ex) {
 						LOGGER.info("ClientConnection thread interrupted");
 						isStopped = true;
-						continue;
+						break;
 					}
 					catch (SocketException ex) {
 						LOGGER.warning("Socket ist closed, message will not be sent");
@@ -85,9 +86,10 @@ public class ClientConnection extends QueuedMessageConnection implements Runnabl
 						continue;
 					}
 					catch (IOException ex) {
-						LOGGER.log(Level.SEVERE, null, ex);
+						LOGGER.warning(ex.getMessage());
+						//LOGGER.log(Level.SEVERE, null, ex);
 						isStopped = true;
-						continue;
+						break;
 					}
 					try {
 						if (msg.getData() == null) {
@@ -103,10 +105,13 @@ public class ClientConnection extends QueuedMessageConnection implements Runnabl
 
 					LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
 				}
+				mStateMachine.process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
 			}
 		});
 		receiver.start();
+
 		super.run();
+
 		receiver.interrupt();
 	}
 }
