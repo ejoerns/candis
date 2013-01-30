@@ -391,8 +391,10 @@ public class ServerStateMachine extends FSM {
 		@Override
 		public void handle(final Object... o) {
 			gotCalled();
-			mPingTimerTask.cancel();
-			mPingTimer.cancel();
+			if (mPingTimer != null) {
+				mPingTimerTask.cancel();
+				mPingTimer.cancel();
+			}
 			mDroidManager.disconnectDroid(mConnection.getDroidID());
 			// TODO: close socket?
 		}

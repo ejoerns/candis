@@ -37,7 +37,9 @@ public class CheckCodeHandler implements DroidManagerListener {
 			});
 		}
 		else if (event == DroidManagerEvent.CHECK_CODE_DONE) {
-			mCheckCodeDialogs.get(droidID).dispose();
+			if (mCheckCodeDialogs.containsKey(droidID)) {
+				mCheckCodeDialogs.get(droidID).dispose();
+			}
 		}
 	}
 }
