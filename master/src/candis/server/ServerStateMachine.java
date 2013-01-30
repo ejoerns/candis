@@ -512,6 +512,9 @@ public class ServerStateMachine extends FSM {
 	 */
 	protected class SendBinaryHandler extends ActionHandler {
 
+		public SendBinaryHandler() {
+		}
+
 		@Override
 		public void handle(final Object... binary) {
 			assert binary[0] instanceof String;
