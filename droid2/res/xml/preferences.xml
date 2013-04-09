@@ -1,0 +1,40 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--    <PreferenceCategory 
+  android:title="pref_sms_storage_title"
+  android:key="pref_key_storage_settings">-->
+  <CheckBoxPreference
+    android:key="pref_key_run_service"
+    android:summary="pref_summary_run_service"
+    android:title="pref_title_run_service"
+    android:defaultValue="false"/>
+  <!--    <Preference 
+      android:key="pref_key_sms_delete_limit"
+      android:dependency="pref_key_auto_delete"
+      android:summary="pref_summary_delete_limit"
+      android:title="pref_title_sms_delete"/>
+    <Preference 
+      android:key="pref_key_mms_delete_limit"
+      android:dependency="pref_key_auto_delete"
+      android:summary="pref_summary_delete_limit"
+      android:title="pref_title_mms_delete">
+    </Preference>
+  </PreferenceCategory>-->
+  <PreferenceScreen
+    android:key="pref_button_server_settings"
+    android:title="pref_title_server_settings"
+    android:persistent="true">
+    <EditTextPreference
+      android:key="pref_key_servername"
+      android:summary="pref_summary_servername"
+      android:title="pref_title_servername"/>
+    <EditTextPreference
+      android:key="pref_key_serverport"
+      android:summary="pref_summary_serverport"
+      android:title="pref_title_serverport"/>
+  </PreferenceScreen>
+  <Preference 
+    android:key="pref_key_droid_id"
+    android:summary="pref_summary_droid_id"
+    android:title="pref_title_droid_id"
+    android:selectable="false"/>
+</PreferenceScreen>
