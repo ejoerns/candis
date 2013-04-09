@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import recandis.droid.R;
@@ -34,6 +35,7 @@ public class MainActivity extends Activity {
   public boolean onOptionsItemSelected(MenuItem item) {
     switch (item.getItemId()) {
       case EDIT_ID:
+        // use fallback version of preference activity if OS is too old
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
           startActivity(new Intent(this, EditPreferences.class));
         }
