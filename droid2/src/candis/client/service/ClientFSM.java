@@ -9,9 +9,10 @@ import candis.common.fsm.StateEnum;
 public class ClientFSM {
 
   private enum ClientStates implements StateEnum {
+
     REGISTRATING,
     LISTENING,
     JOB_RECEIVED,
-    JOB_PROCESSING,
+    JOB_PROCESSING
   }
 }

@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import candis.client.CandisApp;
 import candis.client.activity.CandisNotification;
 
 /**
@@ -29,7 +30,9 @@ public class BackgroundService extends Service {
     Log.v(TAG, "onStartCommand()");
     super.onStartCommand(intent, flags, startId);
 
-//    Log.v("BAAAH", "value is: " + PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(SettingsActivity.HOSTNAME, "not found"));
+    Log.v("BAAAH", "value is: " + PreferenceManager.getDefaultSharedPreferences(CandisApp.getAppContext()).getString("pref_key_servername", "not found"));
+//    CandisApp.getAppContext().getSharedPreferences(CandisApp.getAppContext().getPackageName() + "_preferences",
+//                                                   MODE_MULTI_PROCESS);
 
     // if service running, only handle intent
     if (mRunning) {

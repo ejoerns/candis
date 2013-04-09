@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,6 +22,10 @@ public class MainActivity extends Activity {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main);
+
+    // TODO: check for initial call
+//    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);
+//    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences2, false);
 
     Log.i("foo", "Starting service..");
     startService(new Intent(this, BackgroundService.class));

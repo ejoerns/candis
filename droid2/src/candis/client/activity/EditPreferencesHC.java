@@ -23,7 +23,7 @@ public class EditPreferencesHC extends Activity {
   @Override
   protected void onResume() {
     super.onResume();
-    PreferenceManager.getDefaultSharedPreferences(this)
+    PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
             .registerOnSharedPreferenceChangeListener(EditPreferencesListener.getInstance());
   }
 
@@ -31,7 +31,7 @@ public class EditPreferencesHC extends Activity {
   protected void onPause() {
     super.onPause();
     
-    PreferenceManager.getDefaultSharedPreferences(this)
+    PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
             .unregisterOnSharedPreferenceChangeListener(EditPreferencesListener.getInstance());
   }
 

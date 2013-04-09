@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="candis.client.activity"
+          package="candis.client"
           android:versionCode="1"
           android:versionName="1.0">
   <uses-sdk android:minSdkVersion="4"
@@ -11,8 +11,8 @@
   <uses-permission android:name="android.permission.READ_PHONE_STATE" />
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
   
-  <application android:label="@string/app_name" android:icon="@drawable/ic_launcher">
-    <activity android:name="MainActivity"
+  <application android:name="candis.client.CandisApp" android:label="@string/app_name" android:icon="@drawable/ic_launcher">
+    <activity android:name="candis.client.activity.MainActivity"
                   android:label="@string/app_name">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
@@ -23,8 +23,8 @@
           android:name="candis.client.service.BackgroundService" />
       </intent-filter>
     </activity>
-    <activity android:name="EditPreferences"></activity>
-    <activity android:name="EditPreferencesHC"></activity>
+    <activity android:name="candis.client.activity.EditPreferences"></activity>
+    <activity android:name="candis.client.activity.EditPreferencesHC"></activity>
 
     <service android:enabled="true"
              android:name="candis.client.service.BackgroundService"
