@@ -1,4 +1,4 @@
-package candis.droid;
+package candis.droid.activity;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;

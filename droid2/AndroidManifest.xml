@@ -3,8 +3,14 @@
           package="recandis.droid"
           android:versionCode="1"
           android:versionName="1.0">
-  <uses-sdk android:minSdkVersion="9"
+  <uses-sdk android:minSdkVersion="4"
             android:targetSdkVersion="11" />
+  
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+  
   <application android:label="@string/app_name" android:icon="@drawable/ic_launcher">
     <activity android:name="MainActivity"
                   android:label="@string/app_name">
@@ -12,8 +18,32 @@
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
+      <intent-filter>
+        <action
+          android:name="candis.client.service.BackgroundService" />
+      </intent-filter>
     </activity>
     <activity android:name="EditPreferences"></activity>
     <activity android:name="EditPreferencesHC"></activity>
+
+    <service android:enabled="true"
+             android:name="candis.client.service.BackgroundService"
+             android:launchMode="singleInstance"
+             android:process=":remote" /><!-- run in seperate process! -->
+
+  <!--<uses-library android:name="candis.distributed" />-->
+<!--
+  <application android:label="@string/app_name" android:icon="@drawable/ic_launcher">
+
+    <activity android:name="candis.client.gui.InfoActivity"></activity>
+
+    <activity android:name="candis.client.gui.settings.SettingsActivity"></activity>
+
+    <activity android:name="candis.client.gui.LogActivity"></activity>
+"
+    <activity android:name="candis.client.gui.JobViewActivity"></activity>
+
+  </application>
+    -->
   </application>
 </manifest>
