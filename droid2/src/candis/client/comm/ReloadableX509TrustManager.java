@@ -1,4 +1,4 @@
-package candis.comm;
+package candis.client.comm;
 
 import candis.common.Utilities;
 import java.io.File;

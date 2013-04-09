@@ -1,6 +1,7 @@
-package candis.droid.activity;
+package candis.client.activity;
 
 import android.content.SharedPreferences;
+import android.util.Log;
 
 /**
  * Singleton class to listen to EditPreference Updates
@@ -9,6 +10,7 @@ import android.content.SharedPreferences;
  */
 public class EditPreferencesListener implements SharedPreferences.OnSharedPreferenceChangeListener {
 
+  private static String TAG = EditPreferencesListener.class.getName();
   private static EditPreferencesListener instance = new EditPreferencesListener();
 
   private EditPreferencesListener() {
@@ -19,6 +21,6 @@ public class EditPreferencesListener implements SharedPreferences.OnSharedPrefer
   }
 
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Log.i(TAG, "onSharedPreferenceChanged");
   }
 }

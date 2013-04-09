@@ -1,9 +1,9 @@
-package candis.droid.activity;
+package candis.client.activity;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.util.Log;
-import recandis.droid.R;
+import candis.droid.activity.R;
 
 public class EditPreferences extends PreferenceActivity {
 

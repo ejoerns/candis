@@ -1,4 +1,4 @@
-package candis.comm;
+package candis.client.comm;
 
 import java.security.cert.X509Certificate;
 

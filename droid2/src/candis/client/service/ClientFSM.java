@@ -1,4 +1,4 @@
-package candis.droid.service;
+package candis.client.service;
 
 import candis.common.fsm.StateEnum;
 

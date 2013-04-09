@@ -1,4 +1,4 @@
-package candis.droid.activity;
+package candis.client.activity;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -7,7 +7,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import recandis.droid.R;
+import candis.client.service.BackgroundService;
+import candis.droid.activity.R;
 
 public class MainActivity extends Activity {
 
@@ -20,6 +21,9 @@ public class MainActivity extends Activity {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main);
+
+    Log.i("foo", "Starting service..");
+    startService(new Intent(this, BackgroundService.class));
   }
 
   @Override
