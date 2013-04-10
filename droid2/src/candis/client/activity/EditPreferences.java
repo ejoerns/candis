@@ -3,7 +3,7 @@ package candis.client.activity;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.util.Log;
-import candis.droid.activity.R;
+import candis.client.R;
 
 public class EditPreferences extends PreferenceActivity {
 

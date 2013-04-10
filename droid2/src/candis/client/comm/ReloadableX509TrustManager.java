@@ -16,6 +16,7 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.TrustManager;
@@ -35,9 +36,10 @@ public final class ReloadableX509TrustManager
   /// Path to truststore
   private final File mTSFile;
   private X509TrustManager mTrustManager;
+  private final AtomicBoolean mAccepted = new AtomicBoolean(false);
   /// List for temporary certificates
   private final List<Certificate> mTempCertList = new LinkedList<Certificate>();
-  private CertAcceptRequestHandler mCAR;
+  private Handler mCAR;
   /// Boolean for synchronization
 //  private final AtomicBoolean accepted = new AtomicBoolean(false);
 
@@ -65,10 +67,10 @@ public final class ReloadableX509TrustManager
    * @param cad Implementation of CertAcceptDialog to enable user interaction
    * @throws Exception
    */
-  public ReloadableX509TrustManager(final File tsfile, final CertAcceptRequestHandler cad) throws Exception {
+  public ReloadableX509TrustManager(final File tsfile, final Handler cad) throws Exception {
     this.mTSFile = tsfile;
     if (cad == null) {
-      mCAR = new DefaultAcceptHandler();
+      mCAR = getDefaultAcceptHandler();
     }
     else {
       mCAR = cad;
@@ -76,7 +78,7 @@ public final class ReloadableX509TrustManager
     reloadTrustManager();
   }
 
-  public ReloadableX509TrustManager(final String tspath, final CertAcceptRequestHandler cad) throws Exception {
+  public ReloadableX509TrustManager(final String tspath, final Handler cad) throws Exception {
     this(new File(tspath), cad);
   }
 
@@ -177,6 +179,18 @@ public final class ReloadableX509TrustManager
   }
 
   /**
+   * Needs to be called to specify ist certificate was accepted or not.
+   *
+   * @param accept
+   */
+  public void acceptCertificate(boolean accept) {
+    synchronized (mAccepted) {
+      mAccepted.set(accept);
+      mAccepted.notify();
+    }
+  }
+
+  /**
    * Adds a new certificate either to permantent (truststore) or to temporary
    * list.
    *
@@ -188,9 +202,19 @@ public final class ReloadableX509TrustManager
   private void addServerCertAndReload(final X509Certificate cert, final boolean permanent) throws java.security.cert.CertificateException {
 
     // Calls handler...
-    boolean accepted = mCAR.userCheckAccept(cert);
+    mCAR.OnCheckServerCert(cert);
 
-    if (accepted) {
+    // Waits for response...
+    synchronized (mAccepted) {
+      try {
+        mAccepted.wait();
+      }
+      catch (InterruptedException ex) {
+        Logger.getLogger(ReloadableX509TrustManager.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+
+    if (mAccepted.get()) {
       LOGGER.log(Level.INFO, "Certificate ACCEPTED");
     }
     else {
@@ -238,7 +262,7 @@ public final class ReloadableX509TrustManager
    *
    * @param carhandler Class that implements the CertAcceptRequest interface
    */
-  public void setCertAcceptDialog(final CertAcceptRequestHandler carhandler) {
+  public void setCertAcceptHandler(final Handler carhandler) {
     mCAR = carhandler;
   }
 
@@ -262,21 +286,27 @@ public final class ReloadableX509TrustManager
    *
    * @return
    */
-  public CertAcceptRequestHandler getDefaultAcceptHandler() {
-    return new DefaultAcceptHandler();
+  public Handler getDefaultAcceptHandler() {
+    return new Handler() {
+      public void OnCheckServerCert(X509Certificate cert) {
+        acceptCertificate(true);
+      }
+    };
   }
 
   /**
-   * Auto-accepts certificate.
+   * Interface that has to be implemented by classes to provid a user interface
+   * for certificate acceptance.
+   *
+   * @author Enrico Joerns
    */
-  private class DefaultAcceptHandler implements CertAcceptRequestHandler {
+  public interface Handler {
 
-    public boolean userCheckAccept(X509Certificate cert) {
-      return true;
-    }
-
-    public boolean hasResult() {
-      throw new UnsupportedOperationException("Not supported yet.");
-    }
+    /**
+     * Called by ReloadableX509TrustManager for certificate acceptance request.
+     *
+     * @param cert The cert that should be accepted
+     */
+    public abstract void OnCheckServerCert(X509Certificate cert);
   }
 }

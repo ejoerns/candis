@@ -6,12 +6,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import candis.client.R;
 import candis.client.service.BackgroundService;
-import candis.droid.activity.R;
 
 public class MainActivity extends Activity {
 

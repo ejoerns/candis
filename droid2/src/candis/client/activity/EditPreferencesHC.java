@@ -5,7 +5,7 @@ import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import candis.droid.activity.R;
+import candis.client.R;
 
 public class EditPreferencesHC extends Activity {
 

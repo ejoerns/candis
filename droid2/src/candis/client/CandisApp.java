@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 
 /**
+ * Allows acces to Application Context.
  *
  * @author Enrico Joerns
  */

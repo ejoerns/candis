@@ -55,11 +55,12 @@ public class SystemStatusController extends BroadcastReceiver {
       Log.w(TAG, "Level: " + mLevel);
     }
     else if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+      // TODO: use intent info?
       ConnectivityManager conMan = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
       // mobile
-      mMobile = conMan.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
+//      mMobile = conMan.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
       // wifi
-      mWifi = conMan.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
+//      mWifi = conMan.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
     }
     else {
       Log.w(TAG, "Unknown Intent" + intent.getAction());
