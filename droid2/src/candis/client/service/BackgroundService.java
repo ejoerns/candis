@@ -1,13 +1,21 @@
 package candis.client.service;
 
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import candis.client.CandisApp;
+import candis.client.R;
 import candis.client.activity.CandisNotification;
+import candis.common.DroidID;
+import candis.common.Settings;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 /**
  * Background service.
@@ -18,11 +26,26 @@ public class BackgroundService extends Service {
 
   private static String TAG = BackgroundService.class.getName();
   private boolean mRunning = false;
+  private SystemStatusController mSystemStatusController;
   private SharedPreferences mSharedPref;
 
   @Override
   public IBinder onBind(Intent intent) {
     throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public void onCreate() {
+    super.onCreate();
+
+    // register receiver for battery updates
+    mSystemStatusController = new SystemStatusController();
+    registerReceiver(
+            mSystemStatusController,
+            new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+    registerReceiver(
+            mSystemStatusController,
+            new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
   }
 
   @Override

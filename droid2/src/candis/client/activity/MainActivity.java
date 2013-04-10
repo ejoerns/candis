@@ -1,6 +1,8 @@
 package candis.client.activity;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -56,5 +58,20 @@ public class MainActivity extends Activity {
     }
 
     return (super.onOptionsItemSelected(item));
+  }
+
+  /**
+   * Tests if the background service ist running.
+   *
+   * @return true if it is running, false otherwise
+   */
+  private boolean isBackgroundServiceRunning() {
+    ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+    for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+      if (BackgroundService.class.getName().equals(service.service.getClassName())) {
+        return true;
+      }
+    }
+    return false;
   }
 }
