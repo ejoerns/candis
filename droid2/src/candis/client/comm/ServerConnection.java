@@ -1,9 +1,10 @@
 package candis.client.comm;
 
 import candis.common.Message;
+import candis.common.QueuedMessageConnection;
 import java.io.IOException;
-import java.net.ConnectException;
-import java.security.cert.X509Certificate;
+import java.io.InterruptedIOException;
+import java.net.SocketException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -25,6 +26,10 @@ public class ServerConnection {
   private String mHostname;
   private int mPort;
   private List<Receiver> receivers = new LinkedList<Receiver>();
+  private QueuedMessageConnection mQueuedMessageConnection;
+  private boolean mStopped;
+  Thread mQMCThread;
+  private static final Logger LOGGER = Logger.getLogger(ServerConnection.class.getName());
   // Minimum reconnect interval: 1 seconds
   private static final int RECONNECT_DELAY_MIN = 1000;
   // Maximum reconnect interval: 60 second
@@ -109,9 +114,20 @@ public class ServerConnection {
    *
    * @param msg
    */
-  public void sendMsg(Message msg) {
+  public void sendMessage(Message msg) {
+    try {
+      mQueuedMessageConnection.sendMessage(msg);
+    }
+    catch (IOException ex) {
+      LOGGER.log(Level.SEVERE, null, ex);
+    }
   }
 
+  /**
+   * Adds a receiver that will receive messages and connection status updates.
+   *
+   * @param rec Receiver to add
+   */
   public void addReceiver(Receiver rec) {
     if (rec != null) {
       receivers.add(rec);
@@ -129,8 +145,17 @@ public class ServerConnection {
         // try to connect to host
         try {
           mSecureSocket.connect(mHostname, mPort);
-          // TODO... test
-          mSecureSocket.getSocket().getInputStream();
+
+          mQueuedMessageConnection = new QueuedMessageConnection(mSecureSocket.getSocket());
+
+          // start message queue thread
+          mQMCThread = new Thread(mQueuedMessageConnection);
+          mQMCThread.setDaemon(true);
+          mQMCThread.start();
+
+          // start receiver thread
+          new Thread(new MessageReceiver()).start();
+
           notifyListeners(Status.CONNECTED);
         }
         // connect failed
@@ -145,6 +170,46 @@ public class ServerConnection {
           mTimer.schedule(new ConnectTask(), mReconnectDelay);
         }
       }
+    }
+  }
+
+  private class MessageReceiver implements Runnable {
+
+    /**
+     * Thread to handle incoming requests.
+     */
+    @Override
+    public void run() {
+      // start message queue
+
+      while ((!mStopped) && (!Thread.interrupted())) {
+        try {
+          // wait for new message
+          Message msg = mQueuedMessageConnection.readMessage();
+          // notify listeners
+          for (Receiver r : receivers) {
+            r.OnNewMessage(msg);
+          }
+        }
+        // The thread was interrupted
+        catch (InterruptedIOException ex) {
+          closeConnection(ex);
+        }
+        // The socket was close of any reason
+        catch (SocketException ex) {
+          closeConnection(ex);
+        }
+        catch (IOException ex) {
+          closeConnection(ex);
+        }
+      }
+      LOGGER.log(Level.INFO, "[[ServerConnection THREAD done]]");
+    }
+
+    private void closeConnection(Exception ex) {
+      LOGGER.warning(ex.getMessage());
+      mStopped = true;
+      mQMCThread.interrupt();
     }
   }
 

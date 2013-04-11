@@ -2,16 +2,18 @@ package candis.client.service;
 
 import android.app.NotificationManager;
 import android.content.Context;
+import candis.client.JobCenterHandler;
 import candis.client.activity.CandisNotification;
 import candis.client.comm.ServerConnection;
 import candis.common.Message;
+import candis.distributed.DistributedJobResult;
 import java.security.cert.X509Certificate;
 
 /**
  *
  * @author Enrico Joerns
  */
-public class StatusUpdater implements ServerConnection.Receiver {
+public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandler {
 
   private boolean mStatusUpdatesEnabled = true;
   private final NotificationManager mNM;
@@ -44,7 +46,24 @@ public class StatusUpdater implements ServerConnection.Receiver {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
-  public void OnCheckServerCert(X509Certificate cert) {
+  //- JobCenter handler stuff
+  public void onAction(int action, String runnableID) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  public void onBinaryReceived(String runnableID) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  public void onInitialParameterReceived(String runnableID) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  public void onJobExecutionStart(String runnableID) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  public void onJobExecutionDone(String runnableID, DistributedJobResult result) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 }

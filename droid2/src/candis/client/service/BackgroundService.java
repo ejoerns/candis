@@ -1,5 +1,6 @@
 package candis.client.service;
 
+import candis.client.ClientFSM;
 import android.app.Service;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -117,6 +118,10 @@ public class BackgroundService extends Service {
                                          Integer.valueOf(mSharedPref.getString("pref_key_serverport", "0")),
                                          trustmanager);
       mConnection.addReceiver(updater);
+      // init state machine
+      ClientFSM mStateMachine = new ClientFSM(mConnection);
+      mConnection.addReceiver(mStateMachine);
+      mStateMachine.getJobCenter().addHandler(updater);
     }
     catch (Exception ex) {
       Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
