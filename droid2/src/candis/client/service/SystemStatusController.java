@@ -91,7 +91,7 @@ public class SystemStatusController extends BroadcastReceiver {
     }
     else {
       Log.e(TAG, "WIFI DOWN!");
-      return false;
+      return true; // TODO: testing...
     }
   }
 

@@ -41,7 +41,7 @@ public final class SecureSocket {// TODO: maybe extend SocketImpl later...
    * @param port remote port number to connect to
    * @return Socket if successfull or null if failed.
    */
-  public void connect(final String host, final int port) throws IOException, UnknownHostException {
+  public void connect(final String host, final int port) throws IOException {
 
     if (mConnected) {
       LOGGER.log(Level.WARNING, "Already connected");
@@ -69,15 +69,15 @@ public final class SecureSocket {// TODO: maybe extend SocketImpl later...
     }
     SSLSocketFactory sf = context.getSocketFactory();
 
-//    try {
+    try {
       mSocket = sf.createSocket(host, port);
       LOGGER.log(Level.INFO, String.format(
               "Connected to %s:%d", mSocket.getInetAddress(), mSocket.getPort()));
-//    }
-//    catch (UnknownHostException ex) {
-//      LOGGER.log(Level.SEVERE, "UnknownHostException");
-//      return;
-//    }
+    }
+    catch (UnknownHostException ex) {
+      LOGGER.log(Level.SEVERE, "UnknownHostException");
+      return;
+    }
 
     mConnected = true;
   }

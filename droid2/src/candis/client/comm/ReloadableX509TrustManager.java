@@ -87,11 +87,13 @@ public final class ReloadableX509TrustManager
                                  String authType) throws java.security.cert.CertificateException {
 
     mTrustManager.checkClientTrusted(chain, authType);
+    LOGGER.log(Level.SEVERE, "checkClientTrusted() DONE");
   }
 
   @Override
   public void checkServerTrusted(final X509Certificate[] chain,
                                  String authType) throws java.security.cert.CertificateException {
+    LOGGER.log(Level.SEVERE, "checkServerTrusted....");
 
     try {
       mTrustManager.checkServerTrusted(chain, authType);
@@ -101,13 +103,14 @@ public final class ReloadableX509TrustManager
       addServerCertAndReload(chain[0], true);
       mTrustManager.checkServerTrusted(chain, authType);
     }
-    LOGGER.log(Level.FINEST, "checkServerTrusted() DONE");
+    LOGGER.log(Level.SEVERE, "checkServerTrusted() DONE");
   }
 
   @Override
   public X509Certificate[] getAcceptedIssuers() {
 
     X509Certificate[] issuers = mTrustManager.getAcceptedIssuers();
+    LOGGER.log(Level.SEVERE, "getAcceptedIssuers() DONE");
     return issuers;
   }
 
@@ -202,12 +205,14 @@ public final class ReloadableX509TrustManager
   private void addServerCertAndReload(final X509Certificate cert, final boolean permanent) throws java.security.cert.CertificateException {
 
     // Calls handler...
-    mCAR.OnCheckServerCert(cert);
+    mCAR.OnCheckServerCert(cert, this);
 
     // Waits for response...
     synchronized (mAccepted) {
       try {
+        Logger.getLogger(ReloadableX509TrustManager.class.getName()).log(Level.SEVERE, "waiting for accept....");
         mAccepted.wait();
+        Logger.getLogger(ReloadableX509TrustManager.class.getName()).log(Level.SEVERE, "accepted....");
       }
       catch (InterruptedException ex) {
         Logger.getLogger(ReloadableX509TrustManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -288,7 +293,7 @@ public final class ReloadableX509TrustManager
    */
   public Handler getDefaultAcceptHandler() {
     return new Handler() {
-      public void OnCheckServerCert(X509Certificate cert) {
+      public void OnCheckServerCert(X509Certificate cert, ReloadableX509TrustManager tm) {
         acceptCertificate(true);
       }
     };
@@ -307,6 +312,6 @@ public final class ReloadableX509TrustManager
      *
      * @param cert The cert that should be accepted
      */
-    public abstract void OnCheckServerCert(X509Certificate cert);
+    public abstract void OnCheckServerCert(X509Certificate cert, ReloadableX509TrustManager tm);
   }
 }

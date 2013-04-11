@@ -129,6 +129,8 @@ public class ServerConnection {
         // try to connect to host
         try {
           mSecureSocket.connect(mHostname, mPort);
+          // TODO... test
+          mSecureSocket.getSocket().getInputStream();
           notifyListeners(Status.CONNECTED);
         }
         // connect failed

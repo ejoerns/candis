@@ -25,7 +25,7 @@ import javax.net.ssl.X509TrustManager;
  *
  * @author Enrico Joerns
  */
-public class BackgroundService extends Service implements ReloadableX509TrustManager.Handler {
+public class BackgroundService extends Service {
 
   private static String TAG = BackgroundService.class.getName();
   private boolean mRunning = false;
@@ -105,11 +105,14 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
   public void init() {
     StatusUpdater updater = new StatusUpdater(getApplicationContext());
     // Init trustmanager and connection
-    X509TrustManager trustmanager;
+    ReloadableX509TrustManager trustmanager;
     try {
+      // init trustmanager
       trustmanager = new ReloadableX509TrustManager(
               new File(getApplicationContext().getFilesDir(),
-                       Settings.getString("truststore")), this);
+                       Settings.getString("truststore")));
+      trustmanager.setCertAcceptHandler(mActivityCommunicator);
+      // init connection
       mConnection = new ServerConnection(mSharedPref.getString("pref_key_servername", "not found"),
                                          Integer.valueOf(mSharedPref.getString("pref_key_serverport", "0")),
                                          trustmanager);
@@ -119,10 +122,5 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
       Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
     }
     // 
-  }
-
-  @Override
-  public void OnCheckServerCert(X509Certificate cert) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 }

@@ -1,18 +1,23 @@
 package candis.client.activity;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.widget.Toast;
 import candis.client.service.ActivityCommunicator;
 import candis.client.service.BackgroundService;
+import java.security.cert.X509Certificate;
 
 /**
  *
@@ -24,10 +29,12 @@ public class ServiceCommunicator {
   boolean mIsBound;
   Messenger mServiceMessenger = null;
   final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
-  final Context mContext;
+  private final Context mContext;
+  private final FragmentManager mFragManager;
 
-  public ServiceCommunicator(Context context) {
+  public ServiceCommunicator(Context context, FragmentManager fm) {
     mContext = context;
+    mFragManager = fm;
   }
 
   /**
@@ -124,13 +131,14 @@ public class ServiceCommunicator {
     @Override
     public void handleMessage(Message msg) {
       Log.e("IncomingHandler", "--> Got message: " + msg.toString());
-//      switch (msg.what) {
-//        case BackgroundService.CHECK_SERVERCERT:
-//          Bundle myBundle = msg.getData();
-//          X509Certificate cert = (X509Certificate) myBundle.getSerializable("cert");
-//          CertAcceptDialog cad = new CertAcceptDialog(cert, mServiceMessenger);
-//          cad.show(getSupportFragmentManager(), "");
-//          break;
+      switch (msg.what) {
+        // show certificate if new one is posted
+        case ActivityCommunicator.CHECK_SERVERCERT:
+          Bundle myBundle = msg.getData();
+          X509Certificate cert = (X509Certificate) myBundle.getSerializable("cert");
+          CertAcceptDialog cad = new CertAcceptDialog(cert, mServiceMessenger);
+          cad.show(mFragManager, "");
+          break;
 //        case BackgroundService.SHOW_CHECKCODE:
 //          String yourID = msg.getData().getString("ID");
 //          DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger, yourID);
@@ -157,9 +165,9 @@ public class ServiceCommunicator {
 //          mConnectionState.setText("Disconnected");
 //          mConnectionState.setTextColor(Color.rgb(170, 170, 170));
 //          break;
-//        default:
-//          super.handleMessage(msg);
-//      }
+        default:
+          super.handleMessage(msg);
+      }
     }
   }
 }

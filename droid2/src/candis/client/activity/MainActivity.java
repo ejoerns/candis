@@ -1,21 +1,20 @@
 package candis.client.activity;
 
-import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Messenger;
 import android.preference.PreferenceManager;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import candis.client.R;
 import candis.client.service.BackgroundService;
 
-public class MainActivity extends Activity implements SharedPreferences.OnSharedPreferenceChangeListener {
+public class MainActivity extends FragmentActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
   private static final int EDIT_ID = Menu.FIRST + 2;
   private static final String TAG = MainActivity.class.getName();
@@ -34,7 +33,7 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
     // loader shared preferences
     mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-    mServiceCommunicator = new ServiceCommunicator(this);
+    mServiceCommunicator = new ServiceCommunicator(this, getSupportFragmentManager());
 
     // TODO: check for initial call
 //    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);

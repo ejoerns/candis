@@ -1,19 +1,25 @@
 package candis.client.service;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
-import candis.common.fsm.StateMachineException;
+import candis.client.comm.ReloadableX509TrustManager;
+import java.security.cert.X509Certificate;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles communication with activity.
  *
  * @author Enrico Joerns
  */
-public class ActivityCommunicator {
+public class ActivityCommunicator implements ReloadableX509TrustManager.Handler {
 
   private static final String TAG = ActivityCommunicator.class.getName();
   ///
@@ -53,6 +59,23 @@ public class ActivityCommunicator {
   public IBinder getBinder() {
     return mSelfMessenger.getBinder();
   }
+  private ReloadableX509TrustManager mTrusmanager;
+
+  public void OnCheckServerCert(X509Certificate cert, ReloadableX509TrustManager tm) {
+    try {
+      // send certificate to activity
+      Message msg = Message.obtain(null, CHECK_SERVERCERT);
+      Bundle certData = new Bundle();
+      certData.putSerializable("cert", cert);
+      msg.setData(certData);
+      mRemoteMessenger.send(msg);
+      mTrusmanager = tm;
+    }
+    catch (RemoteException ex) {
+      Logger.getLogger(BackgroundService.class
+              .getName()).log(Level.SEVERE, null, ex);
+    }
+  }
 
   /**
    * Handler of incoming messages from clients.
@@ -73,6 +96,9 @@ public class ActivityCommunicator {
         case MSG_UNREGISTER_CLIENT:
           mRemoteMessenger = null;
           break;
+        case RESULT_CHECK_SERVERCERT:
+          mTrusmanager.acceptCertificate(msg.arg1 == 1 ? true : false);
+          break;
         // show check code
 //        case RESULT_SHOW_CHECKCODE:
 //          try {
@@ -86,12 +112,6 @@ public class ActivityCommunicator {
 //          }
 //          break;
 //        // result of server certificate check
-//        case RESULT_CHECK_SERVERCERT:
-//          synchronized (mCertCheckResult) {
-//            mCertCheckResult.set(msg.arg1 == 1 ? true : false);// TODO...
-//            mCertCheckResult.notifyAll();
-//          }
-//          break;
         default:
           super.handleMessage(msg);
       }

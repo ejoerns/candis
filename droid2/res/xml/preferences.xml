@@ -26,11 +26,13 @@
     <EditTextPreference
       android:key="pref_key_servername"
       android:summary="pref_summary_servername"
-      android:title="pref_title_servername"/>
+      android:title="pref_title_servername"
+      android:defaultValue="192.168.2.107"/>
     <EditTextPreference
       android:key="pref_key_serverport"
       android:summary="pref_summary_serverport"
-      android:title="pref_title_serverport"/>
+      android:title="pref_title_serverport"
+      android:defaultValue="9999"/>
   </PreferenceScreen>
   <Preference 
     android:key="pref_key_droid_id"
