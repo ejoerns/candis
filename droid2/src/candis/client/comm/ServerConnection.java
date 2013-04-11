@@ -1,8 +1,8 @@
 package candis.client.comm;
 
 import candis.common.Message;
-import java.io.File;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.security.cert.X509Certificate;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,10 +22,8 @@ public class ServerConnection {
   private Timer mTimer;
   private long mReconnectDelay;
   private boolean mConnectEnabled = false;
-  private File mTsfile;
   private String mHostname;
   private int mPort;
-  private TimerTask mConnectTask;
   private List<Receiver> receivers = new LinkedList<Receiver>();
   // Minimum reconnect interval: 1 seconds
   private static final int RECONNECT_DELAY_MIN = 1000;
@@ -46,8 +44,6 @@ public class ServerConnection {
   public ServerConnection(String hostname, int port, X509TrustManager trustmanager) {
     mHostname = hostname;
     mPort = port;
-    mTimer = new Timer();
-    mConnectTask = new ConnectTask();
     mSecureSocket = new SecureSocket(trustmanager);
   }
 
@@ -56,26 +52,63 @@ public class ServerConnection {
     mPort = port;
   }
 
-  public void start() {
-    mReconnectDelay = RECONNECT_DELAY_MIN;
-  }
-
+  /**
+   * Connects to the Host.
+   * An existing connection will not be changed.
+   *
+   * If connection fails, reconnect attemps are scheduled automatically
+   */
   public void connect() {
-    mConnectEnabled = true;
-    if (mSecureSocket.isConnected()) {
+    // quit if connecting is already enabled
+    if (mConnectEnabled) {
       return;
     }
-    mTimer.cancel();
+
+    // init (re)connection scheduler
+    mReconnectDelay = RECONNECT_DELAY_MIN;
+    mConnectEnabled = true;
     mTimer = new Timer();
     mTimer.schedule(new ConnectTask(), 0);
   }
 
-  public void disconnect() {
-    mConnectEnabled = false;
-    mTimer.cancel();
-    mSecureSocket.close();
+  /**
+   * Reconnects to the Host.
+   * If the Host was not connected before, no reconnect is performed.
+   * An existing connection will be disconnected.
+   */
+  public void reconnect() {
+    if (!mConnectEnabled) {
+      return;
+    }
+    disconnect();
+    connect();
   }
 
+  /**
+   * Disconnects from the Host.
+   */
+  public void disconnect() {
+    // quit if connecting is already disable
+    if (!mConnectEnabled) {
+      return;
+    }
+
+    // stop conenction
+    mConnectEnabled = false;
+    mTimer.cancel();
+    new Thread(new Runnable() {
+      public void run() {
+        mSecureSocket.close();
+        notifyListeners(Status.DISCONNECTED);
+      }
+    }).start();
+  }
+
+  /**
+   * Sends Message if connected.
+   *
+   * @param msg
+   */
   public void sendMsg(Message msg) {
   }
 
@@ -93,12 +126,16 @@ public class ServerConnection {
     @Override
     public void run() {
       if ((mConnectEnabled) && (!mSecureSocket.isConnected())) {
+        // try to connect to host
         try {
           mSecureSocket.connect(mHostname, mPort);
+          notifyListeners(Status.CONNECTED);
         }
         // connect failed
         catch (IOException ex) {
-          Logger.getLogger(ServerConnection.class.getName()).log(Level.SEVERE, null, ex);
+          Logger.getLogger(ServerConnection.class.getName())
+                  .log(Level.SEVERE, ex.getMessage());
+          notifyListeners(Status.DISCONNECTED);
           if (mReconnectDelay < RECONNECT_DELAY_MAX) {
             mReconnectDelay *= RECONNECT_DELAY_FACTOR;
           }
@@ -106,6 +143,17 @@ public class ServerConnection {
           mTimer.schedule(new ConnectTask(), mReconnectDelay);
         }
       }
+    }
+  }
+
+  /**
+   * Notify listeners about status update
+   *
+   * @param status Status to promote
+   */
+  private void notifyListeners(Status status) {
+    for (Receiver r : receivers) {
+      r.OnStatusUpdate(status);
     }
   }
 
@@ -127,12 +175,5 @@ public class ServerConnection {
      * @param status
      */
     public abstract void OnStatusUpdate(Status status);
-
-    /**
-     * Invoked when server cert needs to be checked.
-     *
-     * @param cert Cert that needs to be checked.
-     */
-    public abstract void OnCheckServerCert(X509Certificate cert);
   }
 }

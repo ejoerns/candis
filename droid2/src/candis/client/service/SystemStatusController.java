@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.util.Log;
 import java.util.LinkedList;
@@ -19,8 +20,7 @@ public class SystemStatusController extends BroadcastReceiver {
 
   private static final String TAG = SystemStatusController.class.getName();
   private List<Listener> listeners = new LinkedList<Listener>();
-  private NetworkInfo.State mMobile;
-  private NetworkInfo.State mWifi;
+  private boolean mWifiActive;
   private boolean mUSBCharge;
   private boolean mACCharge;
   private boolean mCharging;
@@ -54,13 +54,21 @@ public class SystemStatusController extends BroadcastReceiver {
       }
       Log.w(TAG, "Level: " + mLevel);
     }
+    else if (intent.getAction().equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+      NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+      if (networkInfo.isConnected()) {
+        // Wifi is connected
+        mWifiActive = true;
+        Log.d(TAG, "Wifi is connected: " + String.valueOf(networkInfo));
+      }
+    }
     else if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
-      // TODO: use intent info?
-      ConnectivityManager conMan = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-      // mobile
-//      mMobile = conMan.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
-      // wifi
-//      mWifi = conMan.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
+      NetworkInfo networkInfo = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
+      if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI && !networkInfo.isConnected()) {
+        // Wifi is disconnected
+        mWifiActive = false;
+        Log.d(TAG, "Wifi is disconnected: " + String.valueOf(networkInfo));
+      }
     }
     else {
       Log.w(TAG, "Unknown Intent" + intent.getAction());
@@ -77,14 +85,14 @@ public class SystemStatusController extends BroadcastReceiver {
     // TODO...
 
     // check network
-    // TODO...
-    if (mMobile == NetworkInfo.State.CONNECTED || mMobile == NetworkInfo.State.CONNECTING) {
-      //mobile
+    if (mWifiActive) {
+      Log.e(TAG, "WIFI ON!");
+      return true;
     }
-    else if (mWifi == NetworkInfo.State.CONNECTED || mWifi == NetworkInfo.State.CONNECTING) {
-      //wifi
+    else {
+      Log.e(TAG, "WIFI DOWN!");
+      return false;
     }
-    return true;
   }
 
   public void addListener(Listener l) {

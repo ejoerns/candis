@@ -5,10 +5,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
+import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import candis.client.CandisApp;
 import candis.client.R;
 import candis.client.activity.CandisNotification;
 import candis.client.comm.ReloadableX509TrustManager;
@@ -73,6 +73,9 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
     registerReceiver(
             mSystemStatusController,
             new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    registerReceiver(
+            mSystemStatusController,
+            new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
   }
 
   @Override
@@ -80,16 +83,11 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
     Log.v(TAG, "onStartCommand()");
     super.onStartCommand(intent, flags, startId);
 
-    Log.v("BAAAH", "value is: " + PreferenceManager.getDefaultSharedPreferences(CandisApp.getAppContext()).getString("pref_key_servername", "not found"));
-//    CandisApp.getAppContext().getSharedPreferences(CandisApp.getAppContext().getPackageName() + "_preferences",
-//                                                   MODE_MULTI_PROCESS);
-
     // if service running, only handle intent
     if (mRunning) {
       return START_STICKY;
     }
     mRunning = true;
-
 
     // We want this service to continue running until it is explicitly
     // stopped, so return sticky.
@@ -97,6 +95,8 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
   }
 
   public void init() {
+    StatusUpdater updater = new StatusUpdater(getApplicationContext());
+    // Init trustmanager and connection
     X509TrustManager trustmanager;
     try {
       trustmanager = new ReloadableX509TrustManager(
@@ -105,11 +105,12 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
       mConnection = new ServerConnection(mSharedPref.getString("pref_key_servername", "not found"),
                                          Integer.valueOf(mSharedPref.getString("pref_key_serverport", "0")),
                                          trustmanager);
-      mConnection.start();
+      mConnection.addReceiver(updater);
     }
     catch (Exception ex) {
       Logger.getLogger(BackgroundService.class.getName()).log(Level.SEVERE, null, ex);
     }
+    // 
   }
 
   @Override

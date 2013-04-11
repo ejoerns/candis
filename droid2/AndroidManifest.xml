@@ -31,6 +31,14 @@
              android:launchMode="singleInstance"
              android:process=":remote" /><!-- run in seperate process! -->
 
+<!--    <receiver android:name="SystemStatusController"
+        android:enabled="true" android:label="SystemStatusController">
+        <intent-filter>
+            <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
+            <action android:name="android.net.wifi.STATE_CHANGE"/>
+            <action android:name="android.intent.action.BATTERY_CHANGED" />
+        </intent-filter>
+    </receiver>-->
   <!--<uses-library android:name="candis.distributed" />-->
 <!--
   <application android:label="@string/app_name" android:icon="@drawable/ic_launcher">

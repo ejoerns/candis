@@ -22,5 +22,11 @@ public class EditPreferencesListener implements SharedPreferences.OnSharedPrefer
 
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
     Log.i(TAG, "onSharedPreferenceChanged");
+
+    if (key.equals("pref_key_servername") || (key.equals("pref_key_serverport"))) {
+      // update connection
+      //setHost();
+      //reconnect();
+    }
   }
 }
