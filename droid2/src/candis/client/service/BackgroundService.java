@@ -32,10 +32,16 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
   private SystemStatusController mSystemStatusController;
   private SharedPreferences mSharedPref;
   private ServerConnection mConnection;
+  private ActivityCommunicator mActivityCommunicator;
 
+  /**
+   * When binding to the service, we return an interface to our messenger
+   * for sending messages to the service.
+   */
   @Override
   public IBinder onBind(Intent intent) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Log.v(TAG, "onBind()");
+    return mActivityCommunicator.getBinder();
   }
 
   @Override
@@ -52,6 +58,8 @@ public class BackgroundService extends Service implements ReloadableX509TrustMan
     startForeground(
             CandisNotification.NOTIFICATION_ID,
             CandisNotification.getNotification(this, "Running..."));
+
+    mActivityCommunicator = new ActivityCommunicator(this);
 
     init();
 

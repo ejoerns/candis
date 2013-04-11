@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Messenger;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
@@ -17,7 +18,10 @@ import candis.client.service.BackgroundService;
 public class MainActivity extends Activity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
   private static final int EDIT_ID = Menu.FIRST + 2;
+  private static final String TAG = MainActivity.class.getName();
   private SharedPreferences mSharedPref;
+  private ServiceCommunicator mServiceCommunicator;
+  private boolean mServiceRunning = false;
 
   /**
    * Called when the activity is first created.
@@ -30,6 +34,8 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
     // loader shared preferences
     mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
+    mServiceCommunicator = new ServiceCommunicator(this);
+
     // TODO: check for initial call
 //    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);
 //    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences2, false);
@@ -38,6 +44,11 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
     if (mSharedPref.getBoolean("pref_key_run_service", false)) {
       Log.i("foo", "Starting service..");
       startService(new Intent(this, BackgroundService.class));
+      // Check for background service and bind if running
+      mServiceRunning = isBackgroundServiceRunning();
+      if (mServiceRunning) {
+        mServiceCommunicator.doBindService();
+      }
     }
   }
 
@@ -87,11 +98,11 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
     if (key.equals("pref_key_run_service")) {
       if (sharedPreferences.getBoolean("pref_key_run_service", false)) {
         startService(new Intent(this, BackgroundService.class));
-//        doBindService();        // start service
+        mServiceCommunicator.doBindService();        // start service
       }
       else {
         // stop service
-//        doUnbindService();
+        mServiceCommunicator.doUnbindService();
         stopService(new Intent(this, BackgroundService.class));
       }
     }
