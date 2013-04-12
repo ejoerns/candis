@@ -27,7 +27,7 @@
       android:key="pref_key_servername"
       android:summary="pref_summary_servername"
       android:title="pref_title_servername"
-      android:defaultValue="192.168.2.107"/>
+      android:defaultValue=""/>
     <EditTextPreference
       android:key="pref_key_serverport"
       android:summary="pref_summary_serverport"

@@ -15,7 +15,7 @@ public interface JobCenterHandler {
 
   /**
    * @note Should be implemented to call on~ handler methods!
-   * @param action 
+   * @param action
    */
   public void onAction(int action, String runnableID);
 
@@ -25,5 +25,5 @@ public interface JobCenterHandler {
 
   public void onJobExecutionStart(String runnableID);
 
-  public void onJobExecutionDone(String runnableID, DistributedJobResult result);
+  public void onJobExecutionDone(String runnableID, DistributedJobResult result, long exectime);
 }

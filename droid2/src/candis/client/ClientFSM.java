@@ -9,16 +9,19 @@ import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
 
 /**
- * Handles *all* communication with server and JobCenter.
+ * Handles *all* communication with server and delegates JobCenter.
  *
  * @author Enrico Joerns
  */
 public class ClientFSM extends FSM implements ServerConnection.Receiver {
 
+  private final ServerConnection mServerConnection;
   private final JobCenter mJobCenter;
 
   public ClientFSM(ServerConnection sconn) {
+    mServerConnection = sconn;
     mJobCenter = new JobCenter(null);
+    init();
   }
 
   private enum ClientStates implements StateEnum {
@@ -42,12 +45,12 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver {
   }
 
   @Override
-  public void init() {
+  public final void init() {
     addState(ClientStates.IDLE)
             .addTransition(
             Transitions.REGISTER,
             ClientStates.REGISTRATING,
-            null);
+            new RegisterHandler());
     addState(ClientStates.REGISTRATING)
             .addTransition(
             Instruction.NACK,
@@ -66,13 +69,20 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver {
             Instruction.SEND_CHECKCODE,
             ClientStates.REGISTRATING,
             null);
+    setState(ClientStates.IDLE);
   }
 
-  private static class RegisterHandler extends ActionHandler {
+  private class RegisterHandler extends ActionHandler {
 
     @Override
     public void handle(Object... obj) {
-      throw new UnsupportedOperationException("Not supported yet.");
+      // send registration message to master
+      System.out.println("Sending registration message...");
+
+      mServerConnection.sendMessage(
+              Message.create(Instruction.REGISTER,
+                             DroidContext.getInstance().getID(),
+                             DroidContext.getInstance().getProfile()));
     }
   }
 
@@ -84,6 +94,5 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver {
 
   @Override
   public void OnStatusUpdate(Status status) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 }

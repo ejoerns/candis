@@ -1,6 +1,5 @@
 package candis.client.activity;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -11,7 +10,6 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -20,6 +18,7 @@ import candis.client.service.BackgroundService;
 import java.security.cert.X509Certificate;
 
 /**
+ * Does *all* communication with Service.
  *
  * @author Enrico Joerns
  */

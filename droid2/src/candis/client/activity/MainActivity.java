@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -13,6 +14,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import candis.client.R;
 import candis.client.service.BackgroundService;
+import candis.common.Settings;
+import java.io.File;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MainActivity extends FragmentActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -30,6 +36,9 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
     super.onCreate(savedInstanceState);
     setContentView(R.layout.main);
 
+    // Load settings from R.raw.settings
+    Settings.load(this.getResources().openRawResource(R.raw.settings));
+
     // loader shared preferences
     mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
@@ -40,6 +49,26 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
 //    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences2, false);
     mSharedPref.registerOnSharedPreferenceChangeListener(this);
 
+    /* Does some potential initialization and interaction with the user
+     * needed to start the service etc.
+     */
+    InitTask initTask = new InitTask(
+            this,
+            new File(this.getFilesDir(), Settings.getString("idstore")),
+            new File(this.getFilesDir(), Settings.getString("profilestore")),
+            new Handler());
+    initTask.execute();
+    try {
+      initTask.get();
+    }
+    catch (InterruptedException ex) {
+      Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    catch (ExecutionException ex) {
+      Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
+    }
+
+    // start service and bind if enabled
     if (mSharedPref.getBoolean("pref_key_run_service", false)) {
       Log.i("foo", "Starting service..");
       startService(new Intent(this, BackgroundService.class));

@@ -4,8 +4,6 @@ import android.content.Context;
 import android.util.Log;
 import candis.client.service.BackgroundService;
 import candis.common.ClassloaderObjectInputStream;
-import candis.common.fsm.FSM;
-import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
@@ -36,7 +34,7 @@ public class JobCenter {
 
   private static final String TAG = JobCenter.class.getName();
   /// maximum number of tasks held in cache
-  private static final int MAX_TASKS = 5;// TODO: currently no implemented
+  private static final int MAX_TASK_CACHE = 5;// TODO: currently no implemented
   // ---
   /// context, needed for file storage
   private final Context mContext;
@@ -181,7 +179,7 @@ public class JobCenter {
 
         // notify handlers about end
         for (JobCenterHandler handler : mHandlerList) {
-          handler.onJobExecutionDone(runnableID, result);
+          handler.onJobExecutionDone(runnableID, result, 4711);// TODO: implement time!
         }
       }
     }).start();
@@ -235,7 +233,7 @@ public class JobCenter {
    * @param data
    * @param filename
    */
-  private void writeByteArrayToFile(final byte[] data, final File filename) {
+  private static void writeByteArrayToFile(final byte[] data, final File filename) {
     BufferedOutputStream bos = null;
 
     try {

@@ -25,6 +25,11 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
     mNM = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
   }
 
+  public void notify(String msg) {
+    mNM.notify(CandisNotification.NOTIFICATION_ID,
+               CandisNotification.getNotification(mContext, msg));
+  }
+
   public void OnStatusUpdate(ServerConnection.Status status) {
     if (mStatusUpdatesEnabled) {
       switch (status) {
@@ -63,7 +68,7 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
-  public void onJobExecutionDone(String runnableID, DistributedJobResult result) {
+  public void onJobExecutionDone(String runnableID, DistributedJobResult result, long exectime) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 }
