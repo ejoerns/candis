@@ -48,7 +48,6 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
   }
 
   public void OnNewMessage(Message msg) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   //- JobCenter handler stuff

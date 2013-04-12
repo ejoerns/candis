@@ -8,6 +8,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
+import candis.client.ClientFSM;
 import candis.client.comm.ReloadableX509TrustManager;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,6 +52,7 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
   private Messenger mRemoteMessenger;
   final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
   private final Context mContext;
+  private ClientFSM mClientFSM;
 
   public ActivityCommunicator(Context context) {
     mContext = context;
@@ -60,6 +62,10 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
     return mSelfMessenger.getBinder();
   }
   private ReloadableX509TrustManager mTrusmanager;
+
+  public void setFSM(ClientFSM fsm) {
+    mClientFSM = fsm;
+  }
 
   public void OnCheckServerCert(X509Certificate cert, ReloadableX509TrustManager tm) {
     try {
@@ -74,6 +80,24 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
     catch (RemoteException ex) {
       Logger.getLogger(BackgroundService.class
               .getName()).log(Level.SEVERE, null, ex);
+    }
+  }
+
+  /**
+   * Send Message to service.
+   *
+   * @param msg
+   */
+  public void displayCheckcode(String code) {
+    Bundle bundle = new Bundle();
+    bundle.putString("ID", code);
+    android.os.Message message = android.os.Message.obtain(null, ActivityCommunicator.SHOW_CHECKCODE);
+    message.setData(bundle);
+    try {
+      mRemoteMessenger.send(message);
+    }
+    catch (RemoteException ex) {
+      Logger.getLogger(ActivityCommunicator.class.getName()).log(Level.SEVERE, null, ex);
     }
   }
 
@@ -100,17 +124,12 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
           mTrusmanager.acceptCertificate(msg.arg1 == 1 ? true : false);
           break;
         // show check code
-//        case RESULT_SHOW_CHECKCODE:
-//          try {
-//            mFSM.process(
-//                    ClientStateMachine.ClientTrans.CHECKCODE_ENTERED,
-//                    BackgroundService.this.mDroidContext.getID().toSHA1(),
-//                    msg.getData().getString("checkcode"));
-//          }
-//          catch (StateMachineException ex) {
-//            Log.e(TAG, ex.toString());
-//          }
-//          break;
+        case RESULT_SHOW_CHECKCODE:
+          mClientFSM.process(
+                  ClientFSM.Transitions.CHECKCODE_ENTERED,
+//                  BackgroundService.this.mDroidContext.getID().toSHA1(),
+                  msg.getData().getString("checkcode"));
+          break;
 //        // result of server certificate check
         default:
           super.handleMessage(msg);

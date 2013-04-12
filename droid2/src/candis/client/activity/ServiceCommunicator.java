@@ -10,6 +10,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -138,11 +139,11 @@ public class ServiceCommunicator {
           CertAcceptDialog cad = new CertAcceptDialog(cert, mServiceMessenger);
           cad.show(mFragManager, "");
           break;
-//        case BackgroundService.SHOW_CHECKCODE:
-//          String yourID = msg.getData().getString("ID");
-//          DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger, yourID);
-//          checkDialog.show(getSupportFragmentManager(), TAG);
-//          break;
+        case ActivityCommunicator.SHOW_CHECKCODE:
+          String yourID = msg.getData().getString("ID");
+          DialogFragment checkDialog = new CheckcodeInputDialog(mServiceMessenger, yourID);
+          checkDialog.show(mFragManager, TAG);
+          break;
 //        case BackgroundService.INVALID_CHECKCODE:
 //          Toast.makeText(getApplicationContext(), "The entered checkcode was invalid", Toast.LENGTH_LONG).show();
 //          mConnectionState.setText("Invalid checkcode entered");

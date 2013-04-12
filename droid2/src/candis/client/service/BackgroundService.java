@@ -33,14 +33,14 @@ import javax.net.ssl.X509TrustManager;
  * @author Enrico Joerns
  */
 public class BackgroundService extends Service {
-  
+
   private static String TAG = BackgroundService.class.getName();
   private boolean mRunning = false;
   private SystemStatusController mSystemStatusController;
   private SharedPreferences mSharedPref;
   private ServerConnection mConnection;
   private ActivityCommunicator mActivityCommunicator;
-  StatusUpdater mStatusUpdater;
+  private StatusUpdater mStatusUpdater;
 
   /**
    * When binding to the service, we return an interface to our messenger
@@ -51,16 +51,16 @@ public class BackgroundService extends Service {
     Log.v(TAG, "onBind()");
     return mActivityCommunicator.getBinder();
   }
-  
+
   @Override
   public void onCreate() {
     super.onCreate();
-    
+
     mStatusUpdater = new StatusUpdater(getApplicationContext());
 
     // Load settings from .properties
     Settings.load(this.getResources().openRawResource(R.raw.settings));
-    
+
     try {
       DroidContext.getInstance().setID(DroidID.readFromFile(
               new File(this.getFilesDir(), Settings.getString("idstore"))));
@@ -80,9 +80,9 @@ public class BackgroundService extends Service {
     startForeground(
             CandisNotification.NOTIFICATION_ID,
             CandisNotification.getNotification(this, "Running..."));
-    
+
     mActivityCommunicator = new ActivityCommunicator(this);
-    
+
     init();
 
     // register receiver for battery and wifi status updates
@@ -107,7 +107,7 @@ public class BackgroundService extends Service {
             mSystemStatusController,
             new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
   }
-  
+
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     Log.v(TAG, "onStartCommand()");
@@ -123,7 +123,7 @@ public class BackgroundService extends Service {
     // stopped, so return sticky.
     return START_STICKY;
   }
-  
+
   public void init() {
     // Init trustmanager and connection
     ReloadableX509TrustManager trustmanager;
@@ -139,10 +139,13 @@ public class BackgroundService extends Service {
                                          trustmanager);
       mConnection.addReceiver(mStatusUpdater);
       // init state machine
-      final ClientFSM mStateMachine = new ClientFSM(mConnection);
+      final ClientFSM mStateMachine = new ClientFSM(mConnection, mActivityCommunicator);
       // fsm must receive messages
       mConnection.addReceiver(mStateMachine);
-      // we want some info about execution of tasks
+      // fsm must receive activity messages
+      mActivityCommunicator.setFSM(mStateMachine);
+      
+      // we want some status updates about execution of tasks
       mStateMachine.getJobCenter().addHandler(mStatusUpdater);
 
       /* finally add handler to register at master automatically at incoming
@@ -150,7 +153,7 @@ public class BackgroundService extends Service {
       mConnection.addReceiver(new ServerConnection.Receiver() {
         public void OnNewMessage(Message msg) {
         }
-        
+
         public void OnStatusUpdate(Status status) {
           if (status == Status.CONNECTED) {
             mStateMachine.process(ClientFSM.Transitions.REGISTER);

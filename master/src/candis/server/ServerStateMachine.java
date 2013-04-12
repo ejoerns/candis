@@ -19,12 +19,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OptionalDataException;
 import java.security.SecureRandom;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.logging.Level;
@@ -48,24 +51,30 @@ public class ServerStateMachine extends FSM {
 	///
 	protected PingTimerTask mPingTimerTask;
 	protected Timer mPingTimer;
+	/// Holds last states for known droid to allow restore of last state.
+	private static final Map<String, StateEnum> mDroidStateMap = new HashMap<String, StateEnum>();
 
 	/**
 	 * All availbale states for the FSM.
 	 */
 	protected enum ServerStates implements StateEnum {
 
+		// new ones....
+		UNKNOWN,
+		REGISTERED,
+		// old ones.....
 		UNCONNECTED,
 		CHECK,
-		PROFILE_REQUESTED,
-		PROFILE_VALIDATE,
+		//		PROFILE_REQUESTED,
+		//		PROFILE_VALIDATE,
 		CHECKCODE_REQUESTED,
 		CHECKCODE_VALIDATE,
 		CONNECTED,
 		JOB_SENT,
 		JOB_BINARY_SENT,
-		JOB_INIT_SENT,
+		//		JOB_INIT_SENT,
 		INIT_SENT,
-		INIT_BINARY_SENT,
+		//		INIT_BINARY_SENT,
 		JOB_PROCESSING;
 	}
 
@@ -75,9 +84,9 @@ public class ServerStateMachine extends FSM {
 	protected enum ServerTrans implements Transition {
 
 		CLIENT_BLACKLISTED,
-		CLIENT_NEW,
+		//		CLIENT_NEW,
 		// (droidID, checkcodeID)
-		CLIENT_NEW_CHECK,
+		REQUEST_CHECKCODE,
 		CLIENT_ACCEPTED,
 		CHECKCODE_VALID,
 		CHECKCODE_INVALID,
@@ -105,9 +114,9 @@ public class ServerStateMachine extends FSM {
 
 	@Override
 	public void init() {
-		addState(ServerStates.UNCONNECTED)
+		addState(ServerStates.UNKNOWN)
 						.addTransition(
-						Instruction.REQUEST_CONNECTION,
+						Instruction.REGISTER,
 						ServerStates.CHECK,
 						new ConnectionRequestedHandler());
 		addState(ServerStates.CHECK)
@@ -115,17 +124,17 @@ public class ServerStateMachine extends FSM {
 						ServerTrans.CLIENT_BLACKLISTED,
 						ServerStates.UNCONNECTED,
 						null)
+						//						.addTransition(
+						//						ServerTrans.CLIENT_NEW,
+						//						ServerStates.PROFILE_REQUESTED,
+						//						null)
 						.addTransition(
-						ServerTrans.CLIENT_NEW,
-						ServerStates.PROFILE_REQUESTED,
-						null)
-						.addTransition(
-						ServerTrans.CLIENT_NEW_CHECK,
+						ServerTrans.REQUEST_CHECKCODE,
 						ServerStates.CHECKCODE_REQUESTED,
 						new CheckCodeRequestedHandler())
 						.addTransition(
 						ServerTrans.CLIENT_ACCEPTED,
-						ServerStates.CONNECTED,
+						ServerStates.REGISTERED,
 						new ClientConnectedHandler())
 						.addTransition(
 						ServerTrans.CLIENT_INVALID,
@@ -139,27 +148,13 @@ public class ServerStateMachine extends FSM {
 		addState(ServerStates.CHECKCODE_VALIDATE)
 						.addTransition(
 						ServerTrans.CHECKCODE_VALID,
-						ServerStates.PROFILE_REQUESTED,
-						new ProfileRequestHandler())
+						ServerStates.REGISTERED,
+						new SendAckHandler())
 						.addTransition(
 						ServerTrans.CHECKCODE_INVALID,
-						ServerStates.UNCONNECTED,
-						null);// TODO...
-		addState(ServerStates.PROFILE_REQUESTED)
-						.addTransition(
-						Instruction.SEND_PROFILE,
-						ServerStates.PROFILE_VALIDATE,
-						new ReceivedProfileHandler());
-		addState(ServerStates.PROFILE_VALIDATE)
-						.addTransition(
-						ServerTrans.PROFILE_VALID,
-						ServerStates.CONNECTED,
-						new ClientConnectedHandler())
-						.addTransition(
-						ServerTrans.PROFILE_INVALID,
-						ServerStates.UNCONNECTED,
-						new ConnectionRejectedHandler());
-		addState(ServerStates.CONNECTED)
+						ServerStates.UNKNOWN,
+						new SendNackHandler());
+		addState(ServerStates.REGISTERED)
 						.addTransition(
 						ServerTrans.SEND_JOB,
 						ServerStates.JOB_SENT,
@@ -179,29 +174,29 @@ public class ServerStateMachine extends FSM {
 		addState(ServerStates.JOB_BINARY_SENT)
 						.addTransition(
 						Instruction.ACK,
-						ServerStates.JOB_INIT_SENT,
+						ServerStates.JOB_PROCESSING,
 						new SendInitialParameterHandler());
-		addState(ServerStates.JOB_INIT_SENT)
-						.addTransition(
-						Instruction.ACK,
-						ServerStates.JOB_PROCESSING);
+//		addState(ServerStates.JOB_INIT_SENT)
+//						.addTransition(
+//						Instruction.ACK,
+//						ServerStates.JOB_PROCESSING);
 		addState(ServerStates.JOB_PROCESSING)
 						.addTransition(
 						Instruction.SEND_RESULT,
-						ServerStates.CONNECTED,
+						ServerStates.REGISTERED,
 						new ResultHandler());
 		addState(ServerStates.INIT_SENT)
 						.addTransition(
 						Instruction.ACK,
-						ServerStates.CONNECTED)
-						.addTransition(
-						Instruction.REQUEST_BINARY,
-						ServerStates.INIT_BINARY_SENT,
-						new SendBinaryHandler());
-		addState(ServerStates.INIT_BINARY_SENT)
-						.addTransition(
-						Instruction.ACK,
-						ServerStates.CONNECTED);
+						ServerStates.REGISTERED);
+//						.addTransition(
+//						Instruction.REQUEST_BINARY,
+//						ServerStates.INIT_BINARY_SENT,
+//						new SendBinaryHandler());
+//		addState(ServerStates.INIT_BINARY_SENT)
+//						.addTransition(
+//						Instruction.ACK,
+//						ServerStates.REGISTERED);
 
 		addGlobalTransition(// TODO:
 						ServerTrans.CLIENT_DISCONNECTED,
@@ -220,7 +215,7 @@ public class ServerStateMachine extends FSM {
 						null,
 						new PongHandler());
 
-		setState(ServerStates.UNCONNECTED);
+		setState(ServerStates.UNKNOWN);
 	}
 
 	/**
@@ -270,12 +265,20 @@ public class ServerStateMachine extends FSM {
 					System.out.println("Droid is unknown: " + currentID.toSHA1());
 					// check if option 'check code auth' is active
 					if (Settings.getBoolean("pincode_auth")) {
-						trans = ServerTrans.CLIENT_NEW_CHECK;
+						trans = ServerTrans.REQUEST_CHECKCODE;
 						instr = Instruction.REQUEST_CHECKCODE;
 					}
 					else {
-						trans = ServerTrans.CLIENT_NEW;
-						instr = Instruction.REQUEST_PROFILE;
+						trans = ServerTrans.CLIENT_ACCEPTED;
+						instr = null;
+						// add to droidmanager...
+						mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[0]);
+						try {
+							mDroidManager.store(new File(Settings.getString("droiddb.file")));
+						}
+						catch (FileNotFoundException ex) {
+							Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+						}
 					}
 				}
 			}
@@ -304,41 +307,9 @@ public class ServerStateMachine extends FSM {
 	}
 
 	/**
-	 * Invoked if server received a clients profile data.
-	 *
-	 * Checks if profile data is valid and processes either CHECKCODE_VALID or
-	 * CHECKCODE_INVALID
-	 */
-	private class ReceivedProfileHandler extends ActionHandler {
-
-		@Override
-		public void handle(final Object... obj) {
-			gotCalled();
-			try {
-				// store profile data
-				if (!(obj[0] instanceof StaticProfile)) {
-					LOGGER.log(Level.WARNING, "EMPTY PROFILE DATA!");
-					process(ServerTrans.PROFILE_INVALID);
-				}
-				mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[0]);
-				mDroidManager.store(new File(Settings.getString("droiddb.file")));
-				// send ACCEPT_CONNECTION to Droid
-				mConnection.sendMessage(new Message(Instruction.ACCEPT_CONNECTION));
-				process(ServerTrans.PROFILE_VALID);
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
-		}
-	}
-
-	/**
 	 * Connects droid to DroidManager.
 	 */
 	protected class ClientConnectedHandler extends ActionHandler {
-
-		public ClientConnectedHandler() {
-		}
 
 		@Override
 		public void handle(final Object... o) {
@@ -370,13 +341,30 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Gets called if client should be rejected.
 	 */
-	private class ConnectionRejectedHandler extends ActionHandler {
+	private class SendNackHandler extends ActionHandler {
 
 		@Override
-		public void handle(final Object... o) {
+		public void handle(final Object... data) {
 			gotCalled();
 			try {
-				mConnection.sendMessage(new Message(Instruction.REJECT_CONNECTION));
+				mConnection.sendMessage(new Message(Instruction.NACK));
+			}
+			catch (IOException ex) {
+				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+	}
+
+	/**
+	 * Gets called if client should be rejected.
+	 */
+	private class SendAckHandler extends ActionHandler {
+
+		@Override
+		public void handle(final Object... data) {
+			gotCalled();
+			try {
+				mConnection.sendMessage(new Message(Instruction.ACK));
 			}
 			catch (IOException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
@@ -428,21 +416,20 @@ public class ServerStateMachine extends FSM {
 	/**
 	 * Requests profile without check.
 	 */
-	private class ProfileRequestHandler extends ActionHandler {
-
-		@Override
-		public void handle(final Object... o) {
-			gotCalled();
-			gotCalled();
-			try {
-				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
-			}
-			catch (IOException ex) {
-				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-			}
-		}
-	}
-
+//	private class ProfileRequestHandler extends ActionHandler {
+//
+//		@Override
+//		public void handle(final Object... o) {
+//			gotCalled();
+//			gotCalled();
+//			try {
+//				mConnection.sendMessage(new Message(Instruction.REQUEST_PROFILE));
+//			}
+//			catch (IOException ex) {
+//				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+//			}
+//		}
+//	}
 	/**
 	 * Generates new check code (6 digits) and shows it via DroidManager.
 	 */
