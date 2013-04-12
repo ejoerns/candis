@@ -8,9 +8,9 @@ public abstract class ActionHandler {
 
 	/**
 	 *
-	 * @param obj
+	 * @param data
 	 */
-	public abstract void handle(Object... obj);
+	public abstract void handle(Object... data);
 	private static final boolean DEBUG = false;
 
 	protected void gotCalled() {

@@ -29,6 +29,7 @@ public abstract class FSM {
     }
   }
   private static final String TAG = "FSM";
+  private AtomicReference<StateEnum> mPreviousState = new AtomicReference<StateEnum>();
   private AtomicReference<StateEnum> mCurrentState = new AtomicReference<StateEnum>();
   /// Map of all StateEnums with its corresponding State objects.
   private final Map<StateEnum, State> mStateMap = new HashMap<StateEnum, State>();
@@ -99,6 +100,7 @@ public abstract class FSM {
    * @param state State to set
    */
   public final void setState(final StateEnum state) {
+    mPreviousState.set(null);
     mCurrentState.set(state);
   }
 
@@ -109,6 +111,10 @@ public abstract class FSM {
    */
   public final StateEnum getState() {
     return mCurrentState.get();
+  }
+
+  public final StateEnum getPreviousState() {
+    return mPreviousState.get();
   }
 
   /**
@@ -146,6 +152,7 @@ public abstract class FSM {
       throw new StateMachineException(mCurrentState.get(), trans);
     }
 
+    mPreviousState.set(mCurrentState.get());
     mStateMap.get(mCurrentState.get()).process(trans, mCurrentState, obj);
   }
 
