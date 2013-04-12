@@ -41,6 +41,8 @@ public enum Instruction implements Transition {
   INVALID_CHECKCODE(56, 0),
   /// Master requests profile data from droid
   REQUEST_PROFILE(60, 0),
+  /// Droid registeres at master (ID, Profile)
+  REGISTER(61, 2, Type.OBJECT, Type.OBJECT),
   /// Droid sends profile data
   SEND_PROFILE(65, 1, Type.STRING),
   /// Master accepts connection
