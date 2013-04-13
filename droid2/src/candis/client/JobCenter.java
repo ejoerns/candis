@@ -101,7 +101,7 @@ public class JobCenter {
     }
 
     System.out.println("now rule the world...");
-    executeTask(runnableID, deserializeJobParameter(runnableID, param));
+    executeTask(runnableID, jobID, deserializeJobParameter(runnableID, param));
   }
 
   /**
@@ -138,7 +138,7 @@ public class JobCenter {
    * @param param
    * @return
    */
-  private void executeTask(final String runnableID, final DistributedJobParameter param) {
+  private void executeTask(final String runnableID, final String jobID, final DistributedJobParameter param) {
 
     if (!mTaskCache.containsKey(runnableID)) {
       Log.e(TAG, String.format("Task with ID %s not found", runnableID));
@@ -152,7 +152,7 @@ public class JobCenter {
 
     // notify handlers about start
     for (JobCenterHandler handler : mHandlerList) {
-      handler.onJobExecutionStart(runnableID);
+      handler.onJobExecutionStart(runnableID, jobID);
     }
 
     new Thread(new Runnable() {
@@ -164,7 +164,11 @@ public class JobCenter {
         try {
           currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();
           currentTask.setInitialParameter(mTaskCache.get(runnableID).initialParam);
+          // run job and measure execution time
+          long startTime = System.currentTimeMillis();
           result = currentTask.runJob(param);
+          long endTime = System.currentTimeMillis();
+          System.out.println("That took " + (endTime - startTime) + " milliseconds");
         }
         catch (InstantiationException ex) {
           Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
@@ -179,7 +183,7 @@ public class JobCenter {
 
         // notify handlers about end
         for (JobCenterHandler handler : mHandlerList) {
-          handler.onJobExecutionDone(runnableID, result, 4711);// TODO: implement time!
+          handler.onJobExecutionDone(runnableID, jobID, result, 4711);// TODO: implement time!
         }
       }
     }).start();
@@ -231,6 +235,7 @@ public class JobCenter {
   /**
    * Checks if the execution is ok.
    *
+   * @todo Move to FSM level
    * @return
    */
   private boolean checkExecution() {

@@ -38,25 +38,25 @@ public enum Instruction implements Transition {
   /// Droid sends check code (droidID, checkcode)
   SEND_CHECKCODE(55, 2, Type.STRING, Type.STRING),
   /// Master says that checkcode is invalid
-  INVALID_CHECKCODE(56, 0),
+  //  INVALID_CHECKCODE(56, 0),
   /// Master requests profile data from droid
-  REQUEST_PROFILE(60, 0),
+  //  REQUEST_PROFILE(60, 0),
   /// Droid registeres at master (ID, Profile)
   REGISTER(61, 2, Type.OBJECT, Type.OBJECT),
   /// Droid sends profile data
-  SEND_PROFILE(65, 1, Type.STRING),
+  //  SEND_PROFILE(65, 1, Type.STRING),
   /// Master accepts connection
-  ACCEPT_CONNECTION(70, 0),
+  //  ACCEPT_CONNECTION(70, 0),
   /// Master rejects connection
-  REJECT_CONNECTION(80, 0),
-  /// Master sends Job binary
-  SEND_BINARY(95, 2, Type.STRING, Type.OBJECT),
-  /// Master sends Inital Parameter
+  //  REJECT_CONNECTION(80, 0),
+  /// Master sends Job binary (taskID, binary, iparameter)
+  SEND_BINARY(95, 3, Type.STRING, Type.OBJECT, Type.OBJECT),
+  /// Master sends Inital Parameter (taskID, iparameter)
   SEND_INITIAL(96, 2, Type.STRING, Type.OBJECT),
-  /// Master sends job
-  SEND_JOB(100, 2, Type.STRING, Type.OBJECT),
-  /// Droid sends result to master
-  SEND_RESULT(105, 2, Type.STRING, Type.OBJECT),
+  /// Master sends job (taskID, jobID, parameter)
+  SEND_JOB(100, 3, Type.STRING, Type.STRING, Type.OBJECT),
+  /// Droid sends result to master (taskID, jobID, result, calctime)
+  SEND_RESULT(105, 4, Type.STRING, Type.STRING, Type.OBJECT, Type.LONG),
   /// Droid/Master informs that it will terminate
   SELF_TERMINATE(110, 0),
   /// Droid wants to disconnect from master
@@ -99,6 +99,7 @@ public enum Instruction implements Transition {
 
     OBJECT,
     INTEGER,
+    LONG,
     STRING;
   }
 }

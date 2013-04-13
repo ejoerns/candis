@@ -20,21 +20,21 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCenterHandler {
-  
+
   private final ServerConnection mServerConnection;
   private final JobCenter mJobCenter;
   /* State to restore after registration. */
   private StateEnum mRestoreState;
   private ActivityCommunicator mActivityComm;
-  
+
   public ClientFSM(Context context, ServerConnection sconn, ActivityCommunicator acomm) {
     mServerConnection = sconn;
     mActivityComm = acomm;
     mJobCenter = new JobCenter(context);
   }
-  
+
   private enum ClientStates implements StateEnum {
-    
+
     IDLE,
     REGISTRATING,
     ENTER_CHECKCODE,
@@ -43,22 +43,23 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
     JOB_RECEIVED,
     JOB_PROCESSING,
     INIT_RECEIVED,
-    BINARY_REQUESTED
+    BINARY_REQUESTED,
+    BINARY_RECEIVED
   }
-  
+
   public enum Transitions implements candis.common.fsm.Transition {
-    
+
     REGISTER,
     CHECKCODE_ENTERED,
     BINARY_REQUIRED,
-    FOO, // TODO...
-    JOB_DONE
+    JOB_DONE,
+    JOB_STARTED
   }
-  
+
   public JobCenter getJobCenter() {
     return mJobCenter;
   }
-  
+
   @Override
   public final void init() {
     addState(ClientStates.IDLE)
@@ -99,34 +100,47 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
             ClientStates.BINARY_REQUESTED,
             new RequestBinaryHandler())
             .addTransition(
-            Transitions.FOO,
+            Transitions.JOB_STARTED,
             ClientStates.JOB_PROCESSING,
-            null);
+            new SendAckHandler());
     addState(ClientStates.BINARY_REQUESTED)
             .addTransition(
             Instruction.SEND_BINARY,
-            ClientStates.JOB_PROCESSING,
+            ClientStates.BINARY_RECEIVED,
             new BinaryReceivedHandler());
+    addState(ClientStates.BINARY_RECEIVED)
+            .addTransition(
+            Transitions.JOB_STARTED,
+            ClientStates.JOB_PROCESSING,
+            new SendAckHandler());
     addState(ClientStates.JOB_PROCESSING)
             .addTransition(
             Transitions.JOB_DONE,
             ClientStates.LISTENING,
             new JobDoneHandler());
     setState(ClientStates.IDLE);
-    
+
     mJobCenter.addHandler(this);
   }
-  
+
+  private class SendAckHandler extends ActionHandler {
+
+    @Override
+    public void handle(Object... data) {
+      mServerConnection.sendMessage(new Message(Instruction.ACK));
+    }
+  }
+
   private class CheckcodeEnterHandler extends ActionHandler {
-    
+
     @Override
     public void handle(Object... data) {
       mActivityComm.displayCheckcode((String) data[0]);
     }
   }
-  
+
   private class SendCheckcodeHandler extends ActionHandler {
-    
+
     @Override
     public void handle(Object... data) {
       gotCalled();
@@ -137,9 +151,9 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
                              (String) data[0]));
     }
   }
-  
+
   private class RegisterHandler extends ActionHandler {
-    
+
     @Override
     public void handle(Object... data) {
       // save restore state
@@ -157,7 +171,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
                              DroidContext.getInstance().getProfile()));
     }
   }
-  
+
   private class RestoreStateHandler extends ActionHandler {
 
     // restore state that was active before register
@@ -170,9 +184,9 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
   private String mCurrentRunnableID;
   private String mCurrentJobID;
   private byte[] mCurrentJobParameter;
-  
+
   private class JobReceivedHandler extends ActionHandler {
-    
+
     @Override
     public void handle(Object... data) {
       System.out.println("JobReceivedHandler()");
@@ -182,17 +196,17 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
       mJobCenter.processJob(mCurrentRunnableID, mCurrentJobID, mCurrentJobParameter);
     }
   }
-  
+
   private class RequestBinaryHandler extends ActionHandler {
-    
+
     @Override
     public void handle(Object... data) {
       mServerConnection.sendMessage(new Message(Instruction.REQUEST_BINARY, (String) data[0]));
     }
   }
-  
+
   private class BinaryReceivedHandler extends ActionHandler {
-    
+
     @Override
     public void handle(Object... data) {
       if (!((String) data[0]).equals(mCurrentRunnableID)) {
@@ -200,19 +214,24 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
         // TODO: handle...
       }
       mJobCenter.addRunnable((String) data[0], (byte[]) data[1], (byte[]) data[2]);
+
+      // Ack binary received
+//      mServerConnection.sendMessage(new Message(Instruction.ACK));
+
       mJobCenter.processJob((String) data[0], mCurrentJobID, mCurrentJobParameter);
     }
   }
-  
+
   private class JobDoneHandler extends ActionHandler {
-    
+
     @Override
     public void handle(Object... data) {
       mServerConnection.sendMessage(
               new Message(Instruction.SEND_RESULT,
                           (String) data[0],
                           (String) data[1],
-                          (DistributedJobResult) data[2]));
+                          (DistributedJobResult) data[2],
+                          (Long) data[3]));
     }
   }
 
@@ -228,7 +247,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
       process(msg.getRequest(), (Object[]) msg.getData());
     }
   }
-  
+
   @Override
   public void OnStatusUpdate(Status status) {
   }
@@ -236,20 +255,21 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
   //--- JobCenter callbacks
   public void onAction(int action, String runnableID) {
   }
-  
+
   public void onBinaryReceived(String runnableID) {
   }
-  
+
   public void onInitialParameterReceived(String runnableID) {
   }
-  
-  public void onJobExecutionStart(String runnableID) {
+
+  public void onJobExecutionStart(String runnableID, String jobID) {
+    process(Transitions.JOB_STARTED);
   }
-  
-  public void onJobExecutionDone(String runnableID, DistributedJobResult result, long exectime) {
-    process(Transitions.JOB_DONE, runnableID, "", result, exectime);
+
+  public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult result, long exectime) {
+    process(Transitions.JOB_DONE, runnableID, jobID, result, exectime);
   }
-  
+
   public void onBinaryRequired(String taskID) {
     process(Transitions.BINARY_REQUIRED, taskID);
   }

@@ -172,7 +172,7 @@ public class ServerStateMachine extends FSM {
 						.addTransition(
 						Instruction.ACK,
 						ServerStates.JOB_PROCESSING,
-						new SendInitialParameterHandler());
+						null);
 		addState(ServerStates.JOB_PROCESSING)
 						.addTransition(
 						Instruction.SEND_RESULT,
@@ -437,7 +437,7 @@ public class ServerStateMachine extends FSM {
 			Object object = null;
 			try {
 				objInstream = new ClassloaderObjectInputStream(
-								new ByteArrayInputStream((byte[]) obj[1]),
+								new ByteArrayInputStream((byte[]) obj[2]),
 								mJobDistIO.getCDBLoader().getClassLoader((String) obj[0])); // TODO...
 				object = objInstream.readObject();
 				objInstream.close();
