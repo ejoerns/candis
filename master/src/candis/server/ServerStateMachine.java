@@ -259,9 +259,9 @@ public class ServerStateMachine extends FSM {
 					}
 					else {
 						trans = ServerTrans.CLIENT_ACCEPTED;
-						instr = null;
+						instr = Instruction.ACK;
 						// add to droidmanager...
-						mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[0]);
+						mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[1]);
 						try {
 							mDroidManager.store(new File(Settings.getString("droiddb.file")));
 						}
@@ -306,9 +306,10 @@ public class ServerStateMachine extends FSM {
 			mDroidManager.connectDroid(mConnection.getDroidID(), mConnection);
 			mJobDistIO.onDroidConnected(mConnection.getDroidID(), mConnection);
 			// Init ping timer
-			mPingTimer = new Timer();
-			mPingTimerTask = new PingTimerTask(mConnection);
-			mPingTimer.scheduleAtFixedRate(mPingTimerTask, 3000, 3000);
+			// TODO: what to do with ping timer?
+//			mPingTimer = new Timer();
+//			mPingTimerTask = new PingTimerTask(mConnection);
+//			mPingTimer.scheduleAtFixedRate(mPingTimerTask, 3000, 3000);
 		}
 	}
 

@@ -100,6 +100,8 @@ public final class SecureSocket {// TODO: maybe extend SocketImpl later...
     try {
       if (mSocket != null) {
         mSocket.close();
+        mConnected = false;
+        LOGGER.log(Level.INFO, "done.");
       }
     }
     catch (IOException ex) {

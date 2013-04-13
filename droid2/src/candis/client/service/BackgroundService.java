@@ -36,7 +36,7 @@ public class BackgroundService extends Service {
 
   private static String TAG = BackgroundService.class.getName();
   private boolean mRunning = false;
-  private SystemStatusController mSystemStatusController;
+  private SystemStatusReceiver mSystemStatusController;
   private SharedPreferences mSharedPref;
   private ServerConnection mConnection;
   private ActivityCommunicator mActivityCommunicator;
@@ -86,13 +86,15 @@ public class BackgroundService extends Service {
     init();
 
     // register receiver for battery and wifi status updates
-    mSystemStatusController = new SystemStatusController();
-    mSystemStatusController.addListener(new SystemStatusController.Listener() {
-      public void OnSystemStatusUpdate(boolean match) {
-        if (match) {
+    mSystemStatusController = new SystemStatusReceiver();
+    mSystemStatusController.addListener(new SystemStatusReceiver.Listener() {
+      public void OnSystemStatusUpdate() {
+        if (SystemStatusReceiver.network_connected) {
+          Log.e(TAG, "CONNECT IT DUDE!");
           mConnection.connect();
         }
         else {
+          Log.e(TAG, "DISCONNECT IT DUDE!");
           mConnection.disconnect();
         }
       }

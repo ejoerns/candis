@@ -62,11 +62,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
 
   @Override
   public final void init() {
-    addState(ClientStates.IDLE)
-            .addTransition(
-            Transitions.REGISTER,
-            ClientStates.REGISTRATING,
-            new RegisterHandler());// TODO: global Transition!?
+    addState(ClientStates.IDLE);
     addState(ClientStates.REGISTRATING)
             .addTransition(
             Instruction.NACK,
@@ -119,6 +115,11 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
             ClientStates.LISTENING,
             new JobDoneHandler());
     setState(ClientStates.IDLE);
+    // Note: placed here because of a bug in FSM
+    addGlobalTransition(
+            Transitions.REGISTER,
+            ClientStates.REGISTRATING,
+            new RegisterHandler());
 
     mJobCenter.addHandler(this);
   }
@@ -214,9 +215,6 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
         // TODO: handle...
       }
       mJobCenter.addRunnable((String) data[0], (byte[]) data[1], (byte[]) data[2]);
-
-      // Ack binary received
-//      mServerConnection.sendMessage(new Message(Instruction.ACK));
 
       mJobCenter.processJob((String) data[0], mCurrentJobID, mCurrentJobParameter);
     }

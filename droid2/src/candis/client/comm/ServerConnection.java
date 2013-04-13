@@ -66,6 +66,7 @@ public class ServerConnection {
   public void connect() {
     // quit if connecting is already enabled
     if (mConnectEnabled) {
+      System.out.println("Connect already enabled, nothing will be done...");
       return;
     }
 
@@ -93,17 +94,24 @@ public class ServerConnection {
    * Disconnects from the Host.
    */
   public void disconnect() {
-    // quit if connecting is already disable
+    System.out.println("disconnect() called");
+    // quit if connecting is already disabled
     if (!mConnectEnabled) {
       return;
     }
 
+    System.out.println("disconnecting....");
     // stop conenction
     mConnectEnabled = false;
     mTimer.cancel();
     new Thread(new Runnable() {
       public void run() {
+        System.out.println("closing socket... bye bye...");
         mSecureSocket.close();
+        while (mSecureSocket.isConnected()) {
+          System.out.println("puh...");
+        };
+        System.out.println("...CLOSED! did it baby!");
         notifyListeners(Status.DISCONNECTED);
       }
     }).start();
@@ -142,7 +150,9 @@ public class ServerConnection {
 
     @Override
     public void run() {
+      System.out.println("ConnectTask.run()");
       if ((mConnectEnabled) && (!mSecureSocket.isConnected())) {
+        System.out.println("ready to connect baby");
         // try to connect to host
         try {
           mSecureSocket.connect(mHostname, mPort);
@@ -156,6 +166,8 @@ public class ServerConnection {
 
           // start receiver thread
           new Thread(new MessageReceiver()).start();
+          // reset reconnect delay to minimum
+          mReconnectDelay = RECONNECT_DELAY_MIN;
 
           notifyListeners(Status.CONNECTED);
         }
