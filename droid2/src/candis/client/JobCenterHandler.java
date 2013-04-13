@@ -26,4 +26,11 @@ public interface JobCenterHandler {
   public void onJobExecutionStart(String runnableID);
 
   public void onJobExecutionDone(String runnableID, DistributedJobResult result, long exectime);
+
+  /**
+   * A binary for a job is missing.
+   *
+   * @param runnableID
+   */
+  public void onBinaryRequired(String runnableID);
 }

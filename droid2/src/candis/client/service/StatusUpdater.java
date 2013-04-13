@@ -52,22 +52,20 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
 
   //- JobCenter handler stuff
   public void onAction(int action, String runnableID) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   public void onBinaryReceived(String runnableID) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   public void onInitialParameterReceived(String runnableID) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   public void onJobExecutionStart(String runnableID) {
-    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   public void onJobExecutionDone(String runnableID, DistributedJobResult result, long exectime) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  public void onBinaryRequired(String taskID) {
   }
 }

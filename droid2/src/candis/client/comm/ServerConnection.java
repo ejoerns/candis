@@ -130,6 +130,7 @@ public class ServerConnection {
    */
   public void addReceiver(Receiver rec) {
     if (rec != null) {
+      System.out.println("Adding receiver... " + rec);
       receivers.add(rec);
     }
   }
@@ -220,6 +221,7 @@ public class ServerConnection {
    */
   private void notifyListeners(Status status) {
     for (Receiver r : receivers) {
+      System.out.println("Notifying... " + r);
       r.OnStatusUpdate(status);
     }
   }

@@ -139,12 +139,13 @@ public class BackgroundService extends Service {
                                          trustmanager);
       mConnection.addReceiver(mStatusUpdater);
       // init state machine
-      final ClientFSM mStateMachine = new ClientFSM(mConnection, mActivityCommunicator);
+      final ClientFSM mStateMachine = new ClientFSM(getApplicationContext(), mConnection, mActivityCommunicator);
+      mStateMachine.init();
       // fsm must receive messages
       mConnection.addReceiver(mStateMachine);
       // fsm must receive activity messages
       mActivityCommunicator.setFSM(mStateMachine);
-      
+
       // we want some status updates about execution of tasks
       mStateMachine.getJobCenter().addHandler(mStatusUpdater);
 
@@ -156,6 +157,7 @@ public class BackgroundService extends Service {
 
         public void OnStatusUpdate(Status status) {
           if (status == Status.CONNECTED) {
+            System.out.println("FUCK WE got it");
             mStateMachine.process(ClientFSM.Transitions.REGISTER);
           }
         }
