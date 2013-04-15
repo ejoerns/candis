@@ -57,6 +57,7 @@ public class Server implements Runnable {
 			Settings.load(Server.class.getResourceAsStream("defaultsettings.properties"));
 		}
 		mDroidManager = droidmanager;
+		mDroidManager.enableCheckcodeInput(Settings.getBoolean("pincode_auth"));
 //		mClassLoaderWrapper = clw;
 		mJobDistIO = jobdistio;
 		// try to load drodmanager

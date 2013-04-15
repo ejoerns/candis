@@ -37,6 +37,7 @@ public final class DroidManager {
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Singleton-Instance
 	private static DroidManager instance = new DroidManager();
+	private boolean mCheckcodeEnabled = false;
 	/**
 	 * Map of known droids. true means whitelisted, false means blacklisted.
 	 * 'Static' list that will be saved to file.
@@ -125,6 +126,10 @@ public final class DroidManager {
 		public void onRequireCheckcode();
 	}
 
+	public void enableCheckcodeInput(boolean value) {
+		mCheckcodeEnabled = value;
+	}
+
 	/**
 	 * A new connection(FSM) calls this with its droid ID to try to register at
 	 * the DroidManager.
@@ -139,7 +144,7 @@ public final class DroidManager {
 		LOGGER.log(Level.INFO, "Droid {0} registering...", droidID);
 
 		// if not known, get known to it
-		if (!mKnownDroids.containsKey(droidID)) {
+		if (!mKnownDroids.containsKey(droidID) && mCheckcodeEnabled) {
 
 			mPendingDroids.put(droidID, handler);
 			mPendingDroidData.put(droidID, profile);
@@ -403,20 +408,6 @@ public final class DroidManager {
 		return mKnownDroids.get(droidID).getProfile();
 	}
 
-	/**
-	 * Connects droid to droid manager.
-	 *
-	 * @param droidID
-	 */
-//	public void connectDroid(final String droidID) {
-//		LOGGER.log(Level.INFO, "Droid {0} connected", droidID);
-//		mConnectedDroids.add(droidID);
-//		notifyListeners(DroidManagerEvent.DROID_CONNECTED, droidID);
-//	}
-//
-//	public void connectDroid(final DroidID rid) {
-//		connectDroid(rid.toString());
-//	}
 	/**
 	 * Disconnects droid from droid manager.
 	 *
