@@ -7,7 +7,6 @@ import candis.client.activity.CandisNotification;
 import candis.client.comm.ServerConnection;
 import candis.common.Message;
 import candis.distributed.DistributedJobResult;
-import java.security.cert.X509Certificate;
 
 /**
  *
@@ -55,15 +54,23 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
   }
 
   public void onBinaryReceived(String runnableID) {
+    mNM.notify(CandisNotification.NOTIFICATION_ID,
+               CandisNotification.getNotification(mContext, "Runnable received " + runnableID));
   }
 
   public void onInitialParameterReceived(String runnableID) {
+    mNM.notify(CandisNotification.NOTIFICATION_ID,
+               CandisNotification.getNotification(mContext, "Initial param received " + runnableID));
   }
 
   public void onJobExecutionStart(String runnableID, String jobID) {
+    mNM.notify(CandisNotification.NOTIFICATION_ID,
+               CandisNotification.getNotification(mContext, "Started Job " + jobID));
   }
 
   public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult result, long exectime) {
+    mNM.notify(CandisNotification.NOTIFICATION_ID,
+               CandisNotification.getNotification(mContext, "Finished Job " + exectime + "ms"));
   }
 
   public void onBinaryRequired(String taskID) {
