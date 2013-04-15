@@ -1,6 +1,5 @@
 package candis.server;
 
-import candis.common.fsm.FSM;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -84,18 +83,12 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		System.out.println("startJob(" + droidID + ", " + param + ")");
 		// TODO: where to generate jobID?
 		mDroidManager.getDroidHandler(droidID).onSendJob(mCurrentTaskID, "4711", param);
-//		FSM fsm = getDroidConnection(droidID).getStateMachine();
-//		fsm.process(
-//						ServerStateMachine.ServerTrans.SEND_JOB, mCurrentTaskID, param);// TODO: check ID
 		invoke(JobDistributionIOHandler.Event.JOB_SENT);
 	}
 
 	@Override
 	public void stopJob(final String droidID) {
 		mDroidManager.getDroidHandler(droidID).onStopJob("4711", mCurrentTaskID);
-//		FSM fsm = getDroidConnection(droidID).getStateMachine();
-//		fsm.process(
-//						ServerStateMachine.ServerTrans.STOP_JOB, mCurrentTaskID);
 	}
 
 	/*--------------------------------------------------------------------------*/

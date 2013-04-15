@@ -33,7 +33,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public final class DroidManager {
 
-	private static final String TAG = "DroidManager";
+	private static final String TAG = DroidManager.class.getName();
 	private static final Logger LOGGER = Logger.getLogger(TAG);
 	/// Singleton-Instance
 	private static DroidManager instance = new DroidManager();
@@ -108,6 +108,9 @@ public final class DroidManager {
 		return mRegisteredDroids.keySet();
 	}
 
+	/**
+	 * Invoked to communicate with specific droid.
+	 */
 	public interface DroidHandler {
 
 		public void onSendJob(String taskID, String jobID, DistributedJobParameter param);

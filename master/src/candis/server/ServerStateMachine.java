@@ -5,8 +5,6 @@ import candis.common.ClassloaderObjectInputStream;
 import candis.common.DroidID;
 import candis.common.Instruction;
 import candis.common.Message;
-import candis.common.Settings;
-import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
@@ -18,16 +16,13 @@ import candis.server.ClientConnection.Status;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OptionalDataException;
 import java.io.RandomAccessFile;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,11 +41,12 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	protected final DroidManager mDroidManager;
 	/// Job distributor used for managing tasks and jobs
 	protected final JobDistributionIOServer mJobDistIO;
-	///
-//	protected PingTimerTask mPingTimerTask;
-//	protected Timer mPingTimer;
 	/// Holds last states for known droid to allow restore of last state.
 	private static final Map<String, StateEnum> mDroidStateMap = new HashMap<String, StateEnum>();
+	// Holds device profile of droid
+	private StaticProfile mReceivedProfile;
+	// ID of associated Droid
+	private String mDroidID;
 
 	/**
 	 * All availbale states for the FSM.
@@ -80,22 +76,21 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	protected enum ServerTrans implements Transition {
 
 		CLIENT_BLACKLISTED,
-		//		CLIENT_NEW,
 		// (droidID, checkcodeID)
 		REQUEST_CHECKCODE,
 		CLIENT_ACCEPTED,
 		CLIENT_REJECTED,
 		CHECKCODE_VALID,
 		CHECKCODE_INVALID,
-		PROFILE_VALID,
-		PROFILE_INVALID,
-		POST_JOB,
+		//		PROFILE_VALID,
+		//		PROFILE_INVALID,
+		//		POST_JOB,
 		CLIENT_INVALID,
 		CLIENT_DISCONNECTED,
 		SEND_JOB,
 		SEND_INITAL,// TODO...
 		STOP_JOB,// TODO...
-		SEND_PING,
+		//		SEND_PING,
 		ERROR;
 	}
 
@@ -179,29 +174,8 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 						Instruction.ACK,
 						ServerStates.REGISTERED);
 
-//		addGlobalTransition(// TODO:
-//						ServerTrans.CLIENT_DISCONNECTED,
-//						ServerStates.UNCONNECTED,
-//						new ClientDisconnectedHandler());
-//		addGlobalTransition(
-//						Instruction.DISCONNECT,
-//						ServerStates.UNCONNECTED,
-//						new ClientDisconnectedHandler());
-//		addGlobalTransition(
-//						ServerTrans.SEND_PING,
-//						null,
-//						new SendPingHandler());
-//		addGlobalTransition(
-//						Instruction.PONG,
-//						null,
-//						new PongHandler());
-
 		setState(ServerStates.INITIAL);
 	}
-	// Holds device profile of droid
-	private StaticProfile mReceivedProfile;
-	// ID of associated Droid
-	private String mDroidID;
 
 	/**
 	 * Invoked if server got connection from a client.
@@ -222,102 +196,12 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 			mDroidID = ((DroidID) obj[0]).toSHA1();
 			mReceivedProfile = ((StaticProfile) obj[1]);
-			Transition trans;
-			Instruction instr;
 
 			// register...
 			mDroidManager.register(mDroidID, mReceivedProfile, ServerStateMachine.this);
-
-//			// catch invalid messages
-//			if (currentID == null) {
-//				LOGGER.severe("Connection request with empty ID");
-//				trans = ServerTrans.CLIENT_INVALID;
-//				instr = Instruction.ERROR;
-//			}
-//			// check if droid is known in db
-//			else {
-//				mConnection.setDroidID(currentID.toSHA1());
-//				if (mDroidManager.isDroidKnown(currentID)) {
-//					System.out.println("Droid is known: " + currentID.toSHA1());
-//					// check if droid is blacklisted
-//					if (mDroidManager.isDroidBlacklisted(currentID)) {
-//						System.out.println("Droid is blacklisted");
-//						trans = ServerTrans.CLIENT_BLACKLISTED;
-//						instr = Instruction.NACK;
-//					}
-//					else {
-//						trans = ServerTrans.CLIENT_ACCEPTED;
-//						instr = Instruction.ACK;
-//					}
-//				}
-//				// seems to be a new droid
-//				else {
-//					System.out.println("Droid is unknown: " + currentID.toSHA1());
-//					// check if option 'check code auth' is active
-//					if (Settings.getBoolean("pincode_auth")) {
-//						trans = ServerTrans.REQUEST_CHECKCODE;
-//						instr = Instruction.REQUEST_CHECKCODE;
-//					}
-//					else {
-//						trans = ServerTrans.CLIENT_ACCEPTED;
-//						instr = Instruction.ACK;
-//						// add to droidmanager...
-//						mDroidManager.addDroid(mConnection.getDroidID(), (StaticProfile) obj[1]);
-//						try {
-//							mDroidManager.store(new File(Settings.getString("droiddb.file")));
-//						}
-//						catch (FileNotFoundException ex) {
-//							Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
-//						}
-//					}
-//				}
-//			}
-//			// Send instruction
-//			// if checkcode is requested, generate a halfway unique id to let the
-//			// users identify their devices
-//			if (instr == Instruction.REQUEST_CHECKCODE) {
-//				Random random = new Random();
-//				byte[] bytes = new byte[4];
-//				random.nextBytes(bytes);
-//				String checkcodeID = Utilities.toHexString(bytes);
-//				mConnection.sendMessage(new Message(instr, checkcodeID));
-//				process(trans, currentID.toSHA1(), checkcodeID);
-//			}
-//			else {
-//				mConnection.sendMessage(new Message(instr));
-//				process(trans, currentID.toSHA1());
-//			}
 		}
 	}
 
-	/**
-	 * Connects droid to DroidManager.
-	 */
-//	protected class DroidRegisteredHandler extends ActionHandler {
-//
-//		@Override
-//		public void handle(final Object... o) {
-//			gotCalled();
-//			mDroidManager.connectDroid(mConnection.getDroidID());
-//			mJobDistIO.onDroidConnected(mConnection.getDroidID(), mConnection);
-//			// Init ping timer
-//			// TODO: what to do with ping timer?
-////			mPingTimer = new Timer();
-////			mPingTimerTask = new PingTimerTask(mConnection);
-////			mPingTimer.scheduleAtFixedRate(mPingTimerTask, 3000, 3000);
-//		}
-//	}
-	/**
-	 * Invoked if pong is received. Simply clears PingTimerTask flag to indicate
-	 * client is still alive.
-	 */
-//	protected class PongHandler extends ActionHandler {
-//
-//		@Override
-//		public void handle(Object... obj) {
-//			mPingTimerTask.clearFlag();
-//		}
-//	}
 	/**
 	 * Gets called if client should be rejected.
 	 */
@@ -343,23 +227,6 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	}
 
 	/**
-	 * Disconnects droid from DroidManager.
-	 */
-//	private class ClientDisconnectedHandler extends ActionHandler {
-//
-//		@Override
-//		public void handle(final Object... o) {
-//			gotCalled();
-//			if (mPingTimer != null) {
-//				mPingTimerTask.cancel();
-//				mPingTimer.cancel();
-//			}
-//			mJobDistIO.getCurrentScheduler().onDroidError(mConnection.getDroidID(), DistributedJobError.DROID_LOST);
-//			mDroidManager.disconnectDroid(mConnection.getDroidID());
-//			// TODO: close socket?
-//		}
-//	}
-	/**
 	 * Compares received check code from droid with server generated one.
 	 */
 	private class CheckcodeReceivedHandler extends ActionHandler {
@@ -367,15 +234,6 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		@Override
 		public void handle(final Object... data) {
 			gotCalled();
-//			if (mDroidManager.validateCheckCode((String) data[1], (String) data[0])) {
-//				mDroidManager.addDroid((String) data[0], mReceivedProfile);
-//				mDroidManager.connectDroid((String) data[0]);
-//				process(ServerTrans.CHECKCODE_VALID);
-//			}
-//			else {
-//				mConnection.sendMessage(new Message(Instruction.NACK));
-//				process(ServerTrans.CHECKCODE_INVALID);
-//			}
 			mDroidManager.verifyCheckcode((String) data[0], (String) data[1]);
 		}
 	}
@@ -388,17 +246,6 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		@Override
 		public void handle(final Object... data) {
 			gotCalled();
-			// generate 6digit string
-//			final SecureRandom random = new SecureRandom();
-//			final byte[] byteCode = new byte[3];
-//			random.nextBytes(byteCode);
-//
-//			StringBuffer buf = new StringBuffer();
-//			int len = byteCode.length;
-//			for (int i = 0; i < len; i++) {
-//				Utilities.byte2hex(byteCode[i], buf);
-//			}
-//			mDroidManager.showCheckCode((String) data[1], buf.toString(), (String) data[0]);
 			mConnection.sendMessage(new Message(Instruction.REQUEST_CHECKCODE));
 		}
 	}
@@ -531,17 +378,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		}
 	}
 
-	/**
-	 * Sends PING to client.
-	 */
-	private class SendPingHandler extends ActionHandler {
-
-		@Override
-		public void handle(Object... obj) {
-			throw new UnsupportedOperationException("Not supported yet.");
-		}
-	}
-
+	//--
 	@Override
 	public void OnNewMessage(Message msg) {
 		if (msg.getData() == null) {
