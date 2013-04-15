@@ -106,12 +106,7 @@ public class ServerConnection {
     mTimer.cancel();
     new Thread(new Runnable() {
       public void run() {
-        System.out.println("closing socket... bye bye...");
         mSecureSocket.close();
-        while (mSecureSocket.isConnected()) {
-          System.out.println("puh...");
-        };
-        System.out.println("...CLOSED! did it baby!");
         notifyListeners(Status.DISCONNECTED);
       }
     }).start();
@@ -207,24 +202,26 @@ public class ServerConnection {
         }
         // The thread was interrupted
         catch (InterruptedIOException ex) {
-          closeConnection(ex);
+          restoreConnection(ex);
         }
         // The socket was close of any reason
         catch (SocketException ex) {
-          closeConnection(ex);
+          restoreConnection(ex);
         }
         catch (IOException ex) {
-          closeConnection(ex);
+          restoreConnection(ex);
         }
       }
       LOGGER.log(Level.INFO, "[[ServerConnection THREAD done]]");
     }
 
-    private void closeConnection(Exception ex) {
+    private void restoreConnection(Exception ex) {
       LOGGER.warning(ex.getMessage());
       mStopped = true;
       mQMCThread.interrupt();
       notifyListeners(Status.DISCONNECTED);
+      // reconnect if desired
+      reconnect();
     }
   }
 
