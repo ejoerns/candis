@@ -1,14 +1,18 @@
 package candis.server;
 
 import candis.common.DroidID;
+import candis.common.Utilities;
+import candis.distributed.DistributedJobParameter;
 import candis.distributed.DroidData;
 import candis.distributed.droid.StaticProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -34,19 +38,30 @@ public final class DroidManager {
 	/// Singleton-Instance
 	private static DroidManager instance = new DroidManager();
 	/**
-	 * Map of known droids true means whitelisted, false means blacklisted.
+	 * Map of known droids. true means whitelisted, false means blacklisted.
 	 * 'Static' list that will be saved to file.
 	 */
-	private Map<String, DroidData> knownDroids = new ConcurrentHashMap<String, DroidData>();
+	private Map<String, DroidData> mKnownDroids = new ConcurrentHashMap<String, DroidData>();
 	/**
-	 * Map of connected droids with bool flag for further use. Dynamic list that
-	 * will be generated at runtime.
+	 * Map of connected droids with corresponding handler. Dynamic list that will
+	 * be generated at runtime.
 	 */
-	private Map<String, ClientConnection> connectedDroids = new ConcurrentHashMap<String, ClientConnection>();
+	private Map<String, DroidHandler> mRegisteredDroids = new ConcurrentHashMap<String, DroidHandler>();
+//	private Set<String> mConnectedDroids = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	/**
-	 * List of connected Listeners expecting changes of DroidStates.
+	 * Holds Droids that are currently registering but not yet accepted. (e.g.
+	 * checkcode required)
 	 */
-	private final List<DroidManagerListener> listeners = new LinkedList<DroidManagerListener>();
+	private Map<String, DroidHandler> mPendingDroids = new ConcurrentHashMap<String, DroidHandler>();
+	private Map<String, StaticProfile> mPendingDroidData = new ConcurrentHashMap<String, StaticProfile>();
+	/**
+	 * Holds all pending (send but not verified) checkcodes.
+	 */
+	private Map<String, String> mPendingCheckCodes = new ConcurrentHashMap<String, String>();
+	/**
+	 * List of connected Manager Listeners expecting changes of DroidStates.
+	 */
+	private final List<DroidManagerListener> mListeners = new LinkedList<DroidManagerListener>();
 	/// stores check code for extended client authorization
 	private Map<String, String> mCheckCode = new HashMap<String, String>();
 	private Map<String, String> mCheckCodeID = new HashMap<String, String>();
@@ -81,7 +96,7 @@ public final class DroidManager {
 	 * @return Map of known Droids.
 	 */
 	public Map<String, DroidData> getKnownDroids() {
-		return knownDroids;
+		return mKnownDroids;
 	}
 
 	/**
@@ -89,26 +104,133 @@ public final class DroidManager {
 	 *
 	 * @return Map of connected Droids.
 	 */
-	public Map<String, ClientConnection> getConnectedDroids() {
-		return connectedDroids;
+	public Set<String> getRegisteredDroids() {
+		return mRegisteredDroids.keySet();
+	}
+
+	public interface DroidHandler {
+
+		public void onSendJob(String taskID, String jobID, DistributedJobParameter param);
+
+		public void onStopJob(String taskID, String jobID);
+
+		public void onAccepted();
+
+		public void onRejected();
+
+		/// Droid needs to send checkcode
+		public void onRequireCheckcode();
 	}
 
 	/**
-	 * Adds a Droid to the list of (whitelisted) known Droids.
+	 * A new connection(FSM) calls this with its droid ID to try to register at
+	 * the DroidManager.
 	 *
-	 * @param rid ID of Droid to add
-	 * @param profile
+	 * If it is accepted an event is passed to the given handler and further
+	 * events for this droid are also passed to this handler.
+	 *
+	 * @param droidID
+	 * @param handler
 	 */
-	public void addDroid(final String rid, StaticProfile profile) {
-		addDroid(rid, new DroidData(false, profile));
-	}
+	public void register(String droidID, StaticProfile profile, DroidHandler handler) {
+		LOGGER.log(Level.INFO, "Droid {0} registering...", droidID);
 
-	public void addDroid(final String droidID, DroidData droid) {
-		if (!knownDroids.containsKey(droidID)) {
+		// if not known, get known to it
+		if (!mKnownDroids.containsKey(droidID)) {
+
+			mPendingDroids.put(droidID, handler);
+			mPendingDroidData.put(droidID, profile);
+			handler.onRequireCheckcode();
+			// notify (gui) listeners to show the checkcode
+			notifyListeners(DroidManagerEvent.CHECK_CODE, droidID);
+			return;
+		}
+
+		// if known and blacklisted, reject it
+		if (mKnownDroids.containsKey(droidID) && mKnownDroids.get(droidID).getBlacklist()) {
+			LOGGER.log(Level.INFO, "Droid {0} rejected", droidID);
+			handler.onRejected();
+		}
+
+		// otherwise accept it and add it to list of known if necessary
+		if (!mKnownDroids.containsKey(droidID)) {
 			LOGGER.log(Level.INFO, "Droid {0} added", droidID);
-			knownDroids.put(droidID, droid);
+			mKnownDroids.put(droidID, new DroidData(false, profile));
 			notifyListeners(DroidManagerEvent.DROID_ADDED, droidID);
 		}
+
+		mRegisteredDroids.put(droidID, handler);
+		LOGGER.log(Level.INFO, "Droid {0} accepted", droidID);
+		// notify droid about acceptance
+		notifyListeners(DroidManagerEvent.DROID_CONNECTED, droidID);
+		mRegisteredDroids.get(droidID).onAccepted();
+	}
+
+	/**
+	 * Returns the DroidHandler for the given droid ID.
+	 *
+	 * @param droidID
+	 * @return
+	 */
+	public DroidHandler getDroidHandler(String droidID) {
+		System.out.println("getDroidHandler ID: " + droidID);
+		if (!mRegisteredDroids.containsKey(droidID)) {
+			return null;
+		}
+
+		return mRegisteredDroids.get(droidID);
+	}
+
+	/**
+	 * Generates a checkcode that must be verified with the client.
+	 *
+	 * @param droidID ID of droid to generate code for
+	 * @return Generated code.
+	 */
+	private String generateCheckcode(String droidID) {
+		mPendingCheckCodes.remove(droidID);
+		final SecureRandom random = new SecureRandom();
+		final byte[] byteCode = new byte[3];
+		random.nextBytes(byteCode);
+
+		StringBuffer buf = new StringBuffer();
+		int len = byteCode.length;
+		for (int i = 0; i < len; i++) {
+			Utilities.byte2hex(byteCode[i], buf);
+		}
+		String code = buf.toString();
+		mPendingCheckCodes.put(droidID, code);
+		return code;
+	}
+
+	/**
+	 * Verifies the given code with the stored one and calls pending droid
+	 * handler.
+	 *
+	 * @param droidID ID of droid to verify for
+	 * @param code Code to verify
+	 */
+	public void verifyCheckcode(String droidID, String code) {
+		// if droid not pending, forget...
+		if (!mPendingDroids.containsKey(droidID)) {
+			mPendingCheckCodes.remove(droidID);
+			return;
+		}
+
+		// check if code available and correct
+		if (mPendingCheckCodes.containsKey(droidID) && (mPendingCheckCodes.get(droidID).equals(code))) {
+			// make pending ones registered and known ones
+			mKnownDroids.put(droidID, new DroidData(mPendingDroidData.get(droidID)));
+			mRegisteredDroids.put(droidID, mPendingDroids.get(droidID));
+			mPendingDroids.get(droidID).onAccepted();
+		}
+		else {
+			mPendingDroids.get(droidID).onRejected();
+		}
+		// clear pending lists
+		mPendingDroids.remove(droidID);
+		mPendingDroidData.remove(droidID);
+		mPendingCheckCodes.remove(droidID);
 	}
 
 	/**
@@ -117,23 +239,40 @@ public final class DroidManager {
 	 * @param rid ID of Droid to add
 	 * @param profile
 	 */
-	public void addDroid(final DroidID rid, final StaticProfile profile) {
-		addDroid(rid.toString(), profile);
-	}
-
+//	public void addDroid(final String rid, StaticProfile profile) {
+//		addDroid(rid, new DroidData(false, profile));
+//	}
+//
+//	public void addDroid(final String droidID, DroidData droid) {
+//		if (!mKnownDroids.containsKey(droidID)) {
+//			LOGGER.log(Level.INFO, "Droid {0} added", droidID);
+//			mKnownDroids.put(droidID, droid);
+//			notifyListeners(DroidManagerEvent.DROID_ADDED, droidID);
+//		}
+//	}
+	/**
+	 * Adds a Droid to the list of (whitelisted) known Droids.
+	 *
+	 * @param rid ID of Droid to add
+	 * @param profile
+	 */
+//	public void addDroid(final DroidID rid, final StaticProfile profile) {
+//		addDroid(rid.toString(), profile);
+//	}
 	/**
 	 * Removes a Droid from the list of known Droids.
 	 *
 	 * @param droidID ID of Droid to remove
 	 */
 	public void deleteDroid(final String droidID) {
-		if (knownDroids.containsKey(droidID)) {
-			knownDroids.remove(droidID);
+		if (mKnownDroids.containsKey(droidID)) {
+			mKnownDroids.remove(droidID);
 			notifyListeners(DroidManagerEvent.DROID_DELETED, droidID);
 		}
-		if (connectedDroids.containsKey(droidID)) {
+		if (mRegisteredDroids.containsKey(droidID)) {
 			LOGGER.log(Level.INFO, "Droid {0} deleted", droidID);
-			connectedDroids.remove(droidID);
+			mRegisteredDroids.remove(droidID);
+//			mRegisteredDroids.get(droidID).onDisconnect();
 			// TODO: close connection
 		}
 	}
@@ -153,8 +292,8 @@ public final class DroidManager {
 	 * @param droidID Droid to blacklist
 	 */
 	public void blacklistDroid(final String droidID) {
-		if (knownDroids.containsKey(droidID)) {
-			knownDroids.get(droidID).setBlacklist(true);
+		if (mKnownDroids.containsKey(droidID)) {
+			mKnownDroids.get(droidID).setBlacklist(true);
 			notifyListeners(DroidManagerEvent.DROID_BLACKLISTED, droidID);
 		}
 		else {
@@ -177,8 +316,8 @@ public final class DroidManager {
 	 * @param droidID Droid to whitelist
 	 */
 	public void whitelistDroid(final String droidID) {
-		if (knownDroids.containsKey(droidID)) {
-			knownDroids.get(droidID).setBlacklist(false);
+		if (mKnownDroids.containsKey(droidID)) {
+			mKnownDroids.get(droidID).setBlacklist(false);
 			notifyListeners(DroidManagerEvent.DROID_WHITELISTED, droidID);
 		}
 		else {
@@ -197,7 +336,7 @@ public final class DroidManager {
 	 * @return true if Droid is knonw, otherwise false
 	 */
 	public boolean isDroidKnown(final String rid) {
-		return knownDroids.containsKey(rid);
+		return mKnownDroids.containsKey(rid);
 	}
 
 	/**
@@ -217,7 +356,7 @@ public final class DroidManager {
 	 * @return true if Droid is connected, otherwise false
 	 */
 	public boolean isDroidConnected(final String rid) {
-		return connectedDroids.containsKey(rid);
+		return mRegisteredDroids.containsKey(rid);
 	}
 
 	/**
@@ -237,10 +376,10 @@ public final class DroidManager {
 	 * @return true if Droid is blacklisted, otherwise false (also if unknown)
 	 */
 	public boolean isDroidBlacklisted(final String rid) {
-		if (!knownDroids.containsKey(rid)) {
+		if (!mKnownDroids.containsKey(rid)) {
 			return false;
 		}
-		return knownDroids.get(rid).getBlacklist();
+		return mKnownDroids.get(rid).getBlacklist();
 	}
 
 	/**
@@ -254,11 +393,11 @@ public final class DroidManager {
 	}
 
 	public StaticProfile getStaticProfile(final String droidID) {
-		if (!knownDroids.containsKey(droidID)) {
+		if (!mKnownDroids.containsKey(droidID)) {
 			return null;
 		}
 
-		return knownDroids.get(droidID).getProfile();
+		return mKnownDroids.get(droidID).getProfile();
 	}
 
 	/**
@@ -266,16 +405,15 @@ public final class DroidManager {
 	 *
 	 * @param droidID
 	 */
-	public void connectDroid(final String droidID, ClientConnection con) {
-		LOGGER.log(Level.INFO, "Droid {0} connected", droidID);
-		connectedDroids.put(droidID, con);
-		notifyListeners(DroidManagerEvent.DROID_CONNECTED, droidID);
-	}
-
-	public void connectDroid(final DroidID rid, ClientConnection con) {
-		connectDroid(rid.toString(), con);
-	}
-
+//	public void connectDroid(final String droidID) {
+//		LOGGER.log(Level.INFO, "Droid {0} connected", droidID);
+//		mConnectedDroids.add(droidID);
+//		notifyListeners(DroidManagerEvent.DROID_CONNECTED, droidID);
+//	}
+//
+//	public void connectDroid(final DroidID rid) {
+//		connectDroid(rid.toString());
+//	}
 	/**
 	 * Disconnects droid from droid manager.
 	 *
@@ -283,7 +421,7 @@ public final class DroidManager {
 	 */
 	public void disconnectDroid(final String droidID) {
 		LOGGER.log(Level.INFO, "Droid {0} disconnected", droidID);
-		connectedDroids.remove(droidID);
+		mRegisteredDroids.remove(droidID);
 		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED, droidID);
 	}
 
@@ -303,7 +441,7 @@ public final class DroidManager {
 	 * @throws FileNotFoundException File not found
 	 */
 	public void load(final File file) throws FileNotFoundException {
-		knownDroids = readFromXMLFile(file);
+		mKnownDroids = readFromXMLFile(file);
 		notifyListeners();
 	}
 
@@ -314,14 +452,14 @@ public final class DroidManager {
 	 * @throws FileNotFoundException File not found
 	 */
 	public void store(final File file) throws FileNotFoundException {
-		writeToXMLFile(file, knownDroids);
+		writeToXMLFile(file, mKnownDroids);
 	}
 
 	/**
 	 * Initialize droid manager database.
 	 */
 	public void init() {
-		knownDroids = new ConcurrentHashMap<String, DroidData>(8, 0.9f, 1);
+		mKnownDroids = new ConcurrentHashMap<String, DroidData>(8, 0.9f, 1);
 	}
 
 	/**
@@ -383,7 +521,7 @@ public final class DroidManager {
 	 * @param event Event that should be passed to listeners
 	 */
 	private void notifyListeners(final DroidManagerEvent event, String droidID) {
-		for (DroidManagerListener d : listeners) {
+		for (DroidManagerListener d : mListeners) {
 			d.handle(event, droidID, this);
 		}
 	}
@@ -401,7 +539,7 @@ public final class DroidManager {
 		if (listener == null) {
 			return;
 		}
-		listeners.add(listener);
+		mListeners.add(listener);
 	}
 
 	/**
@@ -435,11 +573,9 @@ public final class DroidManager {
 	 * @return Check code
 	 */
 	public String getCheckCode(String droidID) {
-		return mCheckCode.get(droidID);
+		if (!mPendingCheckCodes.containsKey(droidID)) {
+			return "";
+		}
+		return mPendingCheckCodes.get(droidID);
 	}
-
-	public String getCheckCodeID(String droidID) {
-		return mCheckCodeID.get(droidID);
-	}
-
 }

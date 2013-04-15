@@ -11,6 +11,8 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,23 +20,27 @@ import java.util.logging.Logger;
  *
  * @author Enrico Joerns
  */
-public class ClientConnection extends QueuedMessageConnection implements Runnable {
+public class ClientConnection implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(ClientConnection.class.getName());
-	protected final DroidManager mDroidManager;
-	protected final JobDistributionIOServer mJobDistIO;
-	protected FSM mStateMachine = null;
 	private boolean isStopped;
 	private String droidID;
+	private Socket mSocket;
+	private List<Receiver> receivers = new LinkedList<Receiver>();
+	private QueuedMessageConnection mQueuedMessageConnection;
+
+	public enum Status {
+
+		CONNECTED,
+		DISCONNECTED
+	}
 
 	public ClientConnection(
 					final Socket socket,
 					final DroidManager droidmanager,
 					final JobDistributionIOServer jobDistIO) throws IOException {
-		super(socket);
-		mDroidManager = droidmanager;
-		mJobDistIO = jobDistIO;
-		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
+		mSocket = socket;
+		mQueuedMessageConnection = new QueuedMessageConnection(mSocket);
 	}
 
 	public ClientConnection(
@@ -42,14 +48,7 @@ public class ClientConnection extends QueuedMessageConnection implements Runnabl
 					final OutputStream out,
 					final DroidManager droidmanager,
 					final JobDistributionIOServer jobDistIO) throws IOException {
-		super(in, out);// TODO...
-		mDroidManager = droidmanager;
-		mJobDistIO = jobDistIO;
-		mStateMachine = new ServerStateMachine(this, mDroidManager, mJobDistIO);
-	}
-
-	public FSM getStateMachine() {
-		return mStateMachine;
+		mQueuedMessageConnection = new QueuedMessageConnection(in, out);// TODO...
 	}
 
 	public void setDroidID(final String droidID) {
@@ -67,13 +66,12 @@ public class ClientConnection extends QueuedMessageConnection implements Runnabl
 			@Override
 			public void run() {
 				// init state machine
-				mStateMachine.init();
 
 				// Handle incoming client requests
-				while ((!isStopped) && (!isSocketClosed())) {
+				while ((!isStopped) && (!mSocket.isClosed())) {
 					Message msg;
 					try {
-						msg = readMessage();
+						msg = mQueuedMessageConnection.readMessage();
 					}
 					catch (InterruptedIOException ex) {
 						LOGGER.info("ClientConnection thread interrupted");
@@ -91,27 +89,79 @@ public class ClientConnection extends QueuedMessageConnection implements Runnabl
 						isStopped = true;
 						break;
 					}
-					try {
-						if (msg.getData() == null) {
-							mStateMachine.process(msg.getRequest());
-						}
-						else {
-							mStateMachine.process(msg.getRequest(), (Object[]) (msg.getData()));
-						}
-					}
-					catch (StateMachineException ex) {
-						Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
+					// notify listeners
+					for (Receiver r : receivers) {
+						r.OnNewMessage(msg);
 					}
 
 					LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
 				}
-				mStateMachine.process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
+
+				notifyListeners(Status.DISCONNECTED);
 			}
 		});
 		receiver.start();
 
-		super.run();
+		mQueuedMessageConnection.run();
 
 		receiver.interrupt();
+	}
+
+	/**
+	 * Sends Message if connected.
+	 *
+	 * @param msg Message to send
+	 */
+	public final void sendMessage(Message msg) {
+		try {
+			mQueuedMessageConnection.sendMessage(msg);
+		}
+		catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+	}
+
+	/**
+	 * Adds a receiver that will receive messages and connection status updates.
+	 *
+	 * @param rec Receiver to add
+	 */
+	public void addReceiver(Receiver rec) {
+		if (rec != null) {
+			System.out.println("Adding receiver... " + rec);
+			receivers.add(rec);
+		}
+	}
+
+	/**
+	 * Notify listeners about status update.
+	 *
+	 * @param status Status to promote
+	 */
+	private void notifyListeners(Status status) {
+		for (Receiver r : receivers) {
+			System.out.println("Notifying... " + r);
+			r.OnStatusUpdate(status);
+		}
+	}
+
+	/*
+	 * 
+	 */
+	public interface Receiver {
+
+		/**
+		 * Invoked when new message was received.
+		 *
+		 * @param msg
+		 */
+		public abstract void OnNewMessage(Message msg);
+
+		/**
+		 * Invoked when connection status changes.
+		 *
+		 * @param status
+		 */
+		public abstract void OnStatusUpdate(Status status);
 	}
 }

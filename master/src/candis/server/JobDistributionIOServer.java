@@ -1,8 +1,6 @@
 package candis.server;
 
-import candis.common.Connection;
 import candis.common.fsm.FSM;
-import candis.common.fsm.StateMachineException;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -74,37 +72,30 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		return mDroidManager.getKnownDroids().get(droidID);
 	}
 
-	protected ClientConnection getDroidConnection(String droidID) {
-		return mDroidManager.getConnectedDroids().get(droidID);
-	}
+//	protected ClientConnection getDroidConnection(String droidID) {
+//		return mDroidManager.getConnectedDroids().get(droidID);
+//	}
 	/*--------------------------------------------------------------------------*/
 	/* Scheduler callback methods for Droid control                             */
 	/*--------------------------------------------------------------------------*/
-
 	@Override
 	public void startJob(String droidID, DistributedJobParameter param) {
 		assert param != null;
-		FSM fsm = getDroidConnection(droidID).getStateMachine();
-		try {
-			fsm.process(
-							ServerStateMachine.ServerTrans.SEND_JOB, mCurrentTaskID, param);// TODO: check ID
-			invoke(JobDistributionIOHandler.Event.JOB_SENT);
-		}
-		catch (StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
+		System.out.println("startJob(" + droidID + ", " + param + ")");
+		// TODO: where to generate jobID?
+		mDroidManager.getDroidHandler(droidID).onSendJob(mCurrentTaskID, "4711", param);
+//		FSM fsm = getDroidConnection(droidID).getStateMachine();
+//		fsm.process(
+//						ServerStateMachine.ServerTrans.SEND_JOB, mCurrentTaskID, param);// TODO: check ID
+		invoke(JobDistributionIOHandler.Event.JOB_SENT);
 	}
 
 	@Override
 	public void stopJob(final String droidID) {
-		FSM fsm = getDroidConnection(droidID).getStateMachine();
-		try {
-			fsm.process(
-							ServerStateMachine.ServerTrans.STOP_JOB, mCurrentTaskID);
-		}
-		catch (StateMachineException ex) {
-			LOGGER.log(Level.SEVERE, null, ex);
-		}
+		mDroidManager.getDroidHandler(droidID).onStopJob("4711", mCurrentTaskID);
+//		FSM fsm = getDroidConnection(droidID).getStateMachine();
+//		fsm.process(
+//						ServerStateMachine.ServerTrans.STOP_JOB, mCurrentTaskID);
 	}
 
 	/*--------------------------------------------------------------------------*/
@@ -120,7 +111,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		});
 	}
 
-	public void onDroidConnected(final String droidID, final Connection connection) {
+	public void onDroidConnected(final String droidID, final ClientConnection connection) {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
@@ -221,7 +212,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 			addToQueue(new Runnable() {
 				@Override
 				public void run() {
-					mCurrentScheduler.registerDroids(mDroidManager.getConnectedDroids().keySet());
+					mCurrentScheduler.registerDroids(mDroidManager.getRegisteredDroids());
 				}
 			});
 			addToQueue(new Runnable() {

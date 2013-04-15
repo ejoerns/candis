@@ -36,7 +36,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 	private final DroidlistTableModel mDroidlistTableModel;
 	private final DroidInfoTableModel mDroidInfoTableModel;
 	private final OptionsDialog mOptionDialog;
-	private final CheckCodeHandler mCheckCodeHandler;
+//	private final CheckCodeHandler mCheckCodeHandler;
 	private CandisLoggerHandler mLoggerHandler;
 	private String mCurrentTaskID = "";
 	private TaskPanel mTaskPanel;
@@ -53,8 +53,8 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		mDroidlistTableModel = droidlisttablemodel;
 		mDroidInfoTableModel = new DroidInfoTableModel();
 		mOptionDialog = new OptionsDialog(this, false);
-		mCheckCodeHandler = new CheckCodeHandler(this);
-		mDroidManager.addListener(mCheckCodeHandler);
+//		mCheckCodeHandler = new CheckCodeHandler(this);
+		mDroidManager.addListener(new CheckCodeHandler(this));
 		mJobDistIO.addHandler(new JobDistIOHandler());
 		UserParameterRequester.init(this);
 	}

@@ -23,7 +23,7 @@ public class Server implements Runnable {
 	private static final int mPort = 9999;
 	private final ExecutorService mExecutorService;
 	private final DroidManager mDroidManager;
-	private final JobDistributionIOServer mCommunicationIO;
+	private final JobDistributionIOServer mJobDistIO;
 	private ServerSocket ssocket;
 	private boolean mDoStop = false;
 //	private final ClassLoaderWrapper mClassLoaderWrapper;
@@ -46,7 +46,7 @@ public class Server implements Runnable {
 
 	public Server(
 					final DroidManager droidmanager,
-					final JobDistributionIOServer scomio) throws IOException {
+					final JobDistributionIOServer jobdistio) throws IOException {
 
 		// load properties if available or load default properties
 		try {
@@ -58,7 +58,7 @@ public class Server implements Runnable {
 		}
 		mDroidManager = droidmanager;
 //		mClassLoaderWrapper = clw;
-		mCommunicationIO = scomio;
+		mJobDistIO = jobdistio;
 		// try to load drodmanager
 		try {
 			mDroidManager.load(new File(Settings.getString("droiddb.file")));
@@ -90,7 +90,13 @@ public class Server implements Runnable {
 							"Waiting for connection on port %d", ssocket.getLocalPort()));
 
 			socket = ssocket.accept();
-			mExecutorService.execute(new ClientConnection(socket, mDroidManager, mCommunicationIO));
+			ClientConnection ccon = new ClientConnection(socket, mDroidManager, mJobDistIO);
+			ServerStateMachine ssm = new ServerStateMachine(ccon, mDroidManager, mJobDistIO);
+			ssm.init();
+			// state machine wants to be informed about update
+			ccon.addReceiver(ssm);
+//			ccon.addReceiver(this);
+			mExecutorService.execute(ccon);
 		}
 		LOGGER.log(Level.INFO, "Server terminated");
 		ssocket.close();

@@ -23,14 +23,14 @@ public class CheckCodeHandler implements DroidManagerListener {
 
 	@Override
 	public void handle(DroidManagerEvent event, final String droidID, final DroidManager manager) {
-		System.out.println("Handler called for " + droidID + " with code " + manager.getCheckCode(droidID));
 		if (event == DroidManagerEvent.CHECK_CODE) {
-			EventQueue.invokeLater(new Runnable() {
+			System.out.println("Handler called for " + droidID + " with code " + manager.getCheckCode(droidID));
+				EventQueue.invokeLater(new Runnable() {
 				@Override
 				public void run() {
 					mCheckCodeDialogs.put(
 									droidID,
-									new CheckCodeShowDialog(mParent, true, manager.getCheckCodeID(droidID), manager.getCheckCode(droidID)));
+									new CheckCodeShowDialog(mParent, true, manager.getCheckCode(droidID), manager.getCheckCode(droidID)));
 					mCheckCodeDialogs.get(droidID).setVisible(true);
 
 				}

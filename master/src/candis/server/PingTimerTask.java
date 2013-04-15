@@ -1,14 +1,8 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package candis.server;
 
 import candis.common.Instruction;
 import candis.common.Message;
-import java.io.IOException;
 import java.util.TimerTask;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -26,25 +20,19 @@ public class PingTimerTask extends TimerTask {
 
 	@Override
 	public void run() {
-		try {
-			// if flag was not set, communication timed out, thus close socket.
-			if (mFlag) {
-				LOGGER.severe("No ping reply!");
-				outer.getStateMachine().process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
-				cancel();
-			}
-			else {
-				LOGGER.fine("Sending PING message");
-				outer.sendMessage(Message.create(Instruction.PING));
-				mFlag = true;
-			}
+		// TODO:. start timer...
+//		try {
+		// if flag was not set, communication timed out, thus close socket.
+		if (mFlag) {
+			// TODO... reset timer
+//				outer.getStateMachine().process(ServerStateMachine.ServerTrans.CLIENT_DISCONNECTED);
+			cancel();
 		}
-		catch (IOException ex) {
-			Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
+		else {
+			LOGGER.fine("Sending PING message");
+			outer.sendMessage(Message.create(Instruction.PING));
+			mFlag = true;
 		}
-	}
-
-	public void clearFlag() {
-		mFlag = false;
+		// TODO... handle timeout
 	}
 }
