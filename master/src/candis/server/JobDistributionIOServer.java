@@ -26,6 +26,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	protected DistributedControl mDistributedControl;
 	protected Scheduler mCurrentScheduler;
 	private String mCurrentTaskID = "";
+	private int mCurrenJobID = 0;
 	/// Thread and list for execution queue
 	private Thread mQueueThread;
 	private final List<Runnable> mComIOQueue = new LinkedList<Runnable>();
@@ -70,25 +71,25 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	public DroidData getDroidData(final String droidID) {
 		return mDroidManager.getKnownDroids().get(droidID);
 	}
-
 //	protected ClientConnection getDroidConnection(String droidID) {
 //		return mDroidManager.getConnectedDroids().get(droidID);
 //	}
 	/*--------------------------------------------------------------------------*/
 	/* Scheduler callback methods for Droid control                             */
 	/*--------------------------------------------------------------------------*/
+
 	@Override
 	public void startJob(String droidID, DistributedJobParameter param) {
 		assert param != null;
 		System.out.println("startJob(" + droidID + ", " + param + ")");
-		// TODO: where to generate jobID?
-		mDroidManager.getDroidHandler(droidID).onSendJob(mCurrentTaskID, "4711", param);
+		mCurrenJobID++;
+		mDroidManager.getDroidHandler(droidID).onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), param);
 		invoke(JobDistributionIOHandler.Event.JOB_SENT);
 	}
 
 	@Override
 	public void stopJob(final String droidID) {
-		mDroidManager.getDroidHandler(droidID).onStopJob("4711", mCurrentTaskID);
+		mDroidManager.getDroidHandler(droidID).onStopJob(String.valueOf(mCurrenJobID), mCurrentTaskID);
 	}
 
 	/*--------------------------------------------------------------------------*/
@@ -179,6 +180,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 			mDistributedControl = mCDBLoader.getDistributedControl(taskID);
 			mCurrentScheduler = mDistributedControl.initScheduler();
 			mCurrentScheduler.setJobDistributionIO(this);
+			mCurrenJobID = 0;
 		}
 		else {
 			throw new SchedulerStillRuningException("Scheduler still running");
