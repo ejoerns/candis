@@ -67,7 +67,12 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
     catch (ExecutionException ex) {
       Logger.getLogger(MainActivity.class.getName()).log(Level.SEVERE, null, ex);
     }
+  }
 
+  @Override
+  public void onStart() {
+    super.onStart();
+    System.out.println("*** onStart() was called");
     // start service and bind if enabled
     if (mSharedPref.getBoolean("pref_key_run_service", false)) {
       Log.i("foo", "Starting service..");
@@ -77,6 +82,16 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
       if (mServiceRunning) {
         mServiceCommunicator.doBindService();
       }
+    }
+  }
+
+  @Override
+  public void onStop() {
+    super.onStop();
+    System.out.println("*** onStop() was called");
+    if (mServiceRunning) {
+      System.out.println("UNBINDING FROM SERVICE at onDestroy");
+      mServiceCommunicator.doUnbindService();
     }
   }
 
@@ -123,14 +138,15 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
   }
 
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+    System.out.println("***MainActivity.onSharedPreferenceChanged");
     if (key.equals("pref_key_run_service")) {
       if (sharedPreferences.getBoolean("pref_key_run_service", false)) {
         startService(new Intent(this, BackgroundService.class));
-        mServiceCommunicator.doBindService();        // start service
+//        mServiceCommunicator.doBindService();        // start service
       }
       else {
         // stop service
-        mServiceCommunicator.doUnbindService();
+//        mServiceCommunicator.doUnbindService();
         stopService(new Intent(this, BackgroundService.class));
       }
     }

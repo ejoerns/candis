@@ -1,5 +1,6 @@
 package candis.client.service;
 
+import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
@@ -9,8 +10,12 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 import candis.client.ClientFSM;
+import candis.client.activity.CandisNotification;
 import candis.client.comm.ReloadableX509TrustManager;
 import java.security.cert.X509Certificate;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,13 +58,24 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
   final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
   private final Context mContext;
   private ClientFSM mClientFSM;
+  private boolean mIsBound = false;
+  private NotificationManager mNM;
+  /// Holds all messages not yet sent because activity is not bound.
+  List<Message> mPendingMessages = new LinkedList<Message>();
 
   public ActivityCommunicator(Context context) {
     mContext = context;
+    mNM = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
   }
 
   public IBinder getBinder() {
+    mIsBound = true;
     return mSelfMessenger.getBinder();
+  }
+
+  public boolean doUnbind() {
+    mIsBound = false;
+    return false;
   }
   private ReloadableX509TrustManager mTrusmanager;
 
@@ -68,19 +84,30 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
   }
 
   public void OnCheckServerCert(X509Certificate cert, ReloadableX509TrustManager tm) {
-    try {
-      // send certificate to activity
-      Message msg = Message.obtain(null, CHECK_SERVERCERT);
-      Bundle certData = new Bundle();
-      certData.putSerializable("cert", cert);
-      msg.setData(certData);
-      mRemoteMessenger.send(msg);
-      mTrusmanager = tm;
+    // send certificate to activity
+    Message msg = Message.obtain(null, CHECK_SERVERCERT);
+    Bundle certData = new Bundle();
+    certData.putSerializable("cert", cert);
+    msg.setData(certData);
+    // if bound, send instantly, otherwise send notification and add to queue
+    if (mIsBound) {
+      try {
+        mRemoteMessenger.send(msg);
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(BackgroundService.class
+                .getName()).log(Level.SEVERE, null, ex);
+      }
     }
-    catch (RemoteException ex) {
-      Logger.getLogger(BackgroundService.class
-              .getName()).log(Level.SEVERE, null, ex);
+    else {
+      Log.e(TAG, "*** Bad... i am not bound so i will save this message for later use...");
+      mPendingMessages.add(msg);
+      mNM.notify(
+              CandisNotification.NOTIFICATION_ID,
+              CandisNotification.getNotification(mContext, "Certificate authentification required"));
+
     }
+    mTrusmanager = tm;
   }
 
   /**
@@ -93,11 +120,20 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
     bundle.putString("ID", code);
     android.os.Message message = android.os.Message.obtain(null, ActivityCommunicator.SHOW_CHECKCODE);
     message.setData(bundle);
-    try {
-      mRemoteMessenger.send(message);
+    if (mIsBound) {
+      try {
+        mRemoteMessenger.send(message);
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(ActivityCommunicator.class
+                .getName()).log(Level.SEVERE, null, ex);
+      }
     }
-    catch (RemoteException ex) {
-      Logger.getLogger(ActivityCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+    else {
+      mPendingMessages.add(message);
+      mNM.notify(
+              CandisNotification.NOTIFICATION_ID,
+              CandisNotification.getNotification(mContext, "Checkcode required"));
     }
   }
 
@@ -114,10 +150,20 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
         // register client (Activity)
         case MSG_REGISTER_CLIENT:
           mRemoteMessenger = msg.replyTo;
+          for (Message pmsg : mPendingMessages) {
+            try {
+              mRemoteMessenger.send(pmsg);
+            }
+            catch (RemoteException ex) {
+              Logger.getLogger(ActivityCommunicator.class.getName()).log(Level.SEVERE, null, ex);
+            }
+          }
+          Log.e(TAG, "*** received MSG_REGISTER_CLIENT");
           Log.v(TAG, "reply to: " + mRemoteMessenger);
           break;
         // unregister client (Activity)
         case MSG_UNREGISTER_CLIENT:
+          Log.e(TAG, "*** received MSG_UNREGISTER_CLIENT");
           mRemoteMessenger = null;
           break;
         case RESULT_CHECK_SERVERCERT:
@@ -127,7 +173,7 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
         case RESULT_SHOW_CHECKCODE:
           mClientFSM.process(
                   ClientFSM.Transitions.CHECKCODE_ENTERED,
-//                  BackgroundService.this.mDroidContext.getID().toSHA1(),
+                  //                  BackgroundService.this.mDroidContext.getID().toSHA1(),
                   msg.getData().getString("checkcode"));
           break;
 //        // result of server certificate check

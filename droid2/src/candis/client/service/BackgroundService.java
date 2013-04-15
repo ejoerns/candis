@@ -53,6 +53,12 @@ public class BackgroundService extends Service {
   }
 
   @Override
+  public boolean onUnbind(Intent intent) {
+    Log.v(TAG, "onUnbind()");
+    return mActivityCommunicator.doUnbind();
+  }
+
+  @Override
   public void onCreate() {
     super.onCreate();
 
@@ -112,7 +118,7 @@ public class BackgroundService extends Service {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
-    Log.v(TAG, "onStartCommand()");
+    Log.v(TAG, "onStartCommand(" + intent.getAction() + ")");
     super.onStartCommand(intent, flags, startId);
 
     // if service running, only handle intent

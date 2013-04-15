@@ -17,6 +17,8 @@ import android.widget.Toast;
 import candis.client.service.ActivityCommunicator;
 import candis.client.service.BackgroundService;
 import java.security.cert.X509Certificate;
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * Does *all* communication with Service.
@@ -48,6 +50,7 @@ public class ServiceCommunicator {
                          mConnection,
                          Context.BIND_AUTO_CREATE);
     mIsBound = true;
+    Log.i(TAG, "Binding.");
   }
 
   /**
@@ -131,6 +134,7 @@ public class ServiceCommunicator {
     @Override
     public void handleMessage(Message msg) {
       Log.e("IncomingHandler", "--> Got message: " + msg.toString());
+
       switch (msg.what) {
         // show certificate if new one is posted
         case ActivityCommunicator.CHECK_SERVERCERT:
