@@ -156,6 +156,7 @@ public class ServerConnection {
         // try to connect to host
         try {
           mSecureSocket.connect(mHostname, mPort);
+          mSecureSocket.getSocket().setKeepAlive(true);
 
           mQueuedMessageConnection = new QueuedMessageConnection(mSecureSocket.getSocket());
 
@@ -223,6 +224,7 @@ public class ServerConnection {
       LOGGER.warning(ex.getMessage());
       mStopped = true;
       mQMCThread.interrupt();
+      notifyListeners(Status.DISCONNECTED);
     }
   }
 
