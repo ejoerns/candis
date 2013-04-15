@@ -13,10 +13,9 @@ import candis.client.ClientFSM;
 import candis.client.activity.CandisNotification;
 import candis.client.comm.ReloadableX509TrustManager;
 import java.security.cert.X509Certificate;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -150,9 +149,12 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
         // register client (Activity)
         case MSG_REGISTER_CLIENT:
           mRemoteMessenger = msg.replyTo;
-          for (Message pmsg : mPendingMessages) {
+          Iterator<Message> i = mPendingMessages.iterator();
+          while (i.hasNext()) {
+            Message pmsg = i.next(); // must be called before you can call i.remove()
             try {
               mRemoteMessenger.send(pmsg);
+              i.remove();
             }
             catch (RemoteException ex) {
               Logger.getLogger(ActivityCommunicator.class.getName()).log(Level.SEVERE, null, ex);
