@@ -91,7 +91,7 @@ public class Server implements Runnable {
 							"Waiting for connection on port %d", ssocket.getLocalPort()));
 
 			socket = ssocket.accept();
-			ClientConnection ccon = new ClientConnection(socket, mDroidManager, mJobDistIO);
+			ClientConnection ccon = new ClientConnection(socket);
 			ServerStateMachine ssm = new ServerStateMachine(ccon, mDroidManager, mJobDistIO);
 			ssm.init();
 			// state machine wants to be informed about update

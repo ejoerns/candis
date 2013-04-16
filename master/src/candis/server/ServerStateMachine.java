@@ -82,15 +82,11 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		CLIENT_REJECTED,
 		CHECKCODE_VALID,
 		CHECKCODE_INVALID,
-		//		PROFILE_VALID,
-		//		PROFILE_INVALID,
-		//		POST_JOB,
 		CLIENT_INVALID,
 		CLIENT_DISCONNECTED,
 		SEND_JOB,
 		SEND_INITAL,// TODO...
 		STOP_JOB,// TODO...
-		//		SEND_PING,
 		ERROR;
 	}
 
@@ -123,7 +119,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 						.addTransition(
 						ServerTrans.CLIENT_ACCEPTED,
 						ServerStates.REGISTERED,
-						new SendAckHandler())
+						new ClientAcceptedHandler())
 						.addTransition(
 						ServerTrans.CLIENT_INVALID,
 						ServerStates.INITIAL,
@@ -137,7 +133,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 						.addTransition(
 						ServerTrans.CHECKCODE_VALID,
 						ServerStates.REGISTERED,
-						new SendAckHandler())
+						new ClientAcceptedHandler())
 						.addTransition(
 						ServerTrans.CHECKCODE_INVALID,
 						ServerStates.INITIAL,
@@ -168,7 +164,11 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 						.addTransition(
 						Instruction.SEND_RESULT,
 						ServerStates.REGISTERED,
-						new ResultHandler());
+						new ResultHandler())
+						.addTransition(
+						ServerTrans.STOP_JOB,
+						ServerStates.REGISTERED,
+						new StopJobHandler());
 		addState(ServerStates.INIT_SENT)
 						.addTransition(
 						Instruction.ACK,
@@ -215,13 +215,14 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	}
 
 	/**
-	 * Gets called if client should be rejected.
+	 * Gets called if client should be accepted.
 	 */
-	private class SendAckHandler extends ActionHandler {
+	private class ClientAcceptedHandler extends ActionHandler {
 
 		@Override
 		public void handle(final Object... data) {
 			gotCalled();
+			mJobDistIO.onDroidConnected(mDroidID);
 			mConnection.sendMessage(new Message(Instruction.ACK));
 		}
 	}
@@ -378,7 +379,16 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		}
 	}
 
+	private class StopJobHandler extends ActionHandler {
+
+		@Override
+		public void handle(final Object... data) {
+			gotCalled();
+			throw new UnsupportedOperationException("Not supported yet.");
+		}
+	}
 	//--
+
 	@Override
 	public void OnNewMessage(Message msg) {
 		if (msg.getData() == null) {

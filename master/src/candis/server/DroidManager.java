@@ -175,6 +175,26 @@ public final class DroidManager {
 	}
 
 	/**
+	 * Disconnects droid from droid manager.
+	 *
+	 * @param droidID ID of droid that is disconnected
+	 */
+	public void unregisterDroid(final String droidID) {
+		LOGGER.log(Level.INFO, "Droid {0} disconnected", droidID);
+		mRegisteredDroids.remove(droidID);
+		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED, droidID);
+	}
+
+	/**
+	 * Disconnects droid from droid manager.
+	 *
+	 * @param rid ID of droid that is disconnected
+	 */
+	public void unregisterDroid(final DroidID rid) {
+		unregisterDroid(rid.toString());
+	}
+
+	/**
 	 * Returns the DroidHandler for the given droid ID.
 	 *
 	 * @param droidID
@@ -241,32 +261,6 @@ public final class DroidManager {
 		mPendingCheckCodes.remove(droidID);
 	}
 
-	/**
-	 * Adds a Droid to the list of (whitelisted) known Droids.
-	 *
-	 * @param rid ID of Droid to add
-	 * @param profile
-	 */
-//	public void addDroid(final String rid, StaticProfile profile) {
-//		addDroid(rid, new DroidData(false, profile));
-//	}
-//
-//	public void addDroid(final String droidID, DroidData droid) {
-//		if (!mKnownDroids.containsKey(droidID)) {
-//			LOGGER.log(Level.INFO, "Droid {0} added", droidID);
-//			mKnownDroids.put(droidID, droid);
-//			notifyListeners(DroidManagerEvent.DROID_ADDED, droidID);
-//		}
-//	}
-	/**
-	 * Adds a Droid to the list of (whitelisted) known Droids.
-	 *
-	 * @param rid ID of Droid to add
-	 * @param profile
-	 */
-//	public void addDroid(final DroidID rid, final StaticProfile profile) {
-//		addDroid(rid.toString(), profile);
-//	}
 	/**
 	 * Removes a Droid from the list of known Droids.
 	 *
@@ -406,26 +400,6 @@ public final class DroidManager {
 		}
 
 		return mKnownDroids.get(droidID).getProfile();
-	}
-
-	/**
-	 * Disconnects droid from droid manager.
-	 *
-	 * @param droidID ID of droid that is disconnected
-	 */
-	public void disconnectDroid(final String droidID) {
-		LOGGER.log(Level.INFO, "Droid {0} disconnected", droidID);
-		mRegisteredDroids.remove(droidID);
-		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED, droidID);
-	}
-
-	/**
-	 * Disconnects droid from droid manager.
-	 *
-	 * @param rid ID of droid that is disconnected
-	 */
-	public void disconnectDroid(final DroidID rid) {
-		disconnectDroid(rid.toString());
 	}
 
 	/**

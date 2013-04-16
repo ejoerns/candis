@@ -1,10 +1,7 @@
 package candis.server;
 
 import candis.common.Message;
-import candis.common.MessageConnection;
 import candis.common.QueuedMessageConnection;
-import candis.common.fsm.FSM;
-import candis.common.fsm.StateMachineException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -23,11 +20,10 @@ import java.util.logging.Logger;
 public class ClientConnection implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(ClientConnection.class.getName());
-	private boolean isStopped;
-	private String droidID;
+	private final List<Receiver> receivers = new LinkedList<Receiver>();
+	private final QueuedMessageConnection mQueuedMessageConnection;
 	private Socket mSocket;
-	private List<Receiver> receivers = new LinkedList<Receiver>();
-	private QueuedMessageConnection mQueuedMessageConnection;
+	private boolean isStopped;
 
 	public enum Status {
 
@@ -35,28 +31,13 @@ public class ClientConnection implements Runnable {
 		DISCONNECTED
 	}
 
-	public ClientConnection(
-					final Socket socket,
-					final DroidManager droidmanager,
-					final JobDistributionIOServer jobDistIO) throws IOException {
+	public ClientConnection(final Socket socket) throws IOException {
 		mSocket = socket;
 		mQueuedMessageConnection = new QueuedMessageConnection(mSocket);
 	}
 
-	public ClientConnection(
-					final InputStream in,
-					final OutputStream out,
-					final DroidManager droidmanager,
-					final JobDistributionIOServer jobDistIO) throws IOException {
-		mQueuedMessageConnection = new QueuedMessageConnection(in, out);// TODO...
-	}
-
-	public void setDroidID(final String droidID) {
-		this.droidID = droidID;
-	}
-
-	public String getDroidID() {
-		return droidID;
+	public ClientConnection(final InputStream in, final OutputStream out) throws IOException {
+		mQueuedMessageConnection = new QueuedMessageConnection(in, out);
 	}
 
 	@Override
@@ -65,7 +46,13 @@ public class ClientConnection implements Runnable {
 		Thread receiver = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				// init state machine
+				// set keepalive option to detect lost connection
+				try {
+					mSocket.setKeepAlive(true);
+				}
+				catch (SocketException ex) {
+					Logger.getLogger(ClientConnection.class.getName()).log(Level.SEVERE, null, ex);
+				}
 
 				// Handle incoming client requests
 				while ((!isStopped) && (!mSocket.isClosed())) {
@@ -155,13 +142,13 @@ public class ClientConnection implements Runnable {
 		 *
 		 * @param msg
 		 */
-		public abstract void OnNewMessage(Message msg);
+		void OnNewMessage(Message msg);
 
 		/**
 		 * Invoked when connection status changes.
 		 *
 		 * @param status
 		 */
-		public abstract void OnStatusUpdate(Status status);
+		void OnStatusUpdate(Status status);
 	}
 }

@@ -105,7 +105,7 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 		});
 	}
 
-	public void onDroidConnected(final String droidID, final ClientConnection connection) {
+	public void onDroidConnected(final String droidID) {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
