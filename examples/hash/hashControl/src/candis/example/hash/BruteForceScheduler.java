@@ -17,53 +17,25 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class BruteForceScheduler extends Scheduler implements ResultReceiver {
+public class BruteForceScheduler extends Scheduler {
 
   public String resultValue;
-  private final int mMaxDepth;
-  private final BruteForceStringGenerator mStringGenerator;
+  private int mMaxDepth;
+  private BruteForceStringGenerator mStringGenerator;
   private long mDone;
   private long mTotal;
-  private final int mClientDepth;
+  private int mClientDepth;
   int prepart = 0;
   int prepart2 = 0;
 
-  public static byte[] hexStringToByteArray(String s) {
-    int len = s.length();
-    byte[] data = new byte[len / 2];
-    for (int i = 0; i < len; i += 2) {
-      data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-              + Character.digit(s.charAt(i + 1), 16));
-    }
-    return data;
-  }
 
   public BruteForceScheduler(int startLen, char[] alphabet, int maxDepth, int clientDepth, HashType type, String hash) {
     super();
-    init();
-    mStringGenerator = new BruteForceStringGenerator(startLen - clientDepth, alphabet, this);
-    mMaxDepth = maxDepth;
-    mDone = 0;
-    mTotal = 0;
-    mClientDepth = clientDepth;
 
-    int d = Math.min(clientDepth, maxDepth);
-    for (int i = 0; i <= Math.max(0, maxDepth - mClientDepth); i++) {
-      mTotal += Math.pow(alphabet.length, i);
-    }
-
-    if (startLen <= d) {
-      prepart = d - startLen + 1;
-      prepart2 = prepart + startLen - 1;
-      mTotal += prepart - 1;
-    }
-
-    HashInitParameter init = new HashInitParameter(type, hexStringToByteArray(hash), alphabet);
-    setInitialParameter(init);
   }
 
   private void init() {
-    addResultReceiver(this);
+//    addResultReceiver(this);
   }
 
   @Override
@@ -80,22 +52,7 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
     }
   }
 
-  @Override
-  public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
-    mDone++;
-    HashJobResult hashResult = (HashJobResult) result;
-    HashJobParameter hashParam = (HashJobParameter) param;
-    if (hashResult.mFoundValue) {
-      try {
-        resultValue = new String(hashParam.base, "UTF-8") + new String(hashResult.mValue);
-        //resultValue = new String(hashResult.mValue, "UTF8");
-      }
-      catch (UnsupportedEncodingException ex) {
-        Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      this.abort();
-    }
-  }
+
 
   @Override
   protected boolean hasParametersLeft() {
@@ -108,15 +65,11 @@ public class BruteForceScheduler extends Scheduler implements ResultReceiver {
     if (resultValue != null) {
       return 0;
     }
-    return mParams.size() + (int) (mTotal - mDone); // TODO: return long?
+    return (int) (mTotal - mDone); // TODO: return long?
   }
 
   @Override
   protected DistributedJobParameter popParameters() {
-    if (mParams.size() > 0) {
-      return mParams.pop();
-    }
-
     try {
       if (prepart > 0) {
         prepart--;

@@ -1,7 +1,11 @@
 package candis.example.hash;
 
 import candis.distributed.DistributedControl;
+import candis.distributed.DistributedJobParameter;
+import candis.distributed.DistributedJobResult;
+import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
+import candis.distributed.SimpleScheduler;
 import candis.distributed.parameter.BooleanUserParameter;
 import candis.distributed.parameter.IntegerUserParameter;
 import candis.distributed.parameter.RegexValidator;
@@ -10,14 +14,25 @@ import candis.distributed.parameter.StringUserParameter;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.distributed.parameter.UserParameterSet;
 import candis.example.hash.HashInitParameter.HashType;
+import java.io.UnsupportedEncodingException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author Sebastian Willenborg
  */
-public class HashControl implements DistributedControl {
+public class HashControl implements DistributedControl, ResultReceiver {
 
-  private BruteForceScheduler mScheduler;
+  private Scheduler mScheduler;
+  public String mResultValue;
+  private int mMaxDepth;
+  private BruteForceStringGenerator mStringGenerator;
+  private long mDone;
+  private long mTotal;
+  private int mClientDepth;
+  int prepart = 0;
+  int prepart2 = 0;
 
   @Override
   public Scheduler initScheduler() {
@@ -91,23 +106,82 @@ public class HashControl implements DistributedControl {
     if (type.getValue().toString().equals("sha1")) {
       typeValue = HashType.SHA1;
     }
-    mScheduler = new BruteForceScheduler(
-            start.getIntegerValue(),
-            alphabet.toCharArray(),
-            stop.getIntegerValue(),
-            depth.getIntegerValue(),
-            typeValue, hashvalue.getStringValue());
+    mScheduler = new SimpleScheduler();
+
+    mStringGenerator = new BruteForceStringGenerator(start.getIntegerValue() - depth.getIntegerValue(), alphabet.toCharArray());
+    mMaxDepth = stop.getIntegerValue();
+    mDone = 0;
+    mTotal = 0;
+    mClientDepth = depth.getIntegerValue();
+
+    int d = Math.min(depth.getIntegerValue(), stop.getIntegerValue());
+    for (int i = 0; i <= Math.max(0, stop.getIntegerValue() - mClientDepth); i++) {
+      mTotal += Math.pow(alphabet.toCharArray().length, i);
+    }
+
+    if (start.getIntegerValue() <= d) {
+      prepart = d - start.getIntegerValue() + 1;
+      prepart2 = prepart + start.getIntegerValue() - 1;
+      mTotal += prepart - 1;
+    }
+
+    HashInitParameter init = new HashInitParameter(typeValue, hexStringToByteArray(hashvalue.getStringValue()), alphabet.toCharArray());
+    mScheduler.setInitialParameter(init);
+    mScheduler.addResultReceiver(this);
+
+
+    for (long i = 0; i < mTotal; i++) {
+      try {
+        if (prepart > 0) {
+          prepart--;
+          mScheduler.addParameter(new HashJobParameter(mStringGenerator.toString().getBytes("UTF-8"), prepart2 - prepart));
+        }
+        mScheduler.addParameter(new HashJobParameter(mStringGenerator.nextString().getBytes("UTF-8"), Math.min(mClientDepth, mMaxDepth)));
+      }
+      catch (UnsupportedEncodingException ex) {
+        Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+
+    System.out.println("" + mTotal + " parameters added");
+
     return mScheduler;
   }
 
   @Override
+  public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
+    mDone++;
+    HashJobResult hashResult = (HashJobResult) result;
+    HashJobParameter hashParam = (HashJobParameter) param;
+    if (hashResult.mFoundValue) {
+      try {
+        mResultValue = new String(hashParam.base, "UTF-8") + new String(hashResult.mValue);
+        //resultValue = new String(hashResult.mValue, "UTF8");
+      }
+      catch (UnsupportedEncodingException ex) {
+        Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);
+      }
+      mScheduler.abort();
+    }
+  }
+
+  @Override
   public void onSchedulerDone() {
-    if (mScheduler.resultValue != null) {
-      System.out.println(mScheduler.resultValue);
+    if (mResultValue != null) {
+      System.out.println(mResultValue);
     }
     else {
       System.out.println("nothing");
     }
+  }
 
+  public static byte[] hexStringToByteArray(String s) {
+    int len = s.length();
+    byte[] data = new byte[len / 2];
+    for (int i = 0; i < len; i += 2) {
+      data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+              + Character.digit(s.charAt(i + 1), 16));
+    }
+    return data;
   }
 }

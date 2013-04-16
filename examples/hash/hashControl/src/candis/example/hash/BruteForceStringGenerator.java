@@ -12,10 +12,10 @@ class BruteForceStringGenerator {
   private final List<Integer> mValues = new LinkedList<Integer>();
   private char[] mAlphabet;
   boolean first = true;
-  private final BruteForceScheduler mStringGenerator;
+//  private final BruteForceScheduler mStringGenerator;
 
-  public BruteForceStringGenerator(int initSize, char[] alphabet, final BruteForceScheduler mStringGenerator) {
-    this.mStringGenerator = mStringGenerator;
+  public BruteForceStringGenerator(int initSize, char[] alphabet) {
+//    this.mStringGenerator = mStringGenerator;
     mAlphabet = alphabet;
     if (initSize < 0) {
       initSize = 0;
