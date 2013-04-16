@@ -179,8 +179,8 @@ public final class DroidManager {
 	 *
 	 * @param droidID ID of droid that is disconnected
 	 */
-	public void unregisterDroid(final String droidID) {
-		LOGGER.log(Level.INFO, "Droid {0} disconnected", droidID);
+	public void unregister(final String droidID) {
+		LOGGER.log(Level.INFO, "Droid {0} unregistered", droidID);
 		mRegisteredDroids.remove(droidID);
 		notifyListeners(DroidManagerEvent.DROID_DISCONNECTED, droidID);
 	}
@@ -190,8 +190,8 @@ public final class DroidManager {
 	 *
 	 * @param rid ID of droid that is disconnected
 	 */
-	public void unregisterDroid(final DroidID rid) {
-		unregisterDroid(rid.toString());
+	public void unregister(final DroidID rid) {
+		unregister(rid.toString());
 	}
 
 	/**

@@ -50,6 +50,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
   public enum Transitions implements candis.common.fsm.Transition {
 
     REGISTER,
+    UNREGISTER,
     CHECKCODE_ENTERED,
     BINARY_REQUIRED,
     JOB_DONE,
@@ -120,6 +121,10 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
             Transitions.REGISTER,
             ClientStates.REGISTRATING,
             new RegisterHandler());
+    addGlobalTransition(
+            Transitions.UNREGISTER,
+            ClientStates.REGISTRATING,
+            new UnregisterHandler());
 
     mJobCenter.addHandler(this);
   }
@@ -170,6 +175,16 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
               Message.create(Instruction.REGISTER,
                              DroidContext.getInstance().getID(),
                              DroidContext.getInstance().getProfile()));
+    }
+  }
+
+  private class UnregisterHandler extends ActionHandler {
+
+    @Override
+    public void handle(Object... data) {
+      // send registration message to master
+      mServerConnection.sendMessage(
+              Message.create(Instruction.UNREGISTER, DroidContext.getInstance().getID()));
     }
   }
 

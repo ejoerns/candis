@@ -1,7 +1,6 @@
 package candis.server;
 
 import candis.common.CandisLog;
-import candis.common.ClassloaderObjectInputStream;
 import candis.common.DroidID;
 import candis.common.Instruction;
 import candis.common.Message;
@@ -13,14 +12,9 @@ import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.droid.StaticProfile;
 import candis.server.ClientConnection.Status;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OptionalDataException;
-import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -169,6 +163,11 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 						Instruction.ACK,
 						ServerStates.REGISTERED);
 
+		addGlobalTransition(
+						Instruction.UNREGISTER,
+						ServerStates.INITIAL,
+						new UnregisterHandler());
+
 		setState(ServerStates.INITIAL);
 	}
 
@@ -188,6 +187,21 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 			// register...
 			mDroidManager.register(mDroidID, mReceivedProfile, ServerStateMachine.this);
+		}
+	}
+
+	/**
+	 * Invoked if server got connection from a client.
+	 */
+	private class UnregisterHandler extends ActionHandler {
+
+		@Override
+		public void handle(Object... obj) {
+			gotCalled();
+			final String droidID = ((DroidID) obj[0]).toSHA1();
+
+			// unregister...
+			mDroidManager.unregister(droidID);
 		}
 	}
 

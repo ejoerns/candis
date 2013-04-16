@@ -43,6 +43,8 @@ public enum Instruction implements Transition {
   //  REQUEST_PROFILE(60, 0),
   /// Droid registeres at master (ID, Profile)
   REGISTER(61, 2, Type.OBJECT, Type.OBJECT),
+  /// Droid unregisteres at master (ID)
+  UNREGISTER(62, 1, Type.STRING),
   /// Droid sends profile data
   //  SEND_PROFILE(65, 1, Type.STRING),
   /// Master accepts connection

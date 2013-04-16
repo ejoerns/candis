@@ -1,6 +1,5 @@
 package candis.client.service;
 
-import candis.client.ClientFSM;
 import android.app.Service;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -10,6 +9,7 @@ import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import candis.client.ClientFSM;
 import candis.client.DeviceProfiler;
 import candis.client.DroidContext;
 import candis.client.R;
@@ -39,6 +39,7 @@ public class BackgroundService extends Service {
   private ServerConnection mConnection;
   private ActivityCommunicator mActivityCommunicator;
   private StatusUpdater mStatusUpdater;
+  private ClientFSM mStateMachine;
 
   /**
    * When binding to the service, we return an interface to our messenger
@@ -135,6 +136,7 @@ public class BackgroundService extends Service {
     Log.v(TAG, "onDestroy()");
     super.onDestroy();
     unregisterReceiver(mSystemStatusController);
+    mStateMachine.process(ClientFSM.Transitions.UNREGISTER);
     mConnection.disconnect();
   }
 
@@ -153,7 +155,7 @@ public class BackgroundService extends Service {
                                          trustmanager);
       mConnection.addReceiver(mStatusUpdater);
       // init state machine
-      final ClientFSM mStateMachine = new ClientFSM(getApplicationContext(), mConnection, mActivityCommunicator);
+      mStateMachine = new ClientFSM(getApplicationContext(), mConnection, mActivityCommunicator);
       mStateMachine.init();
       // fsm must receive messages
       mConnection.addReceiver(mStateMachine);
