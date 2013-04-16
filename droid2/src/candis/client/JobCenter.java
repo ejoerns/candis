@@ -159,15 +159,16 @@ public class JobCenter {
       public void run() {
         Log.i(TAG, "Running Job for Task " + mTaskCache.get(runnableID).name + " with TaskID " + runnableID);
         DistributedJobResult result = null;
+        long startTime = 0, endTime = 0;
         // try to instanciate class
         DistributedRunnable currentTask;
         try {
           currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();
           currentTask.setInitialParameter(mTaskCache.get(runnableID).initialParam);
           // run job and measure execution time
-          long startTime = System.currentTimeMillis();
+          startTime = System.currentTimeMillis();
           result = currentTask.runJob(param);
-          long endTime = System.currentTimeMillis();
+          endTime = System.currentTimeMillis();
           System.out.println("That took " + (endTime - startTime) + " milliseconds");
         }
         catch (InstantiationException ex) {
@@ -183,7 +184,7 @@ public class JobCenter {
 
         // notify handlers about end
         for (JobCenterHandler handler : mHandlerList) {
-          handler.onJobExecutionDone(runnableID, jobID, result, 4711);// TODO: implement time!
+          handler.onJobExecutionDone(runnableID, jobID, result, endTime - startTime);
         }
       }
     }).start();
