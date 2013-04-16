@@ -22,10 +22,8 @@ import candis.common.Message;
 import candis.common.Settings;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.security.cert.X509Certificate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.X509TrustManager;
 
 /**
  * Background service.
@@ -130,6 +128,14 @@ public class BackgroundService extends Service {
     // We want this service to continue running until it is explicitly
     // stopped, so return sticky.
     return START_STICKY;
+  }
+
+  @Override
+  public void onDestroy() {
+    Log.v(TAG, "onDestroy()");
+    super.onDestroy();
+    unregisterReceiver(mSystemStatusController);
+    mConnection.disconnect();
   }
 
   public void init() {
