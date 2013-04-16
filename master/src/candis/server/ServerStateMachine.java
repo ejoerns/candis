@@ -55,18 +55,13 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 		INITIAL,
 		REGISTERED,
-		//		UNCONNECTED,
 		CHECK,
-		//		PROFILE_REQUESTED,
-		//		PROFILE_VALIDATE,
 		CHECKCODE_REQUESTED,
 		CHECKCODE_VALIDATE,
 		CONNECTED,
 		JOB_SENT,
 		JOB_BINARY_SENT,
-		//		JOB_INIT_SENT,
 		INIT_SENT,
-		//		INIT_BINARY_SENT,
 		JOB_PROCESSING;
 	}
 
@@ -101,7 +96,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	}
 
 	@Override
-	public void init() {
+	public final void init() {
 		addState(ServerStates.INITIAL)
 						.addTransition(
 						Instruction.REGISTER,
@@ -184,18 +179,12 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 		@Override
 		public void handle(Object... obj) {
-			assert obj != null;
-			assert obj[0] instanceof DroidID : ((Instruction) obj[0]).toString();
-			assert obj[1] instanceof StaticProfile : ((Instruction) obj[1]).toString();
-
 			gotCalled();
-			if (obj == null) {
-				LOGGER.log(Level.WARNING, "Missing payload data (expected RandomID)");
-				return;
-			}
+			final String droidID = ((DroidID) obj[0]).toSHA1();
+			final StaticProfile profile = (StaticProfile) obj[1];
 
-			mDroidID = ((DroidID) obj[0]).toSHA1();
-			mReceivedProfile = ((StaticProfile) obj[1]);
+			mDroidID = droidID;
+			mReceivedProfile = profile;
 
 			// register...
 			mDroidManager.register(mDroidID, mReceivedProfile, ServerStateMachine.this);
@@ -257,36 +246,25 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	protected class ResultHandler extends ActionHandler {
 
 		@Override
-		public void handle(final Object... obj) {
-			assert obj[0] instanceof String;
+		public final void handle(final Object... obj) {
+			final String taskID = (String) obj[0];
+			final String jobID = (String) obj[1];
+			final byte[] rawresult = (byte[]) (byte[]) obj[2];
+			final long exectime = (Long) obj[3];
 			gotCalled();
 
-			ObjectInputStream objInstream;
-			Object object = null;
-			try {
-				objInstream = new ClassloaderObjectInputStream(
-								new ByteArrayInputStream((byte[]) obj[2]),
-								mJobDistIO.getCDBLoader().getClassLoader((String) obj[0])); // TODO...
-				object = objInstream.readObject();
-				objInstream.close();
-//      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoaderWrapper).readObject();
-			}
-			catch (OptionalDataException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
-			catch (ClassNotFoundException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
+			// assure we have received result for the right task ID
+			if (!taskID.equals(mJobDistIO.getCurrentTaskID())) {
+				CandisLog.e(TAG, "Received result with invalid Task ID " + taskID);
+				return;
 			}
 
-			CandisLog.v(TAG, "Getting result...");
-			DistributedJobResult result = (DistributedJobResult) object;
-
+			CandisLog.v(TAG, "Deserializing result...");
+			final DistributedJobResult result = mJobDistIO.getCDBLoader()
+							.deserializeJob(taskID, rawresult);
 
 			// Handle result
-			mJobDistIO.onJobDone(mDroidID, result);
+			mJobDistIO.onJobDone(mDroidID, jobID, result, exectime);
 		}
 	}
 
@@ -296,31 +274,22 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	protected class SendBinaryHandler extends ActionHandler {
 
 		@Override
-		public void handle(final Object... data) {
-			assert data[0] instanceof String;
-			assert data.length == 1;
-
+		public final void handle(final Object... data) {
 			gotCalled();
-			CandisLog.v(TAG, "Sending binary for task ID " + mJobDistIO.getCurrentTaskID());
-			if (!((String) data[0]).equals(mJobDistIO.getCurrentTaskID())) {
-				CandisLog.e(TAG, "Invalid task ID " + (String) data[0]);
-			}
-			try {
-				final File file = (File) mJobDistIO.getCDBLoader().getDroidBinary((String) data[0]);
-				// file to byte[]
-				final RandomAccessFile rfile = new RandomAccessFile(file, "r");
-				final byte[] buffer = new byte[(int) file.length()];
-				rfile.read(buffer);
+			final String taskID = (String) data[0];
 
-				mConnection.sendMessage(
-								new Message(Instruction.SEND_BINARY,
-														mJobDistIO.getCurrentTaskID(),
-														buffer, // runnable
-														mJobDistIO.getCurrentScheduler().getInitialParameter())); // initial
+			CandisLog.v(TAG, "Sending binary for task ID " + mJobDistIO.getCurrentTaskID());
+			if (!taskID.equals(mJobDistIO.getCurrentTaskID())) {
+				CandisLog.e(TAG, "Invalid task ID " + taskID);
 			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
+
+			final byte[] binary = mJobDistIO.getCDBLoader().getDroidBinary((String) data[0]);
+
+			mConnection.sendMessage(
+							new Message(Instruction.SEND_BINARY,
+													mJobDistIO.getCurrentTaskID(),
+													binary, // runnable
+													mJobDistIO.getCurrentScheduler().getInitialParameter()));
 		}
 	}
 

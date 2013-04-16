@@ -95,11 +95,15 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	/*--------------------------------------------------------------------------*/
 	/* External control input methods, invoked by FSM                           */
 	/*--------------------------------------------------------------------------*/
-	public void onJobDone(final String droidID, final DistributedJobResult result) {
+	public void onJobDone(
+					final String droidID,
+					final String jobID,
+					final DistributedJobResult result,
+					final long exectime) {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
-				mCurrentScheduler.onJobDone(droidID, result);
+				mCurrentScheduler.onJobDone(droidID, jobID, result, exectime);
 				invoke(JobDistributionIOHandler.Event.JOB_DONE);
 			}
 		});

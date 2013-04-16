@@ -1,21 +1,26 @@
 package candis.server;
 
+import candis.common.CandisLog;
+import candis.common.ClassloaderObjectInputStream;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.OptionalDataException;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -89,6 +94,25 @@ public class CDBLoader {
 
 	}
 
+	public final DistributedJobResult deserializeJob(String cdbID, byte[] unserialized) {
+		ObjectInputStream objInstream;
+		Object object = null;
+		try {
+			objInstream = new ClassloaderObjectInputStream(
+							new ByteArrayInputStream(unserialized),
+							getClassLoader(cdbID));
+			object = objInstream.readObject();
+			objInstream.close();
+//      obj = new ClassloaderObjectInputStream(new ByteArrayInputStream(lastUnserializedJob), mClassLoaderWrapper).readObject();
+		}
+		catch (Exception ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+			return null;
+		}
+
+		return (DistributedJobResult) object;
+	}
+
 	/**
 	 *
 	 * @param runnableID
@@ -100,11 +124,11 @@ public class CDBLoader {
 
 	/**
 	 *
-	 * @param id
+	 * @param cdbID ID of cdb
 	 * @return
 	 */
-	public String getTaskName(String id) {
-		return mTaskNames.get(id);
+	public String getTaskName(String cdbID) {
+		return mTaskNames.get(cdbID);
 	}
 
 	/**
@@ -112,12 +136,28 @@ public class CDBLoader {
 	 *
 	 * @return loaded droid binary
 	 */
-	public final File getDroidBinary(String id) {
-		if (!mKnownTaskIDs.contains(id)) {
-			LOGGER.log(Level.SEVERE, "Binary for id {0} not found", id);
+	public final byte[] getDroidBinary(String cdbID) {
+		byte[] buffer = null;
+
+		if (!mKnownTaskIDs.contains(cdbID)) {
+			LOGGER.log(Level.SEVERE, "Binary for id {0} not found", cdbID);
 			return null;
 		}
-		return mCDBContextMap.get(id).getDroidBin();
+
+		final File file = mCDBContextMap.get(cdbID).getDroidBin();
+		try {
+			final RandomAccessFile rfile = new RandomAccessFile(file, "r");
+			buffer = new byte[(int) file.length()];
+			rfile.read(buffer);
+		}
+		catch (FileNotFoundException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+		catch (IOException ex) {
+			LOGGER.log(Level.SEVERE, null, ex);
+		}
+
+		return buffer;
 	}
 
 	/**
@@ -128,10 +168,10 @@ public class CDBLoader {
 	 * @param cdbfile
 	 * @return ID for the CDB file, null if the file has already been loaded
 	 */
-	public String loadCDB(final File cdbfile) throws Exception {
+	public final String loadCDB(final File cdbfile) throws Exception {
 		final String projectPath = cdbfile.getName().substring(0, cdbfile.getName().lastIndexOf('.'));
 		List<String> classList;
-		
+
 		// Create MD5 sum as ID for CDB
 		final MessageDigest digest = MessageDigest.getInstance("MD5");
 		final byte[] data = new byte[(int) cdbfile.length()];
@@ -144,7 +184,7 @@ public class CDBLoader {
 		}
 		// Reads it all at one go. Might be better to chunk it.
 		digest.update(data);
-		String newID = toHex(digest.digest());
+		final String newID = toHex(digest.digest());
 
 		// check if already loaded
 		if (mKnownTaskIDs.contains(newID)) {
@@ -233,7 +273,9 @@ public class CDBLoader {
 	 * server binary
 	 *
 	 * @param cdbfile Name of cdb-file
+	 * @param taskID ID of task
 	 * @param cdbContext CDB context
+	 * @throws Exception if something fails
 	 */
 	private void extractCandisDistributedBundle(
 					final File cdbfile,
@@ -242,19 +284,18 @@ public class CDBLoader {
 					throws Exception {
 		ZipFile zipFile;
 		String name;
-		String server_binary;
-		String droid_binary;
+		String serverBinary;
+		String droidBinary;
 		int libNumber = 0;
 
 		try {
 			zipFile = new ZipFile(cdbfile);
 
 			// create new directory to store unzipped project files
-			File newDir = cdbContext.getProjectDir();
-			if (!newDir.exists()) {
-				if (!newDir.mkdir()) {
-					LOGGER.log(Level.WARNING, "Project directory {0} could not be created", newDir);
-				}
+			final File newDir = cdbContext.getProjectDir();
+			if (!newDir.exists() && !newDir.mkdir()) {
+				LOGGER.log(Level.WARNING, "Project directory {0} could not be created", newDir);
+				throw new Exception("Project directory could not be created");
 			}
 
 			// try to load filenames from properties file
@@ -262,18 +303,18 @@ public class CDBLoader {
 			if (entry == null) {
 				throw new FileNotFoundException("cdb does not have a 'config.properties'");
 			}
-			Properties props = new Properties();
+			final Properties props = new Properties();
 			props.load(zipFile.getInputStream(entry));
 			name = props.getProperty("name");
-			server_binary = props.getProperty("server.binary");
-			droid_binary = props.getProperty("droid.binary");
+			serverBinary = props.getProperty("server.binary");
+			droidBinary = props.getProperty("droid.binary");
 			if (name == null) {
 				throw new Exception("No task name given");
 			}
-			if (server_binary == null) {
+			if (serverBinary == null) {
 				throw new Exception("No server binary given");
 			}
-			if (droid_binary == null) {
+			if (droidBinary == null) {
 				throw new Exception("No droid binary given");
 			}
 
@@ -281,13 +322,13 @@ public class CDBLoader {
 			mTaskNames.put(taskID, name);
 
 			// load server binary
-			entry = zipFile.getEntry(server_binary);
+			entry = zipFile.getEntry(serverBinary);
 			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 							new FileOutputStream(cdbContext.getServerBin())));
 			LOGGER.log(Level.FINE, "Extracted server binary: {0}", entry.getName());
 
 			// load droid binary
-			entry = zipFile.getEntry(droid_binary);
+			entry = zipFile.getEntry(droidBinary);
 			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 							new FileOutputStream(cdbContext.getDroidBin())));
 			LOGGER.log(Level.FINE, "Extracted droid binary: {0}", entry.getName());
@@ -313,9 +354,15 @@ public class CDBLoader {
 		}
 	}
 
-	private static final void copyInputStream(InputStream in, OutputStream out)
+	/**
+	 *
+	 * @param in Inputstream to read from
+	 * @param out Outputstream to copy to
+	 * @throws IOException
+	 */
+	private static void copyInputStream(InputStream in, OutputStream out)
 					throws IOException {
-		byte[] buffer = new byte[1024];
+		final byte[] buffer = new byte[1024];
 		int len;
 
 		while ((len = in.read(buffer)) >= 0) {
@@ -333,7 +380,7 @@ public class CDBLoader {
 	 * @return List of all full class names
 	 */
 	public static List<String> getClassNamesInJar(final String jarName) {
-		List<String> classes = new ArrayList<String>();
+		final List<String> classes = new ArrayList<String>();
 		JarInputStream jarFile = null;
 		try {
 			jarFile = new JarInputStream(new FileInputStream(jarName));
@@ -370,25 +417,24 @@ public class CDBLoader {
 	/**
 	 * Removes the filename extension from filename.
 	 *
-	 * @param s filename to process
+	 * @param fname filename to process
 	 * @return filename without extension
 	 */
-	public static String removeFileExtension(String s) {
+	public static String removeFileExtension(String fname) {
 
-		String separator = System.getProperty("file.separator");
 		String filename;
 
 		// Remove the path upto the filename.
-		int lastSeparatorIndex = s.lastIndexOf(separator);
-		if (lastSeparatorIndex == -1) {
-			filename = s;
+		final int lastSepIdx = fname.lastIndexOf(System.getProperty("file.separator"));
+		if (lastSepIdx == -1) {
+			filename = fname;
 		}
 		else {
-			filename = s.substring(lastSeparatorIndex + 1);
+			filename = fname.substring(lastSepIdx + 1);
 		}
 
 		// Remove the extension.
-		int extensionIndex = filename.lastIndexOf(".");
+		final int extensionIndex = filename.lastIndexOf('.');
 		if (extensionIndex == -1) {
 			return filename;
 		}
@@ -397,12 +443,12 @@ public class CDBLoader {
 	}
 
 	public static String toHex(byte[] a) {
-		StringBuilder sb = new StringBuilder(a.length * 2);
+		StringBuilder sbuild = new StringBuilder(a.length * 2);
 		for (int i = 0; i < a.length; i++) {
-			sb.append(Character.forDigit((a[i] & 0xf0) >> 4, 16));
-			sb.append(Character.forDigit(a[i] & 0x0f, 16));
+			sbuild.append(Character.forDigit((a[i] & 0xf0) >> 4, 16));
+			sbuild.append(Character.forDigit(a[i] & 0x0f, 16));
 		}
-		return sb.toString();
+		return sbuild.toString();
 	}
 
 	/**
