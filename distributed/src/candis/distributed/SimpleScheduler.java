@@ -15,21 +15,21 @@ import java.util.logging.Logger;
  */
 public class SimpleScheduler extends Scheduler {
 
-	private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
 
-	public void schedule(final Map<String, DroidData> droidList, JobDistributionIO jobDistIO) {
-		// do magic stuff here...
-		// simply start all available jobs on all available droids
-		Iterator<Map.Entry<String, DroidData>> it = droidList.entrySet().iterator();
-		while (it.hasNext()) {
-			Map.Entry<String, DroidData> droid = it.next();
-			DroidData data = droid.getValue();
-			String id = droid.getKey();
-			// TODO: flag setzen
-			it.remove();
-			DistributedJobParameter param = popParameters();
+  public void schedule(final Map<String, DroidData> droidList, JobDistributionIO jobDistIO) {
+    // do magic stuff here...
+    // simply start all available jobs on all available droids
+    Iterator<Map.Entry<String, DroidData>> it = droidList.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<String, DroidData> droid = it.next();
+      DroidData data = droid.getValue();
+      String id = droid.getKey();
+      // TODO: flag setzen
+      it.remove();
+      DistributedJobParameter param = popParameter();
       mRunningDroidsList.put(id, param); // TODO: place better
-			jobDistIO.startJob(id, param);
-		}
-	}
+      jobDistIO.startJob(id, param);
+    }
+  }
 }
