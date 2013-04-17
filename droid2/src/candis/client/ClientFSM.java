@@ -1,6 +1,8 @@
 package candis.client;
 
 import android.content.Context;
+import android.nfc.Tag;
+import android.util.Log;
 import candis.client.comm.ServerConnection;
 import candis.client.comm.ServerConnection.Status;
 import candis.client.service.ActivityCommunicator;
@@ -9,7 +11,6 @@ import candis.common.Message;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
-import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,7 +72,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
             null)
             .addTransition(
             Instruction.ACK,
-            ClientStates.IDLE,
+            ClientStates.LISTENING,
             new RestoreStateHandler())
             .addTransition(
             Instruction.REQUEST_CHECKCODE,
@@ -126,7 +127,20 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
             ClientStates.REGISTRATING,
             new UnregisterHandler());
 
+    setErrorTransition(
+            ClientStates.IDLE,
+            new TransitionErrorHandler());
+
     mJobCenter.addHandler(this);
+  }
+
+  private class TransitionErrorHandler extends ActionHandler {
+
+    @Override
+    public void handle(Object... data) {
+      Log.e("TransitionErrorHandler", "UNEXPECTED TRANSITION -> FALLBACK TO IDLE");
+      mServerConnection.sendMessage(new Message(Instruction.NACK));
+    }
   }
 
   private class SendAckHandler extends ActionHandler {
@@ -163,11 +177,13 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
     @Override
     public void handle(Object... data) {
       // save restore state
-      mRestoreState = getPreviousState();
-      if (mRestoreState == ClientStates.IDLE) {
-        mRestoreState = ClientStates.LISTENING;
+      if ((getPreviousState() != null) && (getState() != ClientStates.REGISTRATING)) {
+        mRestoreState = getPreviousState();
+        if (mRestoreState == ClientStates.IDLE) {
+          mRestoreState = ClientStates.LISTENING;
+        }
+        System.out.println("Restore state set to " + mRestoreState);
       }
-      System.out.println("Analyze restore state... is " + mRestoreState);
       System.out.println("Sending registration message...");
 
       // send registration message to master
@@ -193,8 +209,10 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
     // restore state that was active before register
     @Override
     public void handle(Object... data) {
-      System.out.println("Restoring state: " + mRestoreState);
-      setState(mRestoreState);
+      if (mRestoreState != null) {
+        System.out.println("Restoring state: " + mRestoreState);
+        setState(mRestoreState);
+      }
     }
   }
   private String mCurrentRunnableID;
