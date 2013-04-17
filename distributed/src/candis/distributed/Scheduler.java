@@ -291,6 +291,6 @@ public abstract class Scheduler {
       count++;
     }
     
-    return (DistributedJobParameter[]) params.toArray();
+    return params.toArray(new DistributedJobParameter[params.size()]);
   }
 }
