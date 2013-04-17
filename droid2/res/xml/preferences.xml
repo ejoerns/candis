@@ -4,8 +4,8 @@
   android:key="pref_key_storage_settings">-->
   <CheckBoxPreference
     android:key="pref_key_run_service"
-    android:summary="pref_summary_run_service"
-    android:title="pref_title_run_service"
+    android:title="@string/pref_title_run_service"
+    android:summary="@string/pref_summary_run_service"
     android:defaultValue="false"/>
   <!--    <Preference 
       android:key="pref_key_sms_delete_limit"
@@ -21,22 +21,22 @@
   </PreferenceCategory>-->
   <PreferenceScreen
     android:key="pref_button_server_settings"
-    android:title="pref_title_server_settings"
+    android:title="@string/pref_title_server_settings"
     android:persistent="true">
     <EditTextPreference
       android:key="pref_key_servername"
+      android:title="@string/pref_title_servername"
       android:summary="pref_summary_servername"
-      android:title="pref_title_servername"
       android:defaultValue=""/>
     <EditTextPreference
       android:key="pref_key_serverport"
+      android:title="@string/pref_title_serverport"
       android:summary="pref_summary_serverport"
-      android:title="pref_title_serverport"
       android:defaultValue="9999"/>
   </PreferenceScreen>
   <Preference 
     android:key="pref_key_droid_id"
+    android:title="@string/pref_title_droid_id"
     android:summary="pref_summary_droid_id"
-    android:title="pref_title_droid_id"
     android:selectable="false"/>
 </PreferenceScreen>

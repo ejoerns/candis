@@ -1,45 +1,45 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
   <PreferenceScreen
     android:key="pref_button_static_profile"
-    android:title="pref_title_static_profile"
+    android:title="@string/pref_title_static_profile"
     android:persistent="false">
     <PreferenceCategory 
-      android:title="pref_title_static_profile"
+      android:title="@string/pref_title_static_profile"
       android:key="pref_key_storage_settings">
       <Preference 
         android:key="pref_key_device_name"
+        android:title="@string/pref_title_device_name"
         android:summary="pref_summary_device_name"
-        android:title="pref_title_device_name"
         android:selectable="false"/>
       <Preference 
         android:key="pref_key_device_id"
+        android:title="@string/pref_title_device_id"
         android:summary="pref_summary_device_id"
-        android:title="pref_title_device_id"
         android:selectable="false"/>
       <Preference 
         android:key="pref_key_cpu_count"
+        android:title="@string/pref_title_cpu_count"
         android:summary="pref_summary_cpu_count"
-        android:title="pref_title_cpu_count"
         android:selectable="false"/>
       <Preference 
         android:key="pref_key_memory"
+        android:title="@string/pref_title_memory"
         android:summary="pref_summary_memory"
-        android:title="pref_title_memory"
         android:selectable="false"/>
       <Preference 
         android:key="pref_key_benchmark"
+        android:title="@string/pref_title_benchmark"
         android:summary="pref_summary_benchmark"
-        android:title="pref_title_benchmark"
         android:selectable="false"/>
     </PreferenceCategory>
   </PreferenceScreen>
   <Preference 
     android:key="pref_key_log"
-    android:title="pref_title_log">
+    android:title="@string/pref_title_log">
   </Preference>
   <CheckBoxPreference
     android:key="pref_key_notifications"
-    android:summary="pref_summary_notifications"
-    android:title="pref_title_notifications"
+    android:title="@string/pref_title_notifications"
+    android:summary="@string/pref_summary_notifications"
     android:defaultValue="true"/>
 </PreferenceScreen>

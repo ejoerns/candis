@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MainActivity</string>
-    <string name="button_accept">accept</string>
-    <string name="button_reject">reject</string>
+  <string name="app_name">CandisDroid</string>
+  <string name="button_accept">accept</string>
+  <string name="button_reject">reject</string>
+  <!-- Preference Screen -->
+  <string name="pref_title_run_service">Activate Daemon</string>
+  <string name="pref_summary_run_service"></string>
+  <string name="pref_title_server_settings">Server Settings</string>
+  <string name="pref_title_servername">Address</string>
+  <string name="pref_title_serverport">Port</string>
+  <string name="pref_title_droid_id">User ID</string>
+  <string name="pref_title_static_profile">Device Profile</string>
+  <string name="pref_summary_static_profile">Information sent to master</string>
+  <string name="pref_title_device_name">Device Name</string>
+  <string name="pref_title_device_id">Device ID</string>
+  <string name="pref_title_cpu_count">CPUs</string>
+  <string name="pref_title_memory">Memory</string>
+  <string name="pref_title_benchmark">Benchmark</string>
+  <string name="pref_title_log">Log</string>
+  <string name="pref_title_notifications">Notification</string>
+  <string name="pref_summary_notifications">Enables status bar notifications for Jobs</string>
 </resources>
