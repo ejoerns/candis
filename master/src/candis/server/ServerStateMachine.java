@@ -141,6 +141,10 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 						Instruction.ACK,
 						ServerStates.JOB_PROCESSING)
 						.addTransition(
+						Instruction.NACK,
+						ServerStates.INITIAL,
+						null) // TODO: handler?
+						.addTransition(
 						Instruction.REQUEST_BINARY,
 						ServerStates.JOB_BINARY_SENT,
 						new SendBinaryHandler());
@@ -274,11 +278,11 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			}
 
 			CandisLog.v(TAG, "Deserializing result...");
-			final DistributedJobResult result = mJobDistIO.getCDBLoader()
+			final DistributedJobResult[] results = mJobDistIO.getCDBLoader()
 							.deserializeJob(taskID, rawresult);
 
 			// Handle result
-			mJobDistIO.onJobDone(mDroidID, jobID, result, exectime);
+			mJobDistIO.onJobDone(mDroidID, jobID, results, exectime);
 		}
 	}
 
@@ -303,7 +307,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 							new Message(Instruction.SEND_BINARY,
 													mJobDistIO.getCurrentTaskID(),
 													binary, // runnable
-													mJobDistIO.getCurrentScheduler().getInitialParameter()));
+													new DistributedJobParameter[]{mJobDistIO.getCurrentScheduler().getInitialParameter()}));
 		}
 	}
 
@@ -331,11 +335,10 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	protected class SendJobHandler extends ActionHandler {
 
 		@Override
-		public void handle(final Object... params) {
-			assert params[0] instanceof String;
-			assert params[1] instanceof String;
-			assert params[2] instanceof DistributedJobParameter;
-			assert params.length == 3;
+		public void handle(final Object... data) {
+			String runnableID = (String) data[0];
+			String jobID = (String) data[1];
+			DistributedJobParameter[] params = (DistributedJobParameter[]) data[2];
 
 			gotCalled();
 			CandisLog.v(TAG, "Sending job for task ID " + params[0]);
@@ -345,7 +348,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			ObjectOutputStream oos;
 			try {
 				oos = new ObjectOutputStream(baos);
-				oos.writeObject(params[2]);
+				oos.writeObject(params);
 				oos.close();
 			}
 			catch (IOException ex) {
@@ -356,8 +359,8 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			// send job
 			mConnection.sendMessage(new Message(
 							Instruction.SEND_JOB,
-							(String) params[0],// runnableID
-							(String) params[1],// jobID
+							runnableID,
+							jobID,
 							bytes));
 		}
 	}
@@ -375,11 +378,11 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	@Override
 	public void OnNewMessage(Message msg) {
 		if (msg.getData() == null) {
-			Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, "Got Message: " + msg.getRequest());
+			Logger.getLogger(ServerStateMachine.class.getName()).log(Level.FINE, "Got Message: " + msg.getRequest());
 			process(((Message) msg).getRequest());
 		}
 		else {
-			Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, "Got Message: " + msg.getRequest());
+			Logger.getLogger(ServerStateMachine.class.getName()).log(Level.FINE, "Got Message: " + msg.getRequest());
 			process(msg.getRequest(), (Object[]) msg.getData());
 		}
 	}
@@ -390,9 +393,9 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 	//-- DroidManger Droid events
 	@Override
-	public void onSendJob(String taskID, String jobID, DistributedJobParameter param) {
-		System.out.println("onSendJob(" + taskID + ", " + jobID + ", " + param + ")");
-		process(ServerTrans.SEND_JOB, taskID, jobID, param);
+	public void onSendJob(String taskID, String jobID, DistributedJobParameter[] params) {
+		System.out.println("onSendJob(" + taskID + ", " + jobID + ", " + params + ")");
+		process(ServerTrans.SEND_JOB, taskID, jobID, params);
 	}
 
 	@Override

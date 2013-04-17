@@ -32,8 +32,8 @@ public class SimpleScheduler extends Scheduler {
       // TODO: flag setzen
       it.remove();
       DistributedJobParameter param = getParameter();
-      mRunningDroidsList.put(id, param); // TODO: place better
-      jobDistIO.startJob(id, param);
+      mRunningDroidsList.put(id, new DistributedJobParameter[]{param}); // TODO: place better
+      jobDistIO.startJob(id, new DistributedJobParameter[]{param});
     }
   }
 }

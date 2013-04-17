@@ -25,7 +25,7 @@ public abstract class Scheduler {
   /// Results
   private final Map<DistributedJobParameter, DistributedJobResult> mResults = new HashMap<DistributedJobParameter, DistributedJobResult>();
   /// Droids that are currently running
-  protected final Map<String, DistributedJobParameter> mRunningDroidsList = new HashMap<String, DistributedJobParameter>();
+  protected final Map<String, DistributedJobParameter[]> mRunningDroidsList = new HashMap<String, DistributedJobParameter[]>();
   /// Droids that can be scheduled
   protected final Map<String, DroidData> mSchedulabeDroids = new HashMap<String, DroidData>();
   private boolean mEnabled = false;
@@ -174,17 +174,19 @@ public abstract class Scheduler {
    * Is called when a job is done.
    *
    * @param droidID
-   * @param result
+   * @param results
    */
   // Job is done and new job can be assigned
-  public void onJobDone(String droidID, String jobID, DistributedJobResult result, long exectime) {
+  public void onJobDone(String droidID, String jobID, DistributedJobResult[] results, long exectime) {
     //System.out.println("SS: onJobDone()");
     if (mRunningDroidsList.containsKey(droidID)) {
-      DistributedJobParameter param = mRunningDroidsList.remove(droidID);
-      mResults.put(param, result);
-      releaseResult(param, result);
+      DistributedJobParameter[] params = mRunningDroidsList.remove(droidID);
+      for (int i = 0; i < results.length; i++) {
+        mResults.put(params[i], results[i]);
+        releaseResult(params[i], results[i]);
+      }
       LOGGER.log(Level.INFO, "Job {0} on {1} done with {2} in {3}ms",
-                 new Object[]{jobID, droidID, result, exectime});
+                 new Object[]{jobID, droidID, results, exectime});
     }
     synchronized (mSchedulabeDroids) {
       mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
@@ -203,8 +205,11 @@ public abstract class Scheduler {
     // removed Droids won't stay in the id List
     // therefore it is not neccesary to check, for DROID_LOST in error
     if (mRunningDroidsList.containsKey(droidID)) {
-      DistributedJobParameter p = mRunningDroidsList.get(droidID);
-      mParamCache.push(p);
+      // put parameters back to cache
+      DistributedJobParameter[] params = mRunningDroidsList.get(droidID);
+      for (DistributedJobParameter p : params) {
+        mParamCache.push(p);
+      }
     }
   }
   

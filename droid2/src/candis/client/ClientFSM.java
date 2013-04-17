@@ -261,7 +261,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
               new Message(Instruction.SEND_RESULT,
                           (String) data[0],
                           (String) data[1],
-                          (DistributedJobResult) data[2],
+                          (DistributedJobResult[]) data[2],
                           (Long) data[3]));
     }
   }
@@ -297,8 +297,8 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
     process(Transitions.JOB_STARTED);
   }
 
-  public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult result, long exectime) {
-    process(Transitions.JOB_DONE, runnableID, jobID, result, exectime);
+  public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult[] results, long exectime) {
+    process(Transitions.JOB_DONE, runnableID, jobID, results, exectime);
   }
 
   public void onBinaryRequired(String taskID) {

@@ -114,7 +114,7 @@ public final class DroidManager {
 	 */
 	public interface DroidHandler {
 
-		public void onSendJob(String taskID, String jobID, DistributedJobParameter param);
+		public void onSendJob(String taskID, String jobID, DistributedJobParameter[] params);
 
 		public void onStopJob(String taskID, String jobID);
 

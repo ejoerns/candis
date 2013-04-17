@@ -79,11 +79,11 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	/*--------------------------------------------------------------------------*/
 
 	@Override
-	public void startJob(String droidID, DistributedJobParameter param) {
-		assert param != null;
-		System.out.println("startJob(" + droidID + ", " + param + ")");
+	public void startJob(String droidID, DistributedJobParameter[] params) {
+		assert params != null;
+		System.out.println("startJob(" + droidID + ", " + params + ")");
 		mCurrenJobID++;
-		mDroidManager.getDroidHandler(droidID).onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), param);
+		mDroidManager.getDroidHandler(droidID).onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), params);
 		invoke(JobDistributionIOHandler.Event.JOB_SENT);
 	}
 
@@ -98,12 +98,12 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	public void onJobDone(
 					final String droidID,
 					final String jobID,
-					final DistributedJobResult result,
+					final DistributedJobResult[] results,
 					final long exectime) {
 		addToQueue(new Runnable() {
 			@Override
 			public void run() {
-				mCurrentScheduler.onJobDone(droidID, jobID, result, exectime);
+				mCurrentScheduler.onJobDone(droidID, jobID, results, exectime);
 				invoke(JobDistributionIOHandler.Event.JOB_DONE);
 			}
 		});

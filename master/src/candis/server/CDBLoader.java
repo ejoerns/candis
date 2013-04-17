@@ -94,7 +94,7 @@ public class CDBLoader {
 
 	}
 
-	public final DistributedJobResult deserializeJob(String cdbID, byte[] unserialized) {
+	public final DistributedJobResult[] deserializeJob(String cdbID, byte[] unserialized) {
 		ObjectInputStream objInstream;
 		Object object = null;
 		try {
@@ -110,7 +110,7 @@ public class CDBLoader {
 			return null;
 		}
 
-		return (DistributedJobResult) object;
+		return (DistributedJobResult[]) object;
 	}
 
 	/**
