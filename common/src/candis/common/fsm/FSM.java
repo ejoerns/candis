@@ -3,8 +3,10 @@ package candis.common.fsm;
 import candis.common.CandisLog;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 
 /**
  * Implementation of a Finite State Machine 'FSM'.
@@ -35,6 +37,12 @@ public abstract class FSM {
   private final Map<StateEnum, State> mStateMap = new HashMap<StateEnum, State>();
   /// Holds all declared Transitions
   private final Map<Transition, TransitionContainer> mGloabalTransitions = new HashMap<Transition, TransitionContainer>();
+  private final Map<Transition, StateEnum> mGlobalTransitionMap = new HashMap<Transition, StateEnum>();
+  /// Map of Transitions wiht List of listeners for registered transition.
+  Map<Transition, List<ActionHandler>> mGlobalListeners = new HashMap<Transition, List<ActionHandler>>();
+  /// Fallback state
+  private StateEnum mErrorState;
+  private ActionHandler mErrorHandler;
 
   public FSM() {
   }
@@ -82,6 +90,7 @@ public abstract class FSM {
    * @param trans Transition to add
    * @param dest Target state
    * @param act ActionHandler to execute
+   * @todo Currently only working if all states are already added!
    */
   public void addGlobalTransition(Transition trans, StateEnum dest, ActionHandler act) {
     for (StateEnum s : mStateMap.keySet()) {
@@ -90,6 +99,17 @@ public abstract class FSM {
         st.addTransition(trans, dest, act);
       }
     }
+  }
+
+  /**
+   * Sets a transition that is invoked if a state machine error occurs.
+   *
+   * @param dest Target state
+   * @param act ActionHandler to execute
+   */
+  public final void setErrorTransition(StateEnum dest, ActionHandler act) {
+    mErrorState = dest;
+    mErrorHandler = act;
   }
 
   /**
@@ -153,7 +173,18 @@ public abstract class FSM {
     }
 
     mPreviousState.set(mCurrentState.get());
-    mStateMap.get(mCurrentState.get()).process(trans, mCurrentState, obj);
+    try {
+      mStateMap.get(mCurrentState.get()).process(trans, mCurrentState, obj);
+    }
+    catch (StateMachineException ex) {
+      if (mErrorState == null) {
+        throw ex;
+      }
+      // do error transition
+      Logger.getLogger(FSM.class.getName()).warning(ex.toString());
+      setState(mErrorState);
+      mErrorHandler.handle(obj);
+    }
   }
 
   /**
