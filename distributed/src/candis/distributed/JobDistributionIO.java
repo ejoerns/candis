@@ -1,7 +1,5 @@
 package candis.distributed;
 
-import java.util.Set;
-
 /**
  * Interface that has to be implemented to provide task distribution for the
  * Scheduler.

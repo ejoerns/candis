@@ -17,6 +17,10 @@ public class SimpleScheduler extends Scheduler {
 
   private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
 
+  public SimpleScheduler(DistributedControl control) {
+    super(control);
+  }
+
   public void schedule(final Map<String, DroidData> droidList, JobDistributionIO jobDistIO) {
     // do magic stuff here...
     // simply start all available jobs on all available droids
@@ -27,7 +31,7 @@ public class SimpleScheduler extends Scheduler {
       String id = droid.getKey();
       // TODO: flag setzen
       it.remove();
-      DistributedJobParameter param = popParameter();
+      DistributedJobParameter param = getParameter();
       mRunningDroidsList.put(id, param); // TODO: place better
       jobDistIO.startJob(id, param);
     }

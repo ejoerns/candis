@@ -47,12 +47,12 @@ public class TaskPanelElement extends javax.swing.JPanel {
 		return mID;
 	}
 
-	public void setParameterCounter(int size) {
-		mParametersValue.setText(Integer.toString(size));
+	public void setParameterCounter(long size) {
+		mParametersValue.setText(Long.toString(size));
 	}
 
-	public void setResultCounter(int size) {
-		mResultsValue.setText(Integer.toString(size));
+	public void setResultCounter(long size) {
+		mResultsValue.setText(Long.toString(size));
 	}
 
 	/**

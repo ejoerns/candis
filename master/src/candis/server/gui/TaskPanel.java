@@ -45,7 +45,7 @@ public class TaskPanel {
 			System.out.println("mJobDistIO is null");
 		}
 		else {
-			tpe.setParameterCounter(mJobDistIO.getCurrentScheduler().getParametersLeft());
+			tpe.setParameterCounter(mJobDistIO.getCurrentScheduler().getControl().getParametersLeft());
 		}
 		mTaskPanels.put(id, tpe);
 		tpe.addMouseListener(mClickListener);
@@ -59,7 +59,6 @@ public class TaskPanel {
 		mHolder.add(tpe);
 		mHolder.revalidate();
 	}
-
 
 	public void selectTask(String taskID) {
 		mSelectedTaskID = taskID;
@@ -95,7 +94,6 @@ public class TaskPanel {
 									 evt.getX(), evt.getY());
 			}
 		}
-
 
 		@Override
 		public void mouseReleased(MouseEvent evt) {
@@ -145,7 +143,7 @@ public class TaskPanel {
 		public void onEvent(Event event) {
 			switch (event) {
 				case JOB_DONE:
-					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getCurrentScheduler().getParametersLeft());
+					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getCurrentScheduler().getControl().getParametersLeft());
 					break;
 				case JOB_SENT:
 //					JOptionPane.showMessageDialog(mHolder, "Result!!!!");

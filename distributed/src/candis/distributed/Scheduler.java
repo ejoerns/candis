@@ -1,7 +1,7 @@
 package candis.distributed;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -15,11 +15,11 @@ import java.util.logging.Logger;
  * @author Sebastian Willenborg
  */
 public abstract class Scheduler {
-
+  
   private static final Logger LOGGER = Logger.getLogger(Scheduler.class.getName());
   // List of callback receivers
   protected final List<ResultReceiver> mReceivers = new LinkedList<ResultReceiver>();
-  protected final Stack<DistributedJobParameter> mParams = new Stack<DistributedJobParameter>();
+  protected final Stack<DistributedJobParameter> mParamCache = new Stack<DistributedJobParameter>();
   protected DistributedJobParameter mInitalParameter = null;
   protected JobDistributionIO mJobDistIO;
   /// Results
@@ -30,6 +30,11 @@ public abstract class Scheduler {
   protected final Map<String, DroidData> mSchedulabeDroids = new HashMap<String, DroidData>();
   private boolean mEnabled = false;
   private Thread schedulerThread;
+  private DistributedControl mControl;
+  
+  public Scheduler(DistributedControl control) {
+    mControl = control;
+  }
 
   /**
    * Sets the JobDistributionIO.
@@ -40,13 +45,17 @@ public abstract class Scheduler {
   public void setJobDistributionIO(JobDistributionIO io) {
     mJobDistIO = io;
   }
-
+  
   public void setInitialParameter(DistributedJobParameter param) {
     mInitalParameter = param;
   }
-
+  
   public DistributedJobParameter getInitialParameter() {
     return mInitalParameter;
+  }
+  
+  public DistributedControl getControl() {
+    return mControl;
   }
 
   /**
@@ -70,20 +79,19 @@ public abstract class Scheduler {
     }
   }
 
-  public void addParameter(DistributedJobParameter param) {
-    mParams.push(param);
-  }
-
-  public void addParameters(DistributedJobParameter[] params) {
-    for (DistributedJobParameter p : params) {
-      this.mParams.push(p);
-    }
-  }
-
-  public int getParametersLeft() {
-    return mParams.size();
-  }
-
+//  public void addParameter(DistributedJobParameter param) {
+//    mParams.push(param);
+//  }
+//  
+//  public void addParameters(DistributedJobParameter[] params) {
+//    for (DistributedJobParameter p : params) {
+//      this.mParams.push(p);
+//    }
+//  }
+//  
+//  public int getParametersLeft() {
+//    return mParams.size();
+//  }
   /**
    * Implement this method to create your own nice and fancy Scheduler.
    *
@@ -99,7 +107,7 @@ public abstract class Scheduler {
   protected boolean checkAccepted() {
     return true;
   }
-
+  
   public void start() {
     System.out.println("SS: start()");
     if (mEnabled) {
@@ -112,7 +120,7 @@ public abstract class Scheduler {
         System.out.println("SS: run()");
         while (mEnabled) {
           synchronized (mSchedulabeDroids) {
-            if (hasParametersLeft()) {
+            if (mControl.hasParametersLeft()) {
               System.out.println("hasParameter -> schedule");
               schedule(mSchedulabeDroids, mJobDistIO);
             }
@@ -144,7 +152,7 @@ public abstract class Scheduler {
       return;
     }
     LOGGER.log(Level.INFO, "Got new Droid {0}", droidID);
-
+    
     synchronized (mSchedulabeDroids) {
       mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
       mSchedulabeDroids.notifyAll();
@@ -196,24 +204,24 @@ public abstract class Scheduler {
     // therefore it is not neccesary to check, for DROID_LOST in error
     if (mRunningDroidsList.containsKey(droidID)) {
       DistributedJobParameter p = mRunningDroidsList.get(droidID);
-      addParameter(p);
+      mParamCache.push(p);
     }
   }
-
+  
   public boolean isDone() {
     // A disabled Scheduler is done! Fact!
     if (!mEnabled) {
       return true;
     }
-    LOGGER.log(Level.FINE,
-               "running {0}, params {1}, available Droids {2}",
-               new Object[]{
-              mRunningDroidsList.size(),
-              mParams.size(),
-              mSchedulabeDroids.size()});
-    return (mRunningDroidsList.size() + getParametersLeft()) == 0;
+//    LOGGER.log(Level.FINE,
+//               "running {0}, params {1}, available Droids {2}",
+//               new Object[]{
+//              mRunningDroidsList.size(),
+//              mParams.size(),
+//              mSchedulabeDroids.size()});
+    return ((mRunningDroidsList.size() == 0) && !mControl.hasParametersLeft() && mParamCache.empty());
   }
-
+  
   public void abort() {
     for (String droidID : mSchedulabeDroids.keySet()) {
       if (mRunningDroidsList.containsKey(droidID)) {
@@ -224,7 +232,7 @@ public abstract class Scheduler {
     mEnabled = false;
     schedulerThread.interrupt();
   }
-
+  
   public Map<DistributedJobParameter, DistributedJobResult> getResults() {
     return mResults;
   }
@@ -234,19 +242,50 @@ public abstract class Scheduler {
    *
    * @return
    */
-  protected boolean hasParametersLeft() {
-    return !mParams.empty();
-  }
-
+//  protected boolean hasParametersLeft() {
+//    return !mParams.empty();
+//  }
   /**
-   * Pops new parameter from the parameter list
+   * Pops new parameter from the parameter list.
+   *
+   * First looks in the internal parameter cache for an available parameter.
+   * If no parameter was found, it tries to get new one from task controller.
    *
    * @return Parameter if available, null if no parameter found
    */
-  protected DistributedJobParameter popParameter() {
-    if (mParams.empty()) {
-      return null;
+  protected DistributedJobParameter getParameter() {
+    if (mParamCache.empty()) {
+      return mControl.getParameter();
     }
-    return mParams.pop();
+    return mParamCache.pop();
+  }
+
+  /**
+   * Same as getParameter() but returns array of specified size.
+   *
+   * @param n Number of parameters to get.
+   * @return
+   */
+  protected DistributedJobParameter[] getParameters(int n) {
+    int count = 0;
+    ArrayList<DistributedJobParameter> params = new ArrayList<DistributedJobParameter>(n);
+    // first get from internal cache
+    while ((mParamCache.size() > 0) && (count < n)) {
+      params.add(mParamCache.pop());
+      count++;
+    }
+    n -= count;
+    count = 0;
+    // try to load remaining parameters from scheduler
+    while (count < n) {
+      DistributedJobParameter param = mControl.getParameter();
+      if (param == null) {
+        break;
+      }
+      params.add(param);
+      count++;
+    }
+    
+    return (DistributedJobParameter[]) params.toArray();
   }
 }
