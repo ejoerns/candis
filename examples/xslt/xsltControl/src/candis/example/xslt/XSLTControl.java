@@ -6,6 +6,9 @@ import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
+import candis.distributed.parameter.FileUserParameter;
+import candis.distributed.parameter.UserParameterRequester;
+import candis.distributed.parameter.UserParameterSet;
 import java.io.File;
 
 /**
@@ -14,26 +17,32 @@ import java.io.File;
  */
 public class XSLTControl extends DistributedControl implements ResultReceiver {
 
-  private static final String XSL_FILENAME = "../examples/xslt/xsltControl/student_text.xsl";
-  private static final String[] XML_FILENAMES = {
-    "../examples/xslt/xsltControl/student_directory.xml",
-    "../examples/xslt/xsltControl/student_directory.xml",
-    "../examples/xslt/xsltControl/student_directory.xml",
-    "../examples/xslt/xsltControl/student_directory.xml",
-    "../examples/xslt/xsltControl/student_directory.xml"
-  };
-  private int mFileCount = 0;
+  private static final int TOTAL_JOBS = 100;
+  private int mJobsDone = 0;
   private Scheduler mScheduler;
+  private FileUserParameter mXSLTFile;
+  private FileUserParameter mXMLFile;
 
   @Override
   public Scheduler initScheduler() {
 
-    mFileCount = 0;
+    // input filenames
+    UserParameterSet parameters = new UserParameterSet();
+
+    mXSLTFile = new FileUserParameter("XSL file", "../examples/xslt/xsltControl/json.xslt", null);
+    parameters.AddParameter(mXSLTFile);
+    mXMLFile = new FileUserParameter("XML file", "../examples/xslt/xsltControl/json.xml", null);
+    parameters.AddParameter(mXMLFile);
+
+    UserParameterRequester.getInstance().request(parameters);
+
+    mJobsDone = 0;
 
     mScheduler = new SimpleScheduler(this);
 
-    DistributedJobParameter init = new XSLTInitParameter(new File(XSL_FILENAME));
+    DistributedJobParameter init = new XSLTInitParameter(new File((String) mXSLTFile.getValue()));
     mScheduler.setInitialParameter(init);
+
     mScheduler.addResultReceiver(this);
 
     return mScheduler;
@@ -51,13 +60,13 @@ public class XSLTControl extends DistributedControl implements ResultReceiver {
 
   @Override
   public final DistributedJobParameter getParameter() {
-    mFileCount++;
-    return new XSLTJobParameter(new File(XML_FILENAMES[mFileCount - 1]));
+    mJobsDone++;
+    return new XSLTJobParameter(new File((String) mXMLFile.getValue()));
   }
 
   @Override
   public final long getParametersLeft() {
-    return XML_FILENAMES.length - mFileCount;
+    return TOTAL_JOBS - mJobsDone;
   }
 
   @Override
