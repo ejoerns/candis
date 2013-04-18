@@ -1,0 +1,21 @@
+<student_list>
+  <student>
+    <name>George Washington</name>
+    <major>Politics</major>
+    <phone>312-123-4567</phone>
+    <email>gw@example.edu</email>
+  </student>
+  <student>
+    <name>Janet Jones</name>
+    <major>Undeclared</major>
+    <phone>311-122-2233</phone>
+    <email>janetj@example.edu</email>
+  </student>
+  <student>
+    <name>Joe Taylor</name>
+    <major>Engineering</major>
+    <phone>211-111-2333</phone>
+    <email>joe@example.edu</email>
+  </student>
+</student_list>
+
