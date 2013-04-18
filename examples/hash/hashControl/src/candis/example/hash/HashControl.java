@@ -1,11 +1,11 @@
 package candis.example.hash;
 
+import candis.distributed.AnalyzerScheduler;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
-import candis.distributed.SimpleScheduler;
 import candis.distributed.parameter.BooleanUserParameter;
 import candis.distributed.parameter.IntegerUserParameter;
 import candis.distributed.parameter.RegexValidator;
@@ -22,7 +22,7 @@ import java.util.logging.Logger;
  *
  * @author Sebastian Willenborg
  */
-public class HashControl implements DistributedControl, ResultReceiver {
+public class HashControl extends DistributedControl implements ResultReceiver {
 
   private Scheduler mScheduler;
   public String mResultValue;
@@ -33,6 +33,7 @@ public class HashControl implements DistributedControl, ResultReceiver {
   private int mClientDepth;
   int prepart = 0;
   int prepart2 = 0;
+  private int mParamsDone = 0;
 
   @Override
   public Scheduler initScheduler() {
@@ -56,7 +57,7 @@ public class HashControl implements DistributedControl, ResultReceiver {
     parameters.AddParameter(tryNumeric);
 
     StringUserParameter tryElse = new StringUserParameter("hash.try.else", "Other Chars", "Enter other Characters to try",
-                                                          "!@#", new RegexValidator("[^a-zA-Z0-9]*"));
+                                                          "", null);
     parameters.AddParameter(tryElse);
 
     IntegerUserParameter start = new IntegerUserParameter("hash.trylen.start", "Minimal Length", "Specify the minimal length of the brutefoce string",
@@ -106,7 +107,8 @@ public class HashControl implements DistributedControl, ResultReceiver {
     if (type.getValue().toString().equals("sha1")) {
       typeValue = HashType.SHA1;
     }
-    mScheduler = new SimpleScheduler();
+//    mScheduler = new ProfilingScheduler(this);
+    mScheduler = new AnalyzerScheduler(this);
 
     mStringGenerator = new BruteForceStringGenerator(start.getIntegerValue() - depth.getIntegerValue(), alphabet.toCharArray());
     mMaxDepth = stop.getIntegerValue();
@@ -129,20 +131,6 @@ public class HashControl implements DistributedControl, ResultReceiver {
     mScheduler.setInitialParameter(init);
     mScheduler.addResultReceiver(this);
 
-
-    for (long i = 0; i < mTotal; i++) {
-      try {
-        if (prepart > 0) {
-          prepart--;
-          mScheduler.addParameter(new HashJobParameter(mStringGenerator.toString().getBytes("UTF-8"), prepart2 - prepart));
-        }
-        mScheduler.addParameter(new HashJobParameter(mStringGenerator.nextString().getBytes("UTF-8"), Math.min(mClientDepth, mMaxDepth)));
-      }
-      catch (UnsupportedEncodingException ex) {
-        Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);
-      }
-    }
-
     System.out.println("" + mTotal + " parameters added");
 
     return mScheduler;
@@ -159,19 +147,19 @@ public class HashControl implements DistributedControl, ResultReceiver {
         //resultValue = new String(hashResult.mValue, "UTF8");
       }
       catch (UnsupportedEncodingException ex) {
-        Logger.getLogger(BruteForceScheduler.class.getName()).log(Level.SEVERE, null, ex);
+        Logger.getLogger(HashControl.class.getName()).log(Level.SEVERE, null, ex);
       }
       mScheduler.abort();
     }
   }
 
   @Override
-  public void onSchedulerDone() {
-    if (mResultValue != null) {
-      System.out.println(mResultValue);
+  public final void onSchedulerDone() {
+    if (mResultValue == null) {
+      System.out.println("nothing");
     }
     else {
-      System.out.println("nothing");
+      System.out.println(mResultValue);
     }
   }
 
@@ -183,5 +171,32 @@ public class HashControl implements DistributedControl, ResultReceiver {
               + Character.digit(s.charAt(i + 1), 16));
     }
     return data;
+  }
+
+  @Override
+  public final DistributedJobParameter getParameter() {
+    try {
+      if (prepart > 0) {
+        prepart--;
+        mParamsDone++;
+        return new HashJobParameter(mStringGenerator.toString().getBytes("UTF-8"), prepart2 - prepart);
+      }
+      mParamsDone++;
+      return new HashJobParameter(mStringGenerator.nextString().getBytes("UTF-8"), Math.min(mClientDepth, mMaxDepth));
+    }
+    catch (UnsupportedEncodingException ex) {
+      Logger.getLogger(HashControl.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    return null;
+  }
+
+  @Override
+  public final long getParametersLeft() {
+    return mTotal - mParamsDone;
+  }
+
+  @Override
+  public final boolean hasParametersLeft() {
+    return ((mTotal - mParamsDone) > 0) ? true : false;
   }
 }
