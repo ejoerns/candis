@@ -1,10 +1,10 @@
 package candis.client.comm;
 
+import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.QueuedMessageConnection;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.net.SocketException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -20,7 +20,9 @@ import javax.net.ssl.X509TrustManager;
 public class ServerConnection {
 
   private final SecureSocket mSecureSocket;
-  private Timer mTimer;
+  private Timer mReconnectTimer;
+  private Timer mPingTimer;
+  private boolean mPongFlag;
   private long mReconnectDelay;
   private boolean mConnectEnabled = false;
   private String mHostname;
@@ -36,6 +38,8 @@ public class ServerConnection {
   private static final int RECONNECT_DELAY_MAX = 60000;
   // interval factor
   private static final int RECONNECT_DELAY_FACTOR = 2;
+  // Time between subsequent ping messages
+  private static final long PING_PERIOD = 3000;
 
   public enum Status {
 
@@ -73,8 +77,8 @@ public class ServerConnection {
     // init (re)connection scheduler
     mReconnectDelay = RECONNECT_DELAY_MIN;
     mConnectEnabled = true;
-    mTimer = new Timer();
-    mTimer.schedule(new ConnectTask(), 0);
+    mReconnectTimer = new Timer();
+    mReconnectTimer.schedule(new ConnectTask(), 0);
   }
 
   /**
@@ -104,7 +108,8 @@ public class ServerConnection {
     // stop conenction
     mConnectEnabled = false;
     // stop timer and sender/receiver threads
-    mTimer.cancel();
+    mPingTimer.cancel();
+    mReconnectTimer.cancel();
     mReceiverThread.interrupt();
     mQMCThread.interrupt();
     new Thread(new Runnable() {
@@ -155,7 +160,6 @@ public class ServerConnection {
     public void run() {
       System.out.println("ConnectTask.run()");
       if ((mConnectEnabled) && (!mSecureSocket.isConnected())) {
-        System.out.println("ready to connect baby");
         // try to connect to host
         try {
           mSecureSocket.connect(mHostname, mPort);
@@ -174,6 +178,10 @@ public class ServerConnection {
           // reset reconnect delay to minimum
           mReconnectDelay = RECONNECT_DELAY_MIN;
 
+          mPongFlag = true;
+          mPingTimer = new Timer();
+          mPingTimer.schedule(new PingTimer(), PING_PERIOD, PING_PERIOD);
+
           notifyListeners(Status.CONNECTED);
         }
         // connect failed
@@ -184,9 +192,27 @@ public class ServerConnection {
           if (mReconnectDelay < RECONNECT_DELAY_MAX) {
             mReconnectDelay *= RECONNECT_DELAY_FACTOR;
           }
-          mTimer = new Timer();
-          mTimer.schedule(new ConnectTask(), mReconnectDelay);
+          mReconnectTimer = new Timer();
+          mReconnectTimer.schedule(new ConnectTask(), mReconnectDelay);
         }
+      }
+    }
+  }
+
+  private class PingTimer extends TimerTask {
+
+    @Override
+    public void run() {
+      // if pong was received, ok, send new ping
+      if (mPongFlag) {
+        mPongFlag = false;
+        sendMessage(new Message(Instruction.PING));
+      }
+      // if no pong was received, we assume a timeout and reconnect
+      else {
+        LOGGER.warning("Pong timed out, restarting connection.");
+        cancel();
+        reconnect();
       }
     }
   }
@@ -203,6 +229,12 @@ public class ServerConnection {
         try {
           // wait for new message
           Message msg = mQueuedMessageConnection.readMessage();
+
+          if (msg.getRequest() == Instruction.PONG) {
+            mPongFlag = true;
+            continue;
+          }
+
           // notify listeners
           for (Receiver r : receivers) {
             r.OnNewMessage(msg);

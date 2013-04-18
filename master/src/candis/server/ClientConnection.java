@@ -1,5 +1,6 @@
 package candis.server;
 
+import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.QueuedMessageConnection;
 import java.io.IOException;
@@ -59,6 +60,17 @@ public class ClientConnection implements Runnable {
 					Message msg;
 					try {
 						msg = mQueuedMessageConnection.readMessage();
+
+						// reply on ping message
+						if (msg.getRequest() == Instruction.PING) {
+							sendMessage(new Message(Instruction.PONG));
+							continue;
+						}
+
+						// notify listeners
+						for (Receiver r : receivers) {
+							r.OnNewMessage(msg);
+						}
 					}
 					catch (InterruptedIOException ex) {
 						LOGGER.info("ClientConnection thread interrupted");
@@ -75,10 +87,6 @@ public class ClientConnection implements Runnable {
 						//LOGGER.log(Level.SEVERE, null, ex);
 						isStopped = true;
 						break;
-					}
-					// notify listeners
-					for (Receiver r : receivers) {
-						r.OnNewMessage(msg);
 					}
 
 					LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
