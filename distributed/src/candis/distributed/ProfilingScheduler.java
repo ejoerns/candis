@@ -5,6 +5,17 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
+ * Profiling Scheduler.
+ *
+ * Scheduling Strategy:
+ * Send small Jobs to new clients to determine their performance.
+ *
+ * Detailed:
+ * MAX_JOB_PROCESS_TIME specifies the maximum time we allow a job to run.
+ * Based on this and on the execution time received the number of parameters
+ * for a job is calculated.
+ * Further jobs for the respective client are sent with this ammount of
+ * parameters.
  *
  * @author Enrico Joerns
  */
@@ -47,8 +58,10 @@ public class ProfilingScheduler extends Scheduler {
 
   @Override
   public void onJobDone(String droidID, String jobID, DistributedJobResult[] results, long exectime) {
-    System.out.println("onJobDone()");
     if (!mProfiledDroids.containsKey(droidID)) {
+      if (exectime == 0) {
+        exectime = 1;
+      }
       int paramcount = (int) (MAX_JOB_PROCESS_TIME / exectime);
       System.out.println("*** Droid should be able to process " + paramcount + " parameters");
       mProfiledDroids.put(droidID, paramcount);
