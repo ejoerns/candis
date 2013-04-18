@@ -27,8 +27,8 @@ public class ServerConnection {
   private int mPort;
   private List<Receiver> receivers = new LinkedList<Receiver>();
   private QueuedMessageConnection mQueuedMessageConnection;
-  private boolean mStopped;
-  Thread mQMCThread;
+  private Thread mQMCThread;
+  private Thread mReceiverThread;
   private static final Logger LOGGER = Logger.getLogger(ServerConnection.class.getName());
   // Minimum reconnect interval: 1 seconds
   private static final int RECONNECT_DELAY_MIN = 1000;
@@ -103,7 +103,10 @@ public class ServerConnection {
     System.out.println("disconnecting....");
     // stop conenction
     mConnectEnabled = false;
+    // stop timer and sender/receiver threads
     mTimer.cancel();
+    mReceiverThread.interrupt();
+    mQMCThread.interrupt();
     new Thread(new Runnable() {
       public void run() {
         mSecureSocket.close();
@@ -118,6 +121,11 @@ public class ServerConnection {
    * @param msg
    */
   public void sendMessage(Message msg) {
+    if (mQueuedMessageConnection == null) {
+      LOGGER.log(Level.WARNING, "Message " + msg.getRequest() + " could not be send.");
+      return;
+    }
+
     try {
       mQueuedMessageConnection.sendMessage(msg);
     }
@@ -161,7 +169,8 @@ public class ServerConnection {
           mQMCThread.start();
 
           // start receiver thread
-          new Thread(new MessageReceiver()).start();
+          mReceiverThread = new Thread(new MessageReceiver());
+          mReceiverThread.start();
           // reset reconnect delay to minimum
           mReconnectDelay = RECONNECT_DELAY_MIN;
 
@@ -190,8 +199,7 @@ public class ServerConnection {
     @Override
     public void run() {
       // start message queue
-
-      while ((!mStopped) && (!Thread.interrupted())) {
+      while (!Thread.interrupted()) {
         try {
           // wait for new message
           Message msg = mQueuedMessageConnection.readMessage();
@@ -202,26 +210,20 @@ public class ServerConnection {
         }
         // The thread was interrupted
         catch (InterruptedIOException ex) {
-          restoreConnection(ex);
+          LOGGER.warning(ex.getMessage());
+          reconnect();
+          return;
         }
         // The socket was close of any reason
-        catch (SocketException ex) {
-          restoreConnection(ex);
-        }
         catch (IOException ex) {
-          restoreConnection(ex);
+          LOGGER.warning(ex.getMessage());
+          reconnect();
+          return;
         }
       }
       LOGGER.log(Level.INFO, "[[ServerConnection THREAD done]]");
-    }
 
-    private void restoreConnection(Exception ex) {
-      LOGGER.warning(ex.getMessage());
-      mStopped = true;
-      mQMCThread.interrupt();
-      notifyListeners(Status.DISCONNECTED);
-      // reconnect if desired
-      reconnect();
+      disconnect();
     }
   }
 
