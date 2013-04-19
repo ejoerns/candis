@@ -79,19 +79,6 @@ public abstract class Scheduler {
     }
   }
 
-//  public void addParameter(DistributedJobParameter param) {
-//    mParams.push(param);
-//  }
-//  
-//  public void addParameters(DistributedJobParameter[] params) {
-//    for (DistributedJobParameter p : params) {
-//      this.mParams.push(p);
-//    }
-//  }
-//  
-//  public int getParametersLeft() {
-//    return mParams.size();
-//  }
   /**
    * Implement this method to create your own nice and fancy Scheduler.
    *
@@ -243,14 +230,6 @@ public abstract class Scheduler {
   }
 
   /**
-   * Tests if parameter stack is empty
-   *
-   * @return
-   */
-//  protected boolean hasParametersLeft() {
-//    return !mParams.empty();
-//  }
-  /**
    * Pops new parameter from the parameter list.
    *
    * First looks in the internal parameter cache for an available parameter.
@@ -273,7 +252,7 @@ public abstract class Scheduler {
    */
   protected DistributedJobParameter[] getParameters(int n) {
     int count = 0;
-    ArrayList<DistributedJobParameter> params = new ArrayList<DistributedJobParameter>(n);
+    ArrayList<DistributedJobParameter> params = new ArrayList<DistributedJobParameter>();
     // first get from internal cache
     while ((mParamCache.size() > 0) && (count < n)) {
       params.add(mParamCache.pop());
@@ -283,10 +262,10 @@ public abstract class Scheduler {
     count = 0;
     // try to load remaining parameters from scheduler
     while (count < n) {
-      DistributedJobParameter param = mControl.getParameter();
-      if (param == null) {
+      if (!mControl.hasParametersLeft()) {
         break;
       }
+      DistributedJobParameter param = mControl.getParameter();
       params.add(param);
       count++;
     }
