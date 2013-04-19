@@ -19,11 +19,20 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.OptionalDataException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Stack;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,7 +42,7 @@ import java.util.logging.Logger;
  * @author Enrico Joerns
  */
 public class JobCenter {
-  
+
   private static final String TAG = JobCenter.class.getName();
   /// maximum number of tasks held in cache
   private static final int MAX_TASK_CACHE = 5;// TODO: currently no implemented
@@ -48,7 +57,7 @@ public class JobCenter {
   private String mCurrentRunnableID;
   private byte[] mLastRawParameter;
   private String mLastRawParameterID;
-  
+
   public JobCenter(final Context context) {
     mContext = context;
     loadTaskCache();
@@ -72,13 +81,13 @@ public class JobCenter {
    */
   private File[] jarFinder(String dirName) {
     File dir = new File(dirName);
-    
+
     return dir.listFiles(new FilenameFilter() {
       public boolean accept(File dir, String filename) {
         return filename.endsWith(".jar");
       }
     });
-    
+
   }
 
   /**
@@ -100,9 +109,9 @@ public class JobCenter {
       }
       return;
     }
-    
+
     System.out.println("now rule the world...");
-    executeTask(runnableID, jobID, deserializeJobParameters(runnableID, param));
+    executeJobs(runnableID, jobID, deserializeJobParameters(runnableID, param));
   }
 
   /**
@@ -114,7 +123,7 @@ public class JobCenter {
     String filename = runnableID.concat(".jar");
     Log.v(TAG, String.format("Saving jar to file %s/%s", mContext.getFilesDir(), filename));
     final File dexInternalStoragePath = new File(mContext.getFilesDir(), filename);
-    
+
     if (mTaskCache.containsKey(runnableID)) {
       Log.w(TAG, String.format("Warning: Task with ID %s already loaded", runnableID));
     }
@@ -131,6 +140,16 @@ public class JobCenter {
     // deserialize initial parameter
     mTaskCache.get(runnableID).initialParam = deserializeJobParameters(runnableID, iparam)[0];
   }
+  final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(5);
+  private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(
+          DroidContext.getInstance().getProfile().processors,
+          DroidContext.getInstance().getProfile().processors,
+          10,
+          TimeUnit.SECONDS,
+          queue);
+  final ArrayList<DistributedJobResult> results = new ArrayList<DistributedJobResult>();
+  final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
+  final Object execdone = new Object();
 
   /**
    * Executes task with given ID.
@@ -139,8 +158,8 @@ public class JobCenter {
    * @param params
    * @return
    */
-  private void executeTask(final String runnableID, final String jobID, final DistributedJobParameter[] params) {
-    
+  private void executeJobs(final String runnableID, final String jobID, final DistributedJobParameter[] params) {
+
     if (!mTaskCache.containsKey(runnableID)) {
       Log.e(TAG, String.format("Task with ID %s not found", runnableID));
       return;
@@ -155,44 +174,65 @@ public class JobCenter {
     for (JobCenterHandler handler : mHandlerList) {
       handler.onJobExecutionStart(runnableID, jobID);
     }
-    
+
+    parameters.clear();
+    parameters.addAll(Arrays.asList(params));
+    results.clear();
+
     new Thread(new Runnable() {
       public void run() {
-        Log.i(TAG, "Running Job for Task " + mTaskCache.get(runnableID).name + " with TaskID " + runnableID);
-        DistributedJobResult[] results = null;
         long startTime = 0, endTime = 0;
-        // try to instanciate class
-        DistributedRunnable currentTask;
-        try {
-          currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();
-          currentTask.setInitialParameter(mTaskCache.get(runnableID).initialParam);
-          // run job and measure execution time
-          startTime = System.currentTimeMillis();
-          // process all received parameters
-          results = new DistributedJobResult[params.length];
-          for (int i = 0; i < params.length; i++) {
-            results[i] = currentTask.runJob(params[i]);
-          }
-          endTime = System.currentTimeMillis();
-          System.out.println("That took " + (endTime - startTime) + " milliseconds");
-        }
-        catch (InstantiationException ex) {
-          Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        catch (IllegalAccessException ex) {
-          Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
-//        if (result == null) {
-//          Log.w(TAG, "Process returned null");
-//        }
+        startTime = System.currentTimeMillis();
 
-        // notify handlers about end
-        for (JobCenterHandler handler : mHandlerList) {
-          handler.onJobExecutionDone(runnableID, jobID, results, endTime - startTime);
+        final CountDownLatch latch = new CountDownLatch(parameters.size());
+
+        for (int i = 0; i < params.length; i++) {
+
+          threadPool.execute(new Runnable() {
+            public void run() {
+              Log.i(TAG, "Running Thread for Job for Task " + mTaskCache.get(runnableID).name + " with TaskID " + runnableID);
+              Log.i(TAG, "Threads: " + threadPool.getActiveCount());
+              DistributedRunnable currentTask;
+              try {
+                currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();
+                currentTask.setInitialParameter(mTaskCache.get(runnableID).initialParam);
+                DistributedJobResult result = currentTask.runJob(parameters.poll());
+                results.add(result);
+                // notify receivers if done
+                latch.countDown();
+              }
+              catch (InstantiationException ex) {
+                Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+              }
+              catch (IllegalAccessException ex) {
+                Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+              }
+            }
+          });
         }
+
+        System.out.print("Awaiting Threads to finish...");
+        try {
+          latch.await();
+          endTime = System.currentTimeMillis();
+          for (JobCenterHandler handler : mHandlerList) {
+            handler.onJobExecutionDone(
+                    runnableID,
+                    jobID,
+                    results.toArray(new DistributedJobResult[results.size()]),
+                    endTime - startTime);
+          }
+        }
+        catch (InterruptedException ex) {
+          Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        System.out.print("Yeah, they finished!...");
       }
     }).start();
+
+  }
+
+  private class JobRunnable {
   }
 
   /**
@@ -279,7 +319,7 @@ public class JobCenter {
    */
   private static void writeByteArrayToFile(final byte[] data, final File filename) {
     BufferedOutputStream bos = null;
-    
+
     try {
       //create an object of FileOutputStream
       FileOutputStream fos = new FileOutputStream(filename);
@@ -313,13 +353,13 @@ public class JobCenter {
    * @param jarfile
    */
   private void loadClassesFromJar(final String runnableID, final File jarfile) {
-    
+
     mTaskCache.get(runnableID).taskClasses = new LinkedList<Class>();
-    
+
     Log.i(TAG,
           "XXX: Calling DexClassLoader with jarfile: " + jarfile.getAbsolutePath());
     final File tmpDir = mContext.getDir("dex", 0);
-    
+
     mTaskCache.get(runnableID).classLoader = new DexClassLoader(
             jarfile.getAbsolutePath(),
             tmpDir.getAbsolutePath(),
@@ -330,8 +370,8 @@ public class JobCenter {
 
     // load all available classes
     String path = jarfile.getPath();
-    
-    
+
+
     try {
       // load dexfile
       DexFile dx = DexFile.loadDex(
@@ -387,11 +427,11 @@ public class JobCenter {
     Log.i(TAG, "Param: " + dparam);
     mTaskCache.get(runnableID).initialParam = dparam;
     Log.i(TAG, "Initial Parameter for ID " + runnableID + " loaded with classloader " + ((DistributedJobParameter) dparam).getClass().getClassLoader());
-    
+
     for (JobCenterHandler handler : mHandlerList) {
       handler.onInitialParameterReceived(runnableID);
     }
-    
+
     return true;
   }
 
@@ -407,7 +447,7 @@ public class JobCenter {
    * Class that can hold all information required for a task.
    */
   private class TaskContext {
-    
+
     public final String name;
     /// Name of jarfile to be able to delete it
     public String jarfile;
@@ -419,7 +459,7 @@ public class JobCenter {
     public DistributedJobParameter initialParam;
     /// Holds the Taks classloader
     public ClassLoader classLoader;
-    
+
     public TaskContext(String name) {
       this.name = name;
     }
