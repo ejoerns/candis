@@ -20,8 +20,10 @@ import javax.net.ssl.X509TrustManager;
 public class ServerConnection {
 
   private final SecureSocket mSecureSocket;
-  private Timer mReconnectTimer;
-  private Timer mPingTimer;
+  private Timer mReconnectTimer = new Timer();
+  private final Timer mPingTimer = new Timer();
+  private TimerTask mReconnectTimerTask;
+  private TimerTask mPingTimerTask;
   private boolean mPongFlag;
   private long mReconnectDelay;
   private boolean mConnectEnabled = false;
@@ -35,9 +37,9 @@ public class ServerConnection {
   // Minimum reconnect interval: 1 seconds
   private static final int RECONNECT_DELAY_MIN = 1000;
   // Maximum reconnect interval: 60 second
-  private static final int RECONNECT_DELAY_MAX = 60000;
+  private static final int RECONNECT_DELAY_MAX = 30000; // TODO: setting
   // interval factor
-  private static final int RECONNECT_DELAY_FACTOR = 2;
+  private static final double RECONNECT_DELAY_FACTOR = 1.2;
   // Time between subsequent ping messages
   private static final long PING_PERIOD = 3000;
 
@@ -68,6 +70,7 @@ public class ServerConnection {
    * If connection fails, reconnect attemps are scheduled automatically
    */
   public void connect() {
+    System.out.println("connect() called");
     // quit if connecting is already enabled
     if (mConnectEnabled) {
       System.out.println("Connect already enabled, nothing will be done...");
@@ -77,8 +80,8 @@ public class ServerConnection {
     // init (re)connection scheduler
     mReconnectDelay = RECONNECT_DELAY_MIN;
     mConnectEnabled = true;
-    mReconnectTimer = new Timer();
-    mReconnectTimer.schedule(new ConnectTask(), 0);
+    mReconnectTimerTask = new ConnectTask();
+    mReconnectTimer.schedule(mReconnectTimerTask, 0);
   }
 
   /**
@@ -87,6 +90,7 @@ public class ServerConnection {
    * An existing connection will be disconnected.
    */
   public void reconnect() {
+    System.out.println("reconnect() called");
     if (!mConnectEnabled) {
       return;
     }
@@ -101,6 +105,7 @@ public class ServerConnection {
     System.out.println("disconnect() called");
     // quit if connecting is already disabled
     if (!mConnectEnabled) {
+      System.out.println("Connect already disabled, nothing will be done...");
       return;
     }
 
@@ -108,8 +113,8 @@ public class ServerConnection {
     // stop conenction
     mConnectEnabled = false;
     // stop timer and sender/receiver threads
-    mPingTimer.cancel();
-    mReconnectTimer.cancel();
+    mPingTimerTask.cancel();
+    mReconnectTimerTask.cancel();
     mReceiverThread.interrupt();
     mQMCThread.interrupt();
     new Thread(new Runnable() {
@@ -158,8 +163,10 @@ public class ServerConnection {
 
     @Override
     public void run() {
-      System.out.println("ConnectTask.run()");
-      if ((mConnectEnabled) && (!mSecureSocket.isConnected())) {
+      System.out.println("ConnectTask.run() ");
+      System.out.println("mConnectEnabled is " + mConnectEnabled);
+      System.out.println("mSecureSocket.isConnected() " + mSecureSocket.isConnected());
+      if (mConnectEnabled) {
         // try to connect to host
         try {
           mSecureSocket.connect(mHostname, mPort);
@@ -179,8 +186,8 @@ public class ServerConnection {
           mReconnectDelay = RECONNECT_DELAY_MIN;
 
           mPongFlag = true;
-          mPingTimer = new Timer();
-          mPingTimer.schedule(new PingTimer(), PING_PERIOD, PING_PERIOD);
+          mPingTimerTask = new PingTimer();
+          mPingTimer.schedule(mPingTimerTask, PING_PERIOD, PING_PERIOD);
 
           notifyListeners(Status.CONNECTED);
         }
@@ -192,7 +199,6 @@ public class ServerConnection {
           if (mReconnectDelay < RECONNECT_DELAY_MAX) {
             mReconnectDelay *= RECONNECT_DELAY_FACTOR;
           }
-          mReconnectTimer = new Timer();
           mReconnectTimer.schedule(new ConnectTask(), mReconnectDelay);
         }
       }
@@ -211,7 +217,7 @@ public class ServerConnection {
       // if no pong was received, we assume a timeout and reconnect
       else {
         LOGGER.warning("Pong timed out, restarting connection.");
-        cancel();
+        mPingTimerTask.cancel();
         reconnect();
       }
     }
@@ -266,7 +272,6 @@ public class ServerConnection {
    */
   private void notifyListeners(Status status) {
     for (Receiver r : receivers) {
-      System.out.println("Notifying... " + r);
       r.OnStatusUpdate(status);
     }
   }
