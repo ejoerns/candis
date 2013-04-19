@@ -40,11 +40,11 @@ public class ProfilingScheduler extends Scheduler {
       // TODO: flag setzen
       it.remove();
       // send single parameter for profiling
-      if (!mProfiledDroids.containsKey(droidID)) {
-        System.out.println("Profiling parameter sent for " + droidID);
-        DistributedJobParameter param = getParameter();
-        mRunningDroidsList.put(droidID, new DistributedJobParameter[]{param}); // TODO: place better
-        jobDistIO.startJob(droidID, new DistributedJobParameter[]{param});
+      if (!mProfiledDroids.containsKey(droidID)) {// TODO: send one task per core
+        System.out.println("" + data.getProfile().processors + " Profiling parameters sent for " + droidID);
+        DistributedJobParameter[] params = getParameters(data.getProfile().processors);
+        mRunningDroidsList.put(droidID, params); // TODO: place better
+        jobDistIO.startJob(droidID, params);
       }
       // otherwise start with calculated number of parameters
       else {
@@ -62,6 +62,7 @@ public class ProfilingScheduler extends Scheduler {
       if (exectime == 0) {
         exectime = 1;
       }
+      System.out.println("*** Exectime: " + exectime);
       int paramcount = (int) (MAX_JOB_PROCESS_TIME / exectime);
       System.out.println("*** Droid should be able to process " + paramcount + " parameters");
       mProfiledDroids.put(droidID, paramcount);
