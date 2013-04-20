@@ -12,7 +12,6 @@ import android.util.Log;
 import candis.client.R;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.service.ActivityCommunicator;
-import candis.client.service.BackgroundService;
 import java.security.cert.X509Certificate;
 import java.util.logging.Level;
 import java.util.logging.Logger;

@@ -4,16 +4,14 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.Preference;
-import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
 import candis.client.DroidContext;
 import candis.client.R;
 import candis.client.service.BackgroundService;
@@ -23,13 +21,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MainActivity extends FragmentActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
+public class MainActivity extends FragmentActivity implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceFragment.OnPreferenceAttachedListener {
 
   private static final int EDIT_ID = Menu.FIRST + 2;
   private static final String TAG = MainActivity.class.getName();
   private SharedPreferences mSharedPref;
   private ServiceCommunicator mServiceCommunicator;
   private boolean mServiceRunning = false;
+  private SharedPreferences.OnSharedPreferenceChangeListener mPrefListener;
 
   public static class SettingsFragment extends PreferenceFragment {
 
@@ -57,18 +56,18 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
   }
 
   @Override
-  protected void onResume() {
+  public void onResume() {
     super.onResume();
     PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-            .registerOnSharedPreferenceChangeListener(EditPreferencesListener.getInstance());
+            .registerOnSharedPreferenceChangeListener(mPrefListener);
   }
 
   @Override
-  protected void onPause() {
+  public void onPause() {
     super.onPause();
 
     PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-            .unregisterOnSharedPreferenceChangeListener(EditPreferencesListener.getInstance());
+            .unregisterOnSharedPreferenceChangeListener(mPrefListener);
   }
 
   /**
@@ -78,11 +77,10 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    // Display the fragment as the main content.
-    getFragmentManager().beginTransaction()
-            .replace(android.R.id.content, new MainActivity.SettingsFragment())
+    mPrefListener = new EditPreferencesListener(this);
+    getSupportFragmentManager().beginTransaction()
+            .replace(android.R.id.content, new SettingsFragment())
             .commit();
-//    setContentView(R.layout.main);
 
     // Load settings from R.raw.settings
     Settings.load(this.getResources().openRawResource(R.raw.settings));
@@ -143,33 +141,6 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
     }
   }
 
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    menu.add(Menu.NONE, EDIT_ID, Menu.NONE, "Edit Prefs")
-            .setIcon(R.drawable.action_settings)
-            .setAlphabeticShortcut('e');
-
-    return (super.onCreateOptionsMenu(menu));
-  }
-
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-    switch (item.getItemId()) {
-      case EDIT_ID:
-        // use fallback version of preference activity if OS is too old
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-          startActivity(new Intent(this, EditPreferences.class));
-        }
-        else {
-          startActivity(new Intent(this, EditPreferencesHC.class));
-        }
-
-        return (true);
-    }
-
-    return (super.onOptionsItemSelected(item));
-  }
-
   /**
    * Tests if the background service ist running.
    *
@@ -185,18 +156,24 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
     return false;
   }
 
+  @Override
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
     System.out.println("***MainActivity.onSharedPreferenceChanged");
     // start/stop service
     if (key.equals("pref_key_run_service")) {
       if (sharedPreferences.getBoolean("pref_key_run_service", false)) {
         Log.d(TAG, "startService()");
-        startService(new Intent(this, BackgroundService.class));
+        startService(new Intent(getApplicationContext(), BackgroundService.class));
+        mServiceCommunicator.doBindService();
       }
       else {
         Log.d(TAG, "stopService()");
-        stopService(new Intent(this, BackgroundService.class));
+        mServiceCommunicator.doUnbindService();
+        stopService(new Intent(getApplicationContext(), BackgroundService.class));
       }
     }
+  }
+
+  public void onPreferenceAttached(PreferenceScreen root, int xmlId) {
   }
 }

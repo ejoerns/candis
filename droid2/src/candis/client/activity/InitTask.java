@@ -2,6 +2,7 @@ package candis.client.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -24,7 +25,7 @@ import java.io.FileNotFoundException;
 class InitTask extends AsyncTask<Void, Object, DroidContext> {
 
   private static final String TAG = InitTask.class.getName();
-  private final Activity mActivity;
+  private final Context mActivity;
   private final File mIDFile;
   private final File mProfileFile;
   private boolean mGenerateID = false;
@@ -34,7 +35,7 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
   private SharedPreferences mSharedPref;
   private Handler mHandler;
 
-  public InitTask(final Activity act, final File idfile, final File profilefile, final Handler handler) {
+  public InitTask(final Context act, final File idfile, final File profilefile, final Handler handler) {
     mActivity = act;
     mIDFile = idfile;
     mProfileFile = profilefile;
