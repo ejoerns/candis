@@ -14,7 +14,7 @@ import candis.distributed.DistributedJobResult;
  */
 public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandler {
 
-  private boolean mStatusUpdatesEnabled = true;
+  private boolean mNotificationsEnabled = true;
   private final NotificationManager mNM;
   private final Context mContext;
 
@@ -23,6 +23,10 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
     mContext = context;
     mNM = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
   }
+  
+  public void setEnableNotifications(boolean enable) {
+    mNotificationsEnabled = enable;
+  }
 
   public void notify(String msg) {
     mNM.notify(CandisNotification.NOTIFICATION_ID,
@@ -30,7 +34,7 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
   }
 
   public void OnStatusUpdate(ServerConnection.Status status) {
-    if (mStatusUpdatesEnabled) {
+    if (mNotificationsEnabled) {
       switch (status) {
         case CONNECTED:
           System.out.println("got gonnected status!!!!!");
@@ -68,7 +72,7 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
                CandisNotification.getNotification(mContext, "Started Job " + jobID));
   }
 
-  public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult result, long exectime) {
+  public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult[] result, long exectime) {
     mNM.notify(CandisNotification.NOTIFICATION_ID,
                CandisNotification.getNotification(mContext, "Finished Job " + exectime + "ms"));
   }

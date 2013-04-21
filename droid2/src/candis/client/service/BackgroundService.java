@@ -1,13 +1,13 @@
 package candis.client.service;
 
 import android.app.Service;
+import static android.content.Context.MODE_MULTI_PROCESS;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.IBinder;
-import android.preference.PreferenceManager;
 import android.util.Log;
 import candis.client.ClientFSM;
 import candis.client.DeviceProfiler;
@@ -61,10 +61,17 @@ public class BackgroundService extends Service {
   public void onCreate() {
     super.onCreate();
 
-    mStatusUpdater = new StatusUpdater(getApplicationContext());
-
     // Load settings from .properties
     Settings.load(this.getResources().openRawResource(R.raw.settings));
+
+    // loader shared preferences
+//    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+    mSharedPref = getApplicationContext().getSharedPreferences(
+            getApplicationContext().getPackageName() + "_preferences",
+            MODE_MULTI_PROCESS);
+
+    mStatusUpdater = new StatusUpdater(getApplicationContext());
+    mStatusUpdater.setEnableNotifications(mSharedPref.getBoolean("pref_key_notifications", true));
 
     try {
       DroidContext.getInstance().setID(DroidID.readFromFile(
@@ -76,20 +83,13 @@ public class BackgroundService extends Service {
       mStatusUpdater.notify("Failed to load profile data");
     }
 
-
-    // loader shared preferences
-//    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-    mSharedPref = getApplicationContext().getSharedPreferences(
-            getApplicationContext().getPackageName() + "_preferences",
-            MODE_MULTI_PROCESS);
-
     // start this process as a foreground service so that it will not be
     // killed, even if it does cpu intensive operations etc.
     startForeground(
             CandisNotification.NOTIFICATION_ID,
             CandisNotification.getNotification(this, "Running..."));
 
-    mActivityCommunicator = new ActivityCommunicator(this);
+    mActivityCommunicator = new ActivityCommunicator(this, mStatusUpdater);
 
     init();
 

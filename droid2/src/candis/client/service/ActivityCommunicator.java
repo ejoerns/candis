@@ -53,6 +53,10 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
   public static final int CONNECT_FAILED = 110;
   /// Indicates thate connection was closed
   public static final int DISCONNECTED = 115;
+  /// Preferences were updated (notifications, boolean)
+  public static final int PREF_UPDATE_NOTIFITCATIONS = 200;
+  /// Preferences were updated (multicore, boolean)
+  public static final int PREF_UPDATE_MULTICORE = 210;
   private Messenger mRemoteMessenger;
   final Messenger mSelfMessenger = new Messenger(new IncomingHandler());
   private final Context mContext;
@@ -61,9 +65,11 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
   private NotificationManager mNM;
   /// Holds all messages not yet sent because activity is not bound.
   List<Message> mPendingMessages = new LinkedList<Message>();
+  private final StatusUpdater mStatusUpdater;
 
-  public ActivityCommunicator(Context context) {
+  public ActivityCommunicator(Context context, StatusUpdater sup) {
     mContext = context;
+    mStatusUpdater = sup;
     mNM = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
   }
 
@@ -177,6 +183,13 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
                   ClientFSM.Transitions.CHECKCODE_ENTERED,
                   //                  BackgroundService.this.mDroidContext.getID().toSHA1(),
                   msg.getData().getString("checkcode"));
+          break;
+
+        case PREF_UPDATE_NOTIFITCATIONS:
+          Log.e(TAG, "*** received PREF_UPDATE_NOTIFITCATIONS");
+          mStatusUpdater.setEnableNotifications((msg.arg1 == 1) ? true : false);
+          break;
+        case PREF_UPDATE_MULTICORE:
           break;
 //        // result of server certificate check
         default:

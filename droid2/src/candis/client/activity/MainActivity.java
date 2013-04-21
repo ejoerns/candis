@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.preference.EditTextPreference;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
@@ -14,6 +15,7 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import candis.client.R;
+import candis.client.service.ActivityCommunicator;
 import candis.client.service.BackgroundService;
 import candis.common.Settings;
 import java.io.File;
@@ -143,11 +145,13 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
     if (key.equals("pref_key_servername") || (key.equals("pref_key_serverport"))) {
       EditTextPreference preference = (EditTextPreference) mSettingsFragment.getPreferenceManager().findPreference(key);
       preference.setSummary(preference.getText());
-      // restart service
-      mServiceCommunicator.doUnbindService();
-      stopService(new Intent(getApplicationContext(), BackgroundService.class));
-      startService(new Intent(getApplicationContext(), BackgroundService.class));
-      mServiceCommunicator.doBindService();
+      // restart service if activated
+      if (sharedPreferences.getBoolean("pref_key_run_service", false)) {
+        mServiceCommunicator.doUnbindService();
+        stopService(new Intent(getApplicationContext(), BackgroundService.class));
+        startService(new Intent(getApplicationContext(), BackgroundService.class));
+        mServiceCommunicator.doBindService();
+      }
     }
     // service activation status changed
     else if (key.equals("pref_key_run_service")) {
@@ -161,6 +165,18 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
         mServiceCommunicator.doUnbindService();
         stopService(new Intent(getApplicationContext(), BackgroundService.class));
       }
+    }
+    // enable/disable notification
+    else if (key.equals("pref_key_notifications")) {
+      System.out.println("pref_key_notifications");
+      Message msg = Message.obtain(null, ActivityCommunicator.PREF_UPDATE_NOTIFITCATIONS);
+      msg.arg1 = sharedPreferences.getBoolean("pref_key_notifications", true) ? 1 : 0;
+      mServiceCommunicator.sendMessage(msg);
+    }
+    else if (key.equals("pref_key_multicore")) {
+      Message msg = Message.obtain(null, ActivityCommunicator.PREF_UPDATE_MULTICORE);
+      msg.arg1 = sharedPreferences.getBoolean("pref_key_multicore", true) ? 1 : 0;
+      mServiceCommunicator.sendMessage(msg);
     }
   }
 

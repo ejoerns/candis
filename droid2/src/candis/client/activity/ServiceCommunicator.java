@@ -17,8 +17,8 @@ import android.widget.Toast;
 import candis.client.service.ActivityCommunicator;
 import candis.client.service.BackgroundService;
 import java.security.cert.X509Certificate;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Does *all* communication with Service.
@@ -37,6 +37,23 @@ public class ServiceCommunicator {
   public ServiceCommunicator(Context context, FragmentManager fm) {
     mContext = context;
     mFragManager = fm;
+  }
+
+  public void sendMessage(Message message) {
+    System.out.println("Is it bound????");
+    if (mIsBound) {
+      System.out.println("YESSS!!!!");
+      try {
+        mServiceMessenger.send(message);
+      }
+      catch (RemoteException ex) {
+        Logger.getLogger(ActivityCommunicator.class
+                .getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+//    else {
+//      mPendingMessages.add(message);
+//    }
   }
 
   /**
