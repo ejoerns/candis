@@ -2,17 +2,16 @@ package candis.client.activity;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import static android.content.Context.MODE_MULTI_PROCESS;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
-import android.preference.Preference;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
-import candis.client.DroidContext;
 import candis.client.R;
 import candis.client.service.BackgroundService;
 import candis.common.Settings;
@@ -21,45 +20,21 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MainActivity extends FragmentActivity implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceFragment.OnPreferenceAttachedListener {
+public class MainActivity extends FragmentActivity implements PreferenceFragment.OnPreferenceAttachedListener {
 
   private static final int EDIT_ID = Menu.FIRST + 2;
   private static final String TAG = MainActivity.class.getName();
   private SharedPreferences mSharedPref;
   private ServiceCommunicator mServiceCommunicator;
   private boolean mServiceRunning = false;
-  private SharedPreferences.OnSharedPreferenceChangeListener mPrefListener;
-
-  public static class SettingsFragment extends PreferenceFragment {
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-      super.onCreate(savedInstanceState);
-
-      // Load the preferences from an XML resource
-      addPreferencesFromResource(R.xml.preferences);
-      addPreferencesFromResource(R.xml.preferences2);
-
-      Preference preference;
-      preference = getPreferenceManager().findPreference("pref_key_droid_id");
-      preference.setSummary(DroidContext.getInstance().getID().toSHA1());
-      // information for device profile screen
-      preference = getPreferenceManager().findPreference("pref_key_device_name");
-      preference.setSummary(String.valueOf(DroidContext.getInstance().getProfile().model));
-      preference = getPreferenceManager().findPreference("pref_key_device_id");
-      preference.setSummary(String.valueOf(DroidContext.getInstance().getProfile().id));
-      preference = getPreferenceManager().findPreference("pref_key_cpu_count");
-      preference.setSummary(String.valueOf(DroidContext.getInstance().getProfile().processors));
-      preference = getPreferenceManager().findPreference("pref_key_memory");
-      preference.setSummary(String.format("%d MB", DroidContext.getInstance().getProfile().memoryMB));
-    }
-  }
+  private SettingsFragment mSettingsFragment;
 
   @Override
   public void onResume() {
     super.onResume();
     PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-            .registerOnSharedPreferenceChangeListener(mPrefListener);
+            .registerOnSharedPreferenceChangeListener(mSettingsFragment);
+
   }
 
   @Override
@@ -67,7 +42,7 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
     super.onPause();
 
     PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-            .unregisterOnSharedPreferenceChangeListener(mPrefListener);
+            .unregisterOnSharedPreferenceChangeListener(mSettingsFragment);
   }
 
   /**
@@ -77,23 +52,27 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    mPrefListener = new EditPreferencesListener(this);
+    mServiceCommunicator = new ServiceCommunicator(this, getSupportFragmentManager());
+
+    mSettingsFragment = new SettingsFragment(getApplicationContext(), mServiceCommunicator);
+
     getSupportFragmentManager().beginTransaction()
-            .replace(android.R.id.content, new SettingsFragment())
+            .replace(android.R.id.content, mSettingsFragment)
             .commit();
 
     // Load settings from R.raw.settings
     Settings.load(this.getResources().openRawResource(R.raw.settings));
 
     // loader shared preferences
-    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-    mServiceCommunicator = new ServiceCommunicator(this, getSupportFragmentManager());
+//    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+    mSharedPref = getApplicationContext().getSharedPreferences(
+            getApplicationContext().getPackageName() + "_preferences",
+            MODE_MULTI_PROCESS);
 
     // TODO: check for initial call
 //    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);
 //    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences2, false);
-    mSharedPref.registerOnSharedPreferenceChangeListener(this);
+//    mSharedPref.registerOnSharedPreferenceChangeListener(this);
 
     /* Does some potential initialization and interaction with the user
      * needed to start the service etc.
@@ -154,24 +133,6 @@ public class MainActivity extends FragmentActivity implements SharedPreferences.
       }
     }
     return false;
-  }
-
-  @Override
-  public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-    System.out.println("***MainActivity.onSharedPreferenceChanged");
-    // start/stop service
-    if (key.equals("pref_key_run_service")) {
-      if (sharedPreferences.getBoolean("pref_key_run_service", false)) {
-        Log.d(TAG, "startService()");
-        startService(new Intent(getApplicationContext(), BackgroundService.class));
-        mServiceCommunicator.doBindService();
-      }
-      else {
-        Log.d(TAG, "stopService()");
-        mServiceCommunicator.doUnbindService();
-        stopService(new Intent(getApplicationContext(), BackgroundService.class));
-      }
-    }
   }
 
   public void onPreferenceAttached(PreferenceScreen root, int xmlId) {

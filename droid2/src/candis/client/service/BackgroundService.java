@@ -78,7 +78,10 @@ public class BackgroundService extends Service {
 
 
     // loader shared preferences
-    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+//    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+    mSharedPref = getApplicationContext().getSharedPreferences(
+            getApplicationContext().getPackageName() + "_preferences",
+            MODE_MULTI_PROCESS);
 
     // start this process as a foreground service so that it will not be
     // killed, even if it does cpu intensive operations etc.
@@ -100,7 +103,7 @@ public class BackgroundService extends Service {
         }
         else {
           Log.e(TAG, "DISCONNECT IT DUDE!");
-          mConnection.disconnect();
+//          mConnection.disconnect();
         }
       }
     });
@@ -117,7 +120,7 @@ public class BackgroundService extends Service {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
-    Log.v(TAG, "onStartCommand(" + intent.getAction() + ")");
+
     super.onStartCommand(intent, flags, startId);
 
     // if service running, only handle intent
@@ -173,7 +176,6 @@ public class BackgroundService extends Service {
 
         public void OnStatusUpdate(Status status) {
           if (status == Status.CONNECTED) {
-            System.out.println("FUCK WE got it");
             mStateMachine.process(ClientFSM.Transitions.REGISTER);
           }
         }
