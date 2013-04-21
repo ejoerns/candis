@@ -19,7 +19,8 @@ import javax.net.ssl.X509TrustManager;
  */
 public class ServerConnection {
 
-  private final SecureSocket mSecureSocket;
+  private SecureSocket mSecureSocket;
+  private final X509TrustManager mTrustManager;
   private Timer mReconnectTimer = new Timer();
   private final Timer mPingTimer = new Timer();
   private TimerTask mReconnectTimerTask;
@@ -53,9 +54,11 @@ public class ServerConnection {
    *
    */
   public ServerConnection(String hostname, int port, X509TrustManager trustmanager) {
+    System.out.println("CTOR ServerConnection()");
     mHostname = hostname;
     mPort = port;
-    mSecureSocket = new SecureSocket(trustmanager);
+    mTrustManager = trustmanager;
+//    mSecureSocket = new SecureSocket(trustmanager);
   }
 
   public void setHost(String hostname, int port) {
@@ -80,6 +83,7 @@ public class ServerConnection {
     // init (re)connection scheduler
     mReconnectDelay = RECONNECT_DELAY_MIN;
     mConnectEnabled = true;
+    mSecureSocket = new SecureSocket(mTrustManager);
     mReconnectTimerTask = new ConnectTask();
     mReconnectTimer.schedule(mReconnectTimerTask, 0);
   }
@@ -113,10 +117,18 @@ public class ServerConnection {
     // stop conenction
     mConnectEnabled = false;
     // stop timer and sender/receiver threads
-    mPingTimerTask.cancel();
-    mReconnectTimerTask.cancel();
-    mReceiverThread.interrupt();
-    mQMCThread.interrupt();
+    if (mPingTimerTask != null) {
+      mPingTimerTask.cancel();
+    }
+    if (mReconnectTimerTask != null) {
+      mReconnectTimerTask.cancel();
+    }
+    if (mReceiverThread != null) {
+      mReceiverThread.interrupt();
+    }
+    if (mQMCThread != null) {
+      mQMCThread.interrupt();
+    }
     new Thread(new Runnable() {
       public void run() {
         mSecureSocket.close();
@@ -166,46 +178,46 @@ public class ServerConnection {
       System.out.println("ConnectTask.run() ");
       System.out.println("mConnectEnabled is " + mConnectEnabled);
       System.out.println("mSecureSocket.isConnected() " + mSecureSocket.isConnected());
-      if (mConnectEnabled) {
-        // try to connect to host
-        try {
-          mSecureSocket.connect(mHostname, mPort);
-          mSecureSocket.getSocket().setKeepAlive(true);
+      // try to connect to host
+      try {
+        mSecureSocket.connect(mHostname, mPort);
+        mSecureSocket.getSocket().setKeepAlive(true);
 
-          mQueuedMessageConnection = new QueuedMessageConnection(mSecureSocket.getSocket());
+        mQueuedMessageConnection = new QueuedMessageConnection(mSecureSocket.getSocket());
 
-          // start message queue thread
-          mQMCThread = new Thread(mQueuedMessageConnection);
-          mQMCThread.setDaemon(true);
-          mQMCThread.start();
+        // start message queue thread
+        mQMCThread = new Thread(mQueuedMessageConnection);
+        mQMCThread.setDaemon(true);
+        mQMCThread.start();
 
-          // start receiver thread
-          mReceiverThread = new Thread(new MessageReceiver());
-          mReceiverThread.start();
-          // reset reconnect delay to minimum
-          mReconnectDelay = RECONNECT_DELAY_MIN;
+        // start receiver thread
+        mReceiverThread = new Thread(new MessageReceiver());
+        mReceiverThread.start();
+        // reset reconnect delay to minimum
+        mReconnectDelay = RECONNECT_DELAY_MIN;
 
-          mPongFlag = true;
-          mPingTimerTask = new PingTimer();
-          mPingTimer.schedule(mPingTimerTask, PING_PERIOD, PING_PERIOD);
+        // start PingTimerTask
+        mPongFlag = true;
+        mPingTimerTask = new PingTimerTask();
+        mPingTimer.schedule(mPingTimerTask, PING_PERIOD, PING_PERIOD);
 
-          notifyListeners(Status.CONNECTED);
+        notifyListeners(Status.CONNECTED);
+      }
+      // connect failed
+      catch (IOException ex) {
+        Logger.getLogger(ServerConnection.class.getName())
+                .log(Level.SEVERE, ex.getMessage());
+        notifyListeners(Status.DISCONNECTED);
+        if (mReconnectDelay < RECONNECT_DELAY_MAX) {
+          mReconnectDelay *= RECONNECT_DELAY_FACTOR;
         }
-        // connect failed
-        catch (IOException ex) {
-          Logger.getLogger(ServerConnection.class.getName())
-                  .log(Level.SEVERE, ex.getMessage());
-          notifyListeners(Status.DISCONNECTED);
-          if (mReconnectDelay < RECONNECT_DELAY_MAX) {
-            mReconnectDelay *= RECONNECT_DELAY_FACTOR;
-          }
-          mReconnectTimer.schedule(new ConnectTask(), mReconnectDelay);
-        }
+        mReconnectTimerTask = new ConnectTask();
+        mReconnectTimer.schedule(mReconnectTimerTask, mReconnectDelay);
       }
     }
   }
 
-  private class PingTimer extends TimerTask {
+  private class PingTimerTask extends TimerTask {
 
     @Override
     public void run() {
@@ -217,7 +229,7 @@ public class ServerConnection {
       // if no pong was received, we assume a timeout and reconnect
       else {
         LOGGER.warning("Pong timed out, restarting connection.");
-        mPingTimerTask.cancel();
+        cancel();
         reconnect();
       }
     }
