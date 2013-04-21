@@ -42,4 +42,9 @@
     android:title="@string/pref_title_notifications"
     android:summary="@string/pref_summary_notifications"
     android:defaultValue="true"/>
+  <CheckBoxPreference
+    android:key="pref_key_multithread"
+    android:title="@string/pref_title_multithread"
+    android:summary="@string/pref_summary_multithread"
+    android:defaultValue="true"/>
 </PreferenceScreen>

@@ -20,4 +20,6 @@
   <string name="pref_title_log">Log</string>
   <string name="pref_title_notifications">Notification</string>
   <string name="pref_summary_notifications">Enables status bar notifications for Jobs</string>
+  <string name="pref_title_multithread">Multithreading</string>
+  <string name="pref_summary_multithread">Enables multithreading support</string>
 </resources>
