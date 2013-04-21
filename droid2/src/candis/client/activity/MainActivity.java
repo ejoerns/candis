@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.EditTextPreference;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.support.v4.app.FragmentActivity;
@@ -20,7 +21,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MainActivity extends FragmentActivity implements PreferenceFragment.OnPreferenceAttachedListener {
+public class MainActivity extends FragmentActivity implements PreferenceFragment.OnPreferenceAttachedListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
   private static final int EDIT_ID = Menu.FIRST + 2;
   private static final String TAG = MainActivity.class.getName();
@@ -33,7 +34,7 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
   public void onResume() {
     super.onResume();
     PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-            .registerOnSharedPreferenceChangeListener(mSettingsFragment);
+            .registerOnSharedPreferenceChangeListener(this);
 
   }
 
@@ -42,7 +43,7 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
     super.onPause();
 
     PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-            .unregisterOnSharedPreferenceChangeListener(mSettingsFragment);
+            .unregisterOnSharedPreferenceChangeListener(this);
   }
 
   /**
@@ -54,7 +55,7 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
 
     mServiceCommunicator = new ServiceCommunicator(this, getSupportFragmentManager());
 
-    mSettingsFragment = new SettingsFragment(getApplicationContext(), mServiceCommunicator);
+    mSettingsFragment = SettingsFragment.newInstance();
 
     getSupportFragmentManager().beginTransaction()
             .replace(android.R.id.content, mSettingsFragment)
@@ -133,6 +134,34 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
       }
     }
     return false;
+  }
+
+  @Override
+  public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+    System.out.println("***MainActivity.onSharedPreferenceChanged");
+    // server settings changed
+    if (key.equals("pref_key_servername") || (key.equals("pref_key_serverport"))) {
+      EditTextPreference preference = (EditTextPreference) mSettingsFragment.getPreferenceManager().findPreference(key);
+      preference.setSummary(preference.getText());
+      // restart service
+      mServiceCommunicator.doUnbindService();
+      stopService(new Intent(getApplicationContext(), BackgroundService.class));
+      startService(new Intent(getApplicationContext(), BackgroundService.class));
+      mServiceCommunicator.doBindService();
+    }
+    // service activation status changed
+    else if (key.equals("pref_key_run_service")) {
+      if (sharedPreferences.getBoolean("pref_key_run_service", false)) {
+        Log.d(TAG, "startService()");
+        startService(new Intent(getApplicationContext(), BackgroundService.class));
+        mServiceCommunicator.doBindService();
+      }
+      else {
+        Log.d(TAG, "stopService()");
+        mServiceCommunicator.doUnbindService();
+        stopService(new Intent(getApplicationContext(), BackgroundService.class));
+      }
+    }
   }
 
   public void onPreferenceAttached(PreferenceScreen root, int xmlId) {
