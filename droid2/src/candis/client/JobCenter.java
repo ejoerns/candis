@@ -20,14 +20,12 @@ import java.io.ObjectInputStream;
 import java.io.OptionalDataException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Stack;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -44,6 +42,7 @@ import java.util.logging.Logger;
 public class JobCenter {
 
   private static final String TAG = JobCenter.class.getName();
+  private static final Logger LOGGER = Logger.getLogger(TAG);
   /// maximum number of tasks held in cache
   private static final int MAX_TASK_CACHE = 5;// TODO: currently no implemented
   // ---
@@ -54,13 +53,42 @@ public class JobCenter {
   private final Map<String, TaskContext> mTaskCache = new HashMap<String, TaskContext>();
   /// List of all registered handlers
   private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
-  private String mCurrentRunnableID;
-  private byte[] mLastRawParameter;
-  private String mLastRawParameterID;
+  final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(5);
+  /**
+   * Holds mUsableCores threads for jobs processing.
+   */
+  private ThreadPoolExecutor mThreadPool;
+  final ArrayList<DistributedJobResult> results = new ArrayList<DistributedJobResult>();
+  final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
+  final Object execdone = new Object();
+  private int mUsableCores;
 
   public JobCenter(final Context context) {
     mContext = context;
+    mUsableCores = DroidContext.getInstance().getProfile().processors;
+    mThreadPool = new ThreadPoolExecutor(
+            mUsableCores / 2,
+            mUsableCores,
+            10,
+            TimeUnit.SECONDS,
+            queue);
     loadTaskCache();
+  }
+
+  /**
+   * Enables multicore support.
+   *
+   * I.e. Number-of-processors threads are started to perform job processing.
+   *
+   * @param enabled
+   */
+  public void setMulticore(boolean enabled) {
+    if (enabled) {
+      mUsableCores = DroidContext.getInstance().getProfile().processors;
+    }
+    else {
+      mUsableCores = 1;
+    }
   }
 
   /**
@@ -99,9 +127,6 @@ public class JobCenter {
    */
   public void processJob(String runnableID, String jobID, byte[] param) {
     if (!mTaskCache.containsKey(runnableID)) {
-      // save process for further processing
-      mLastRawParameter = param;
-      mLastRawParameterID = jobID;
       // notify handlers about missing binary
       for (JobCenterHandler handler : mHandlerList) {
         System.out.println("Notifying handler... " + handler);
@@ -140,16 +165,6 @@ public class JobCenter {
     // deserialize initial parameter
     mTaskCache.get(runnableID).initialParam = deserializeJobParameters(runnableID, iparam)[0];
   }
-  final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(5);
-  private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(
-          DroidContext.getInstance().getProfile().processors,
-          DroidContext.getInstance().getProfile().processors,
-          10,
-          TimeUnit.SECONDS,
-          queue);
-  final ArrayList<DistributedJobResult> results = new ArrayList<DistributedJobResult>();
-  final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
-  final Object execdone = new Object();
 
   /**
    * Executes task with given ID.
@@ -181,23 +196,33 @@ public class JobCenter {
 
     new Thread(new Runnable() {
       public void run() {
-        long startTime = 0, endTime = 0;
+        long startTime, endTime;
         startTime = System.currentTimeMillis();
 
-        final CountDownLatch latch = new CountDownLatch(parameters.size());
+        LOGGER.info(String.format("parameters: %d", parameters.size()));
+        // start threads
+        final int paramsPerThread = (parameters.size() + (mUsableCores - 1)) / mUsableCores;
+        LOGGER.info(String.format("paramsPerThread: %d", paramsPerThread));
+        final int usedThreads = Math.min(mUsableCores, parameters.size());
+        LOGGER.info(String.format("usedThreads: %d", usedThreads));
 
-        for (int i = 0; i < params.length; i++) {
+        final CountDownLatch latch = new CountDownLatch(usedThreads);
 
-          threadPool.execute(new Runnable() {
+        // start as many threads as allowed
+        for (int i = 0; i < usedThreads; i++) {
+
+          mThreadPool.execute(new Runnable() {
             public void run() {
               Log.i(TAG, "Running Thread for Job for Task " + mTaskCache.get(runnableID).name + " with TaskID " + runnableID);
-              Log.i(TAG, "Threads: " + threadPool.getActiveCount());
+              Log.i(TAG, "Threads: " + mThreadPool.getActiveCount());
               DistributedRunnable currentTask;
               try {
                 currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();
                 currentTask.setInitialParameter(mTaskCache.get(runnableID).initialParam);
-                DistributedJobResult result = currentTask.runJob(parameters.poll());
-                results.add(result);
+                for (int j = 0; j < Math.min(paramsPerThread, parameters.size()); j++) {
+                  DistributedJobResult result = currentTask.runJob(parameters.poll());
+                  results.add(result);
+                }
                 // notify receivers if done
                 latch.countDown();
               }
