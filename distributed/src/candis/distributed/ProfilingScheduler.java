@@ -59,6 +59,7 @@ public class ProfilingScheduler extends Scheduler {
   @Override
   public void onJobDone(String droidID, String jobID, DistributedJobResult[] results, long exectime) {
     if (!mProfiledDroids.containsKey(droidID)) {
+      exectime /= results.length;// exectime is per job, not per parameter
       if (exectime == 0) {
         exectime = 1;
       }
