@@ -10,8 +10,9 @@ import java.util.logging.Logger;
  * Every Droid will get DistributedParameters, if a Droid finishes it's task or
  * a new Droid appears it will get its next DistributedParameter(s).
  *
- * The number of parameters sent to each droid only depends on its number of
- * cpu cores.
+ * If multicore support is enabled, the number of parameters sent to each droid
+ * equals its number of cpu cores.
+ * Otherwise only one parameter is sent.
  *
  * @author Sebastian Willenborg
  * @author Enrico Joerns
@@ -19,9 +20,26 @@ import java.util.logging.Logger;
 public class SimpleScheduler extends Scheduler {
 
   private static final Logger LOGGER = Logger.getLogger(SimpleScheduler.class.getName());
+  private final boolean mMulticore;
+  private final int mParamsPerJob;
 
   public SimpleScheduler(DistributedControl control) {
+    this(control, 1, false);
+  }
+
+  /**
+   *
+   * @param control
+   * @param parametersPerJob The smalles ammount of parameters that may be sent
+   * for each job.
+   * Acutal parameters can only be a multiple of this.
+   * @param multicore Enables multicore support, i.e. the job size is
+   * multiplicated with the number of cores of the target device.
+   */
+  public SimpleScheduler(DistributedControl control, int parametersPerJob, boolean multicore) {
     super(control);
+    mParamsPerJob = parametersPerJob;
+    mMulticore = multicore;
   }
 
   public void schedule(final Map<String, DroidData> droidList, JobDistributionIO jobDistIO) {
@@ -36,9 +54,17 @@ public class SimpleScheduler extends Scheduler {
       // TODO: flag setzen
       it.remove();
       // Send parametrs according to cpu cores
-      DistributedJobParameter[] param = getParameters(data.getProfile().processors);
-      mRunningDroidsList.put(id, param); // TODO: place better
-      jobDistIO.startJob(id, param);
+      DistributedJobParameter[] params;
+      if (mMulticore) {
+        params = getParameters(mParamsPerJob * data.getProfile().processors);
+      }
+      else {
+        params = getParameters(mParamsPerJob);
+      }
+      if (params.length > 0) {
+        mRunningDroidsList.put(id, params); // TODO: place better
+        jobDistIO.startJob(id, params);
+      }
     }
   }
 
