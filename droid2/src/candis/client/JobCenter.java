@@ -18,7 +18,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.OptionalDataException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -206,10 +205,10 @@ public class JobCenter {
 
         LOGGER.info(String.format("parameters: %d", parameters.size()));
         // start threads
-        final int paramsPerThread = (parameters.size() + (mUsableCores - 1)) / mUsableCores;
-        LOGGER.info(String.format("paramsPerThread: %d", paramsPerThread));
         final int usedThreads = Math.min(mUsableCores, parameters.size());
         LOGGER.info(String.format("usedThreads: %d", usedThreads));
+        final int paramsPerThread = (parameters.size() + (usedThreads - 1)) / usedThreads;
+        LOGGER.info(String.format("paramsPerThread: %d", paramsPerThread));
 
         final CountDownLatch latch = new CountDownLatch(usedThreads);
 
@@ -225,7 +224,7 @@ public class JobCenter {
                 currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();
                 currentTask.setInitialParameter(mTaskCache.get(runnableID).initialParam);
                 // execute job for all parameters, assure order
-                for (int j = 0; j < Math.min(paramsPerThread, parameters.size()); j++) {
+                for (int j = 0; j < paramsPerThread && !parameters.isEmpty(); j++) {
                   DistributedJobParameter runParam;
                   int runID;// needed to assure correct order
                   synchronized (parameters) {
