@@ -58,7 +58,7 @@ public class JobCenter {
    * Holds mUsableCores threads for jobs processing.
    */
   private ThreadPoolExecutor mThreadPool;
-  final ArrayList<DistributedJobResult> results = new ArrayList<DistributedJobResult>();
+//  final ArrayList<DistributedJobResult> results = new ArrayList<DistributedJobResult>();
   final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
   final Object execdone = new Object();
   private int mUsableCores;
@@ -136,7 +136,7 @@ public class JobCenter {
     }
 
     System.out.println("now rule the world...");
-    executeJobs(runnableID, jobID, deserializeJobParameters(runnableID, param));
+    executeJob(runnableID, jobID, deserializeJobParameters(runnableID, param));
   }
 
   /**
@@ -169,14 +169,19 @@ public class JobCenter {
   /**
    * Executes task with given ID.
    *
+   * May start multiple threads.
+   * Calls onJobExecutionStart() at start.
+   * Calls onJobExecutionDone() when processing finished.
+   * Assures that order of results matches order of parameters.
+   *
    * @param runnableID
    * @param params
    * @return
    */
-  private void executeJobs(final String runnableID, final String jobID, final DistributedJobParameter[] params) {
+  private void executeJob(final String runnableID, final String jobID, final DistributedJobParameter[] params) {
 
     if (!mTaskCache.containsKey(runnableID)) {
-      Log.e(TAG, String.format("Task with ID %s not found", runnableID));
+      Log.e(TAG, String.format("Task with ID %s not found in cache!", runnableID));
       return;
     }
 
@@ -192,7 +197,7 @@ public class JobCenter {
 
     parameters.clear();
     parameters.addAll(Arrays.asList(params));
-    results.clear();
+    final DistributedJobResult[] results = new DistributedJobResult[parameters.size()];
 
     new Thread(new Runnable() {
       public void run() {
@@ -219,9 +224,16 @@ public class JobCenter {
               try {
                 currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();
                 currentTask.setInitialParameter(mTaskCache.get(runnableID).initialParam);
+                // execute job for all parameters, assure order
                 for (int j = 0; j < Math.min(paramsPerThread, parameters.size()); j++) {
-                  DistributedJobResult result = currentTask.runJob(parameters.poll());
-                  results.add(result);
+                  DistributedJobParameter runParam;
+                  int runID;// needed to assure correct order
+                  synchronized (parameters) {
+                    runParam = parameters.poll();
+                    runID = parameters.size();
+                  }
+                  DistributedJobResult result = currentTask.execute(runParam);
+                  results[results.length - 1 - runID] = result;
                 }
                 // notify receivers if done
                 latch.countDown();
@@ -244,7 +256,7 @@ public class JobCenter {
             handler.onJobExecutionDone(
                     runnableID,
                     jobID,
-                    results.toArray(new DistributedJobResult[results.size()]),
+                    results,
                     endTime - startTime);
           }
         }
@@ -255,9 +267,6 @@ public class JobCenter {
       }
     }).start();
 
-  }
-
-  private class JobRunnable {
   }
 
   /**
