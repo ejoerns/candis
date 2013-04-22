@@ -173,9 +173,10 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
       msg.arg1 = sharedPreferences.getBoolean("pref_key_notifications", true) ? 1 : 0;
       mServiceCommunicator.sendMessage(msg);
     }
-    else if (key.equals("pref_key_multicore")) {
+    else if (key.equals("pref_key_multithread")) {
+      System.out.println("pref_key_multithread");
       Message msg = Message.obtain(null, ActivityCommunicator.PREF_UPDATE_MULTICORE);
-      msg.arg1 = sharedPreferences.getBoolean("pref_key_multicore", true) ? 1 : 0;
+      msg.arg1 = sharedPreferences.getBoolean("pref_key_multithread", true) ? 1 : 0;
       mServiceCommunicator.sendMessage(msg);
     }
   }

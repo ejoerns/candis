@@ -186,12 +186,11 @@ public class ActivityCommunicator implements ReloadableX509TrustManager.Handler 
           break;
 
         case PREF_UPDATE_NOTIFITCATIONS:
-          Log.e(TAG, "*** received PREF_UPDATE_NOTIFITCATIONS");
           mStatusUpdater.setEnableNotifications((msg.arg1 == 1) ? true : false);
           break;
         case PREF_UPDATE_MULTICORE:
+          mClientFSM.getJobCenter().setMulticore((msg.arg1 == 1) ? true : false);
           break;
-//        // result of server certificate check
         default:
           super.handleMessage(msg);
       }

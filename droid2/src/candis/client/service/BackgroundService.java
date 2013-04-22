@@ -9,6 +9,7 @@ import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.util.Log;
+import candis.client.CandisSettings;
 import candis.client.ClientFSM;
 import candis.client.DeviceProfiler;
 import candis.client.DroidContext;
@@ -160,6 +161,8 @@ public class BackgroundService extends Service {
       // init state machine
       mStateMachine = new ClientFSM(getApplicationContext(), mConnection, mActivityCommunicator);
       mStateMachine.init();
+      mStateMachine.getJobCenter().setMulticore(mSharedPref.getBoolean("pref_key_multithread", true));
+
       // fsm must receive messages
       mConnection.addReceiver(mStateMachine);
       // fsm must receive activity messages
