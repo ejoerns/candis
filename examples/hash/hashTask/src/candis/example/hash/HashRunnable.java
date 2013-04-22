@@ -27,7 +27,7 @@ public class HashRunnable implements DistributedRunnable {
   }
 
   @Override
-  public DistributedJobResult runJob(DistributedJobParameter parameter) {
+  public DistributedJobResult execute(DistributedJobParameter parameter) {
     // Cast incomming Parameter
     HashJobParameter p = (HashJobParameter) parameter;
     int[] block = new int[p.depth];
@@ -42,8 +42,6 @@ public class HashRunnable implements DistributedRunnable {
         test += (Character.toString(mInitial.range[i]));
       }
       byte[] result = doHash(p.base, block);
-
-      System.out.println(new String(p.base) + test + ", " + bytesToHex(mInitial.hash) + ", " + bytesToHex(result));
 
       if (Arrays.equals(mInitial.hash, result)) {
         char[] found = new char[p.depth];
@@ -108,8 +106,6 @@ public class HashRunnable implements DistributedRunnable {
   public void setInitialParameter(DistributedJobParameter parameter) {
 
     mInitial = (HashInitParameter) parameter;
-    Log.e(HashRunnable.class.getName(), "Initial parameter: Hash set to " + new String(mInitial.hash));
-    Log.e(HashRunnable.class.getName(), "                  Range set to " + new String(mInitial.range));
     try {
       mMessageDigest = MessageDigest.getInstance("MD5");
     }

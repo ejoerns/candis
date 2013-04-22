@@ -19,7 +19,7 @@ public interface DistributedRunnable {
 	 * @param parameter Parameter for this job
 	 * @return Result of the successful done job
 	 */
-	public DistributedJobResult runJob(DistributedJobParameter parameter);
+	public DistributedJobResult execute(DistributedJobParameter parameter);
 
 	/**
 	 * Requests to stop the current job.
