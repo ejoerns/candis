@@ -1,5 +1,6 @@
 package candis.example.xslt;
 
+import candis.distributed.AnalyzerScheduler;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -18,7 +19,7 @@ import java.io.File;
 public class XSLTControl extends DistributedControl implements ResultReceiver {
 
   private static final int TOTAL_JOBS = 100;
-  private int mJobsDone = 0;
+  private int mParametersSent = 0;
   private Scheduler mScheduler;
   private FileUserParameter mXSLTFile;
   private FileUserParameter mXMLFile;
@@ -31,14 +32,14 @@ public class XSLTControl extends DistributedControl implements ResultReceiver {
 
     mXSLTFile = new FileUserParameter("XSL file", "../examples/xslt/xsltControl/json.xslt", null);
     parameters.AddParameter(mXSLTFile);
-    mXMLFile = new FileUserParameter("XML file", "../examples/xslt/xsltControl/json.xml", null);
+    mXMLFile = new FileUserParameter("gzXML file", "../examples/xslt/xsltControl/json_more.xml.gz", null);
     parameters.AddParameter(mXMLFile);
 
     UserParameterRequester.getInstance().request(parameters);
 
-    mJobsDone = 0;
+    mParametersSent = 0;
 
-    mScheduler = new SimpleScheduler(this);
+    mScheduler = new AnalyzerScheduler(this, 10, false);
 
     DistributedJobParameter init = new XSLTInitParameter(new File((String) mXSLTFile.getValue()));
     mScheduler.setInitialParameter(init);
@@ -51,7 +52,7 @@ public class XSLTControl extends DistributedControl implements ResultReceiver {
   @Override
   public void onReceiveResult(DistributedJobParameter param, DistributedJobResult result) {
     XSLTJobResult res = (XSLTJobResult) result;
-    System.out.println(new String(res.data));
+//    System.out.println(new String(res.data));
   }
 
   @Override
@@ -60,13 +61,13 @@ public class XSLTControl extends DistributedControl implements ResultReceiver {
 
   @Override
   public final DistributedJobParameter getParameter() {
-    mJobsDone++;
+    mParametersSent++;
     return new XSLTJobParameter(new File((String) mXMLFile.getValue()));
   }
 
   @Override
   public final long getParametersLeft() {
-    return TOTAL_JOBS - mJobsDone;
+    return TOTAL_JOBS - mParametersSent;
   }
 
   @Override

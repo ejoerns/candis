@@ -5,8 +5,11 @@ import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -22,13 +25,14 @@ import javax.xml.transform.stream.StreamSource;
 public class XSLTRunnable implements DistributedRunnable {
 
   private byte[] mXSLTData;
+  private static final int TEST_LOOPS = 10;
 
   @Override
   public void stopJob() {
   }
 
   @Override
-  public DistributedJobResult runJob(DistributedJobParameter parameter) {
+  public DistributedJobResult execute(DistributedJobParameter parameter) {
     TransformerFactory factory = TransformerFactory.newInstance();
 
     // get xslt
@@ -43,19 +47,50 @@ public class XSLTRunnable implements DistributedRunnable {
       return null;
     }
 
-    // get xml
     XSLTJobParameter xmlInput = (XSLTJobParameter) parameter;
-    bais = new ByteArrayInputStream(xmlInput.data);
-    Source text = new StreamSource(bais);
 
-    // transform
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    InputStream is;
+    ByteArrayOutputStream buffer = null;
+    byte[] unzipedXMLData = null;
     try {
-      transformer.transform(text, new StreamResult(baos));
+      is = new GZIPInputStream(new ByteArrayInputStream(xmlInput.data));
+      buffer = new ByteArrayOutputStream();
+
+      int nRead;
+      byte[] data = new byte[16384];
+
+      while ((nRead = is.read(data, 0, data.length)) != -1) {
+        buffer.write(data, 0, nRead);
+      }
+      buffer.flush();
+      unzipedXMLData = buffer.toByteArray();
     }
-    catch (TransformerException ex) {
+    catch (IOException ex) {
       Logger.getLogger(XSLTRunnable.class.getName()).log(Level.SEVERE, null, ex);
-      return null;
+    }
+
+    // get xml from gzip
+    InputStream insteam = null;
+    ByteArrayOutputStream baos = null;
+    for (int i = 0; i < TEST_LOOPS; i++) {
+      try {
+        insteam = new ByteArrayInputStream(unzipedXMLData);
+        Source text = new StreamSource(insteam);
+
+        // transform
+        baos = new ByteArrayOutputStream();
+        try {
+          transformer.transform(text, new StreamResult(baos));
+        }
+        catch (TransformerException ex) {
+          Logger.getLogger(XSLTRunnable.class.getName()).log(Level.SEVERE, null, ex);
+          return null;
+        }
+        insteam.close();
+      }
+      catch (IOException ex) {
+        Logger.getLogger(XSLTRunnable.class.getName()).log(Level.SEVERE, null, ex);
+      }
     }
 
     return new XSLTJobResult(baos.toByteArray());
