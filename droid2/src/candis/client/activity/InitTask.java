@@ -1,6 +1,5 @@
 package candis.client.activity;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -139,7 +138,7 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
           public void onClick(DialogInterface dialog, int whichButton) {
             // store in shared preference
-            mSharedPref.edit().putString("pref_key_servername", input.getText().toString()).apply();
+            mSharedPref.edit().putString("pref_key_servername", input.getText().toString()).commit();
           }
         })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
