@@ -91,11 +91,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 	@Override
 	public final void init() {
-		addState(ServerStates.INITIAL)
-						.addTransition(
-						Instruction.REGISTER,
-						ServerStates.CHECK,
-						new RegistrationRequestHandler());
+		addState(ServerStates.INITIAL);
 		addState(ServerStates.CHECK)
 						.addTransition(
 						ServerTrans.CLIENT_BLACKLISTED,
@@ -167,10 +163,20 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 						Instruction.ACK,
 						ServerStates.REGISTERED);
 
+		// we can register and unregister from every state
+		addGlobalTransition(
+						Instruction.REGISTER,
+						ServerStates.CHECK,
+						new RegistrationRequestHandler());
 		addGlobalTransition(
 						Instruction.UNREGISTER,
 						ServerStates.INITIAL,
 						new UnregisterHandler());
+
+		// if something wents wrong, we simply disconenct client :)
+		setErrorTransition(
+						ServerStates.INITIAL,
+						new ErrorHandler());
 
 		setState(ServerStates.INITIAL);
 	}
@@ -206,6 +212,22 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 			// unregister...
 			mDroidManager.unregister(droidID);
+		}
+	}
+
+	/**
+	 * Invoked if an error occurs
+	 */
+	private class ErrorHandler extends ActionHandler {
+
+		@Override
+		public void handle(Object... obj) {
+			gotCalled();
+			LOGGER.log(Level.SEVERE, "Invalid Transition, resetting StateMachine!");
+			// TODO: error feedback?
+
+			// unregister...
+			mDroidManager.unregister(mDroidID);
 		}
 	}
 
@@ -341,7 +363,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			DistributedJobParameter[] params = (DistributedJobParameter[]) data[2];
 
 			gotCalled();
-			CandisLog.v(TAG, "Sending job for task ID " + params[0]);
+			CandisLog.v(TAG, "Sending job for task ID " + runnableID);
 
 			// Serialize to byte array
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -400,7 +422,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 	@Override
 	public void onStopJob(String jobID, String taskID) {
-		throw new UnsupportedOperationException("Not supported yet.");
+		process(ServerTrans.STOP_JOB, taskID, jobID);
 	}
 
 	@Override
