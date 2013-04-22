@@ -1,20 +1,14 @@
 package candis.client.gui.settings;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import candis.client.R;
-import candis.client.service.BackgroundService;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -38,6 +32,9 @@ public class SettingsActivity extends PreferenceActivity
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
+//    PreferenceManager.setDefaultValues(getApplicationContext(), MODE_PRIVATE, true);
+    getPreferenceManager().setSharedPreferencesMode(MODE_WORLD_READABLE);
+
     // Load the preferences from an XML resource
     addPreferencesFromResource(R.xml.preferences);
 
@@ -46,7 +43,7 @@ public class SettingsActivity extends PreferenceActivity
     mPortnamePreference = (EditTextPreference) getPreferenceScreen().findPreference(PORTNAME);
     mPowermodePreference = (ListPreference) getPreferenceScreen().findPreference(POWERMODE);
   }
-  
+
   @Override
   protected void onResume() {
     super.onResume();

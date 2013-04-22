@@ -108,12 +108,13 @@ public class HashControl extends DistributedControl implements ResultReceiver {
       typeValue = HashType.SHA1;
     }
 //    mScheduler = new ProfilingScheduler(this);
-    mScheduler = new AnalyzerScheduler(this);
+    mScheduler = new AnalyzerScheduler(this, 20, false);
 
     mStringGenerator = new BruteForceStringGenerator(start.getIntegerValue() - depth.getIntegerValue(), alphabet.toCharArray());
     mMaxDepth = stop.getIntegerValue();
     mDone = 0;
     mTotal = 0;
+    prepart = prepart2 = 0;
     mClientDepth = depth.getIntegerValue();
 
     int d = Math.min(depth.getIntegerValue(), stop.getIntegerValue());

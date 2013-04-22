@@ -71,24 +71,29 @@ public class JobDistributionIOServer implements JobDistributionIO, Runnable {
 	public DroidData getDroidData(final String droidID) {
 		return mDroidManager.getKnownDroids().get(droidID);
 	}
-//	protected ClientConnection getDroidConnection(String droidID) {
-//		return mDroidManager.getConnectedDroids().get(droidID);
-//	}
 	/*--------------------------------------------------------------------------*/
 	/* Scheduler callback methods for Droid control                             */
 	/*--------------------------------------------------------------------------*/
 
 	@Override
 	public void startJob(String droidID, DistributedJobParameter[] params) {
-		assert params != null;
+		if (mDroidManager.getDroidHandler(droidID) == null) {
+			LOGGER.severe(String.format("startJob() failed, lost handler for droid %s", droidID));
+			return;
+		}
 		System.out.println("startJob(" + droidID + ", " + params + ")");
 		mCurrenJobID++;
+		// TODO: this is stupid!
 		mDroidManager.getDroidHandler(droidID).onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), params);
 		invoke(JobDistributionIOHandler.Event.JOB_SENT);
 	}
 
 	@Override
 	public void stopJob(final String droidID) {
+		if (mDroidManager.getDroidHandler(droidID) == null) {
+			LOGGER.severe(String.format("stopJob() failed, lost handler for droid %s", droidID));
+			return;
+		}
 		mDroidManager.getDroidHandler(droidID).onStopJob(String.valueOf(mCurrenJobID), mCurrentTaskID);
 	}
 

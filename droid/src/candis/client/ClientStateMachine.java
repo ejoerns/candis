@@ -302,7 +302,7 @@ public final class ClientStateMachine extends FSM {
     @Override
     public void handle(final Object... data) {
       gotCalled();
-      mSConn.sendMessage(Message.create(
+      mSConn.sendMessage(Message.create(// (droidID, checkcode)
               Instruction.SEND_CHECKCODE, (String) data[0], (String) data[1]));
     }
   }

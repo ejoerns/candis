@@ -28,6 +28,8 @@ import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -56,7 +58,7 @@ public class JobCenter {
   /**
    * Holds mUsableCores threads for jobs processing.
    */
-  private ThreadPoolExecutor mThreadPool;
+  private ExecutorService mThreadPool;
 //  final ArrayList<DistributedJobResult> results = new ArrayList<DistributedJobResult>();
   final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
   final Object execdone = new Object();
@@ -65,12 +67,7 @@ public class JobCenter {
   public JobCenter(final Context context) {
     mContext = context;
     mUsableCores = DroidContext.getInstance().getProfile().processors;
-    mThreadPool = new ThreadPoolExecutor(
-            mUsableCores / 2,
-            mUsableCores,
-            10,
-            TimeUnit.SECONDS,
-            queue);
+    mThreadPool = Executors.newFixedThreadPool(mUsableCores);
     loadTaskCache();
   }
 
@@ -88,6 +85,7 @@ public class JobCenter {
     else {
       mUsableCores = 1;
     }
+    LOGGER.info(String.format("System will use %d Threads for processing", mUsableCores));
   }
 
   /**
@@ -206,6 +204,14 @@ public class JobCenter {
         LOGGER.info(String.format("parameters: %d", parameters.size()));
         // start threads
         final int usedThreads = Math.min(mUsableCores, parameters.size());
+        // might happen?
+        if (usedThreads == 0) {
+          LOGGER.warning("Scheduling on 0 Threads, thus canceled");
+          for (JobCenterHandler handler : mHandlerList) {
+            handler.onJobExecutionDone(null, null, null, 0);
+          }
+          return;
+        }
         LOGGER.info(String.format("usedThreads: %d", usedThreads));
         final int paramsPerThread = (parameters.size() + (usedThreads - 1)) / usedThreads;
         LOGGER.info(String.format("paramsPerThread: %d", paramsPerThread));
@@ -218,7 +224,7 @@ public class JobCenter {
           mThreadPool.execute(new Runnable() {
             public void run() {
               Log.i(TAG, "Running Thread for Job for Task " + mTaskCache.get(runnableID).name + " with TaskID " + runnableID);
-              Log.i(TAG, "Threads: " + mThreadPool.getActiveCount());
+//              Log.i(TAG, "Threads: " + mThreadPool.getActiveCount());
               DistributedRunnable currentTask;
               try {
                 currentTask = (DistributedRunnable) mTaskCache.get(runnableID).taskClass.newInstance();

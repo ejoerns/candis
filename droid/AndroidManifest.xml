@@ -33,7 +33,7 @@
     <activity android:name="candis.client.gui.settings.SettingsActivity"></activity>
 
     <activity android:name="candis.client.gui.LogActivity"></activity>
-
+"
     <activity android:name="candis.client.gui.JobViewActivity"></activity>
 
     <service android:enabled="true"

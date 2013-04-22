@@ -36,3 +36,4 @@ config.properties
 /examples/hash/hashTask/nbandroid/
 *.bks
 keystore.jks
+/droid2/nbandroid/

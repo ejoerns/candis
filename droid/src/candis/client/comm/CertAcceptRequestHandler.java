@@ -10,11 +10,10 @@ import java.security.cert.X509Certificate;
  */
 public interface CertAcceptRequestHandler {
 
-	/**
-	 * Called by ReloadableX509TrustManager for certificate acceptance request.
-	 *
-	 * @param cert The cert that should be accepted
-	 * @param cahandler A Handler that will be invoked if a result is available
-	 */
-	boolean userCheckAccept(final X509Certificate cert);
+  /**
+   * Called by ReloadableX509TrustManager for certificate acceptance request.
+   *
+   * @param cert The cert that should be accepted
+   */
+  boolean userCheckAccept(final X509Certificate cert);
 }

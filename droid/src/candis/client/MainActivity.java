@@ -34,15 +34,12 @@ import candis.client.gui.InfoActivity;
 import candis.client.gui.LogActivity;
 import candis.client.gui.settings.SettingsActivity;
 import candis.client.service.BackgroundService;
-import candis.common.CandisLog;
 import candis.common.Settings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.cert.X509Certificate;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -90,7 +87,7 @@ public class MainActivity extends FragmentActivity
     // Load settings from R.raw.settings
     Settings.load(this.getResources().openRawResource(R.raw.settings));
     // load Shared Preferences
-    PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+//    PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);
     mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
     // load logger.properties from /res/raw/logger.properties
@@ -229,7 +226,7 @@ public class MainActivity extends FragmentActivity
         Log.d(TAG, "onClick: starting service");
         startService(new Intent(this, BackgroundService.class));
         doBindService();
-        sendSharedPreferences();
+//        sendSharedPreferences();
       }
       if (isBackgroundServiceRunning()) {
         mServiceRunning = true;
@@ -409,33 +406,33 @@ public class MainActivity extends FragmentActivity
     }
   }
 
-  void sendSharedPreferences() {
-
-    Bundle bundle = new Bundle();
-
-    for (Map.Entry<String, ?> pref : mSharedPrefs.getAll().entrySet()) {
-      if (pref.getValue() instanceof String) {
-        bundle.putString(pref.getKey(), (String) pref.getValue());
-        Log.e(TAG, "putString: " + pref.getKey() + ", " + pref.getValue());
-      }
-      else if (pref.getValue() instanceof Integer) {
-        bundle.putInt(pref.getKey(), (Integer) pref.getValue());
-        Log.e(TAG, "putInteger: " + pref.getKey() + ", " + pref.getValue());
-      }
-      else {
-        Log.e(TAG, "Unknown preference");
-      }
-    }
-    // send
-    Message msg = Message.obtain(null, BackgroundService.PREFERENCE_UPDATE);
-    msg.setData(bundle);
-    try {
-      if (mServiceMessenger != null) {
-        mServiceMessenger.send(msg);
-      }
-    }
-    catch (RemoteException ex) {
-      Logger.getLogger(SettingsActivity.class.getName()).log(Level.SEVERE, null, ex);
-    }
-  }
+//  void sendSharedPreferences() {
+//
+//    Bundle bundle = new Bundle();
+//
+//    for (Map.Entry<String, ?> pref : mSharedPrefs.getAll().entrySet()) {
+//      if (pref.getValue() instanceof String) {
+//        bundle.putString(pref.getKey(), (String) pref.getValue());
+//        Log.e(TAG, "putString: " + pref.getKey() + ", " + pref.getValue());
+//      }
+//      else if (pref.getValue() instanceof Integer) {
+//        bundle.putInt(pref.getKey(), (Integer) pref.getValue());
+//        Log.e(TAG, "putInteger: " + pref.getKey() + ", " + pref.getValue());
+//      }
+//      else {
+//        Log.e(TAG, "Unknown preference");
+//      }
+//    }
+//    // send
+//    Message msg = Message.obtain(null, BackgroundService.PREFERENCE_UPDATE);
+//    msg.setData(bundle);
+//    try {
+//      if (mServiceMessenger != null) {
+//        mServiceMessenger.send(msg);
+//      }
+//    }
+//    catch (RemoteException ex) {
+//      Logger.getLogger(SettingsActivity.class.getName()).log(Level.SEVERE, null, ex);
+//    }
+//  }
 }

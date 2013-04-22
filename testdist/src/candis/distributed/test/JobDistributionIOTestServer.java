@@ -53,7 +53,7 @@ public class JobDistributionIOTestServer extends JobDistributionIOServer {
 	 */
 	private TestDroid initDroid(int id, String jobID) throws IOException {
 		TestDroid d = new TestDroid(id, this, jobID);
-		mDroidManager.addDroid((new Integer(id)).toString(), d);
+		mDroidManager.register((new Integer(id)).toString(), d.getProfile());
 
 		Thread t = new Thread(d);
 		TestConnection tc = new TestConnection(d, mDroidManager, this);

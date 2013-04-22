@@ -3,7 +3,6 @@ package candis.client.comm;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
@@ -63,21 +62,12 @@ public final class SecureSocket {// TODO: maybe extend SocketImpl later...
       LOGGER.log(Level.SEVERE, null, ex);
       return;
     }
-    catch (Exception ex) {
-      LOGGER.log(Level.SEVERE, null, ex);
-      return;
-    }
+
     SSLSocketFactory sf = context.getSocketFactory();
 
-    try {
-      mSocket = sf.createSocket(host, port);
-      LOGGER.log(Level.INFO, String.format(
-              "Connected to %s:%d", mSocket.getInetAddress(), mSocket.getPort()));
-    }
-    catch (UnknownHostException ex) {
-      LOGGER.log(Level.SEVERE, "UnknownHostException");
-      return;
-    }
+    mSocket = sf.createSocket(host, port);
+    LOGGER.log(Level.INFO, String.format(
+            "Connected to %s:%d", mSocket.getInetAddress(), mSocket.getPort()));
 
     mConnected = true;
   }

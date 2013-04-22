@@ -6,6 +6,7 @@
       android:inputType="textUri"
       android:title="@string/pref_host_title"
       android:summary="@string/pref_host_summary"
+      android:persistent="true"
       android:defaultValue=""/>
     <EditTextPreference
       android:key="pref_port"

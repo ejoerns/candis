@@ -83,7 +83,6 @@ public class ServerConnection {
     // init (re)connection scheduler
     mReconnectDelay = RECONNECT_DELAY_MIN;
     mConnectEnabled = true;
-    mSecureSocket = new SecureSocket(mTrustManager);
     mReconnectTimerTask = new ConnectTask();
     mReconnectTimer.schedule(mReconnectTimerTask, 0);
   }
@@ -169,20 +168,19 @@ public class ServerConnection {
   }
 
   /**
-   * Task scheduled peridically to test connection
+   * Task scheduled periodically to test connection
    */
   private class ConnectTask extends TimerTask {
 
     @Override
     public void run() {
       System.out.println("ConnectTask.run() ");
-      System.out.println("mConnectEnabled is " + mConnectEnabled);
-      System.out.println("mSecureSocket.isConnected() " + mSecureSocket.isConnected());
       // try to connect to host
       try {
+        mSecureSocket = new SecureSocket(mTrustManager);
         mSecureSocket.connect(mHostname, mPort);
-        mSecureSocket.getSocket().setKeepAlive(true);
 
+        // TODO: wait for socket?
         mQueuedMessageConnection = new QueuedMessageConnection(mSecureSocket.getSocket());
 
         // start message queue thread
@@ -205,6 +203,9 @@ public class ServerConnection {
       }
       // connect failed
       catch (IOException ex) {
+        if (!mConnectEnabled) {
+          LOGGER.severe("Restarting with disabled connect should not happen!");
+        }
         Logger.getLogger(ServerConnection.class.getName())
                 .log(Level.SEVERE, ex.getMessage());
         notifyListeners(Status.DISCONNECTED);
@@ -271,9 +272,9 @@ public class ServerConnection {
           return;
         }
       }
-      LOGGER.log(Level.INFO, "[[ServerConnection THREAD done]]");
+      LOGGER.log(Level.INFO, "[[MessageReceiver THREAD done]]");
 
-      disconnect();
+      disconnect();// TODO: reconnect?
     }
   }
 

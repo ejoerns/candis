@@ -1,7 +1,6 @@
 package candis.client;
 
 import android.content.Context;
-import android.nfc.Tag;
 import android.util.Log;
 import candis.client.comm.ServerConnection;
 import candis.client.comm.ServerConnection.Status;

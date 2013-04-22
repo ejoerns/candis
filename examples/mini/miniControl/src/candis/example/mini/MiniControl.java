@@ -15,18 +15,17 @@ import java.util.Stack;
 public class MiniControl extends DistributedControl implements ResultReceiver {
 	
 	private static final int JOBS = 10;
-	private Scheduler mScheduler;
 	private Stack<DistributedJobParameter> mJobs;
 	
 	@Override
 	public final Scheduler initScheduler() {
-		mScheduler = new SimpleScheduler(this);
+		Scheduler scheduler = new SimpleScheduler(this);
 
 		// Register ResultReceiver
-		mScheduler.addResultReceiver(this);
+		scheduler.addResultReceiver(this);
 
 		// Set initial Parameters
-		mScheduler.setInitialParameter(new MiniInitParameter(23));
+		scheduler.setInitialParameter(new MiniInitParameter(23));
 
 		// Create some tasks
 		mJobs = new Stack<DistributedJobParameter>();
@@ -34,7 +33,7 @@ public class MiniControl extends DistributedControl implements ResultReceiver {
 			mJobs.add(new MiniJobParameter(i, 3.5f));
 		}
 		
-		return mScheduler;
+		return scheduler;
 	}
 	
 	@Override
@@ -52,19 +51,16 @@ public class MiniControl extends DistributedControl implements ResultReceiver {
 	
 	@Override
 	public final DistributedJobParameter getParameter() {
-		System.out.println("getParameter " + mJobs.pop());
 		return mJobs.pop();
 	}
 	
 	@Override
 	public final long getParametersLeft() {
-		System.out.println("getParametersLeft " + mJobs.size());
 		return mJobs.size();
 	}
 	
 	@Override
 	public final boolean hasParametersLeft() {
-		System.out.println("hasParametersLeft " + mJobs.empty());
 		return !mJobs.empty();
 	}
 }

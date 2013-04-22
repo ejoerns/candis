@@ -83,6 +83,7 @@ public final class ReloadableX509TrustManager
   @Override
   public void checkClientTrusted(final X509Certificate[] chain,
                                  String authType) throws java.security.cert.CertificateException {
+    LOGGER.log(Level.SEVERE, "checkClientTrusted....");
 
     mTrustManager.checkClientTrusted(chain, authType);
   }
@@ -90,6 +91,7 @@ public final class ReloadableX509TrustManager
   @Override
   public void checkServerTrusted(final X509Certificate[] chain,
                                  String authType) throws java.security.cert.CertificateException {
+    LOGGER.log(Level.SEVERE, "checkServerTrusted....");
 
     try {
       mTrustManager.checkServerTrusted(chain, authType);
@@ -99,12 +101,13 @@ public final class ReloadableX509TrustManager
       addServerCertAndReload(chain[0], true);
       mTrustManager.checkServerTrusted(chain, authType);
     }
-    LOGGER.log(Level.FINEST, "checkServerTrusted() DONE");
+    LOGGER.log(Level.SEVERE, "checkServerTrusted() DONE");
   }
 
   @Override
   public X509Certificate[] getAcceptedIssuers() {
 
+    LOGGER.log(Level.SEVERE, "getAcceptedIssuers....");
     X509Certificate[] issuers = mTrustManager.getAcceptedIssuers();
     return issuers;
   }

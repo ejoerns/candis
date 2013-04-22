@@ -15,7 +15,7 @@ import java.util.logging.Logger;
  * @author Sebastian Willenborg
  */
 public abstract class Scheduler {
-  
+
   private static final Logger LOGGER = Logger.getLogger(Scheduler.class.getName());
   // List of callback receivers
   protected final List<ResultReceiver> mReceivers = new LinkedList<ResultReceiver>();
@@ -31,7 +31,7 @@ public abstract class Scheduler {
   private boolean mEnabled = false;
   private Thread schedulerThread;
   private DistributedControl mControl;
-  
+
   public Scheduler(DistributedControl control) {
     mControl = control;
   }
@@ -45,15 +45,15 @@ public abstract class Scheduler {
   public void setJobDistributionIO(JobDistributionIO io) {
     mJobDistIO = io;
   }
-  
+
   public void setInitialParameter(DistributedJobParameter param) {
     mInitalParameter = param;
   }
-  
+
   public DistributedJobParameter getInitialParameter() {
     return mInitalParameter;
   }
-  
+
   public DistributedControl getControl() {
     return mControl;
   }
@@ -94,7 +94,10 @@ public abstract class Scheduler {
   protected boolean checkAccepted() {
     return true;
   }
-  
+
+  /** Starts scheduler Thread
+   * 
+   */
   public void start() {
     System.out.println("SS: start()");
     if (mEnabled) {
@@ -139,7 +142,7 @@ public abstract class Scheduler {
       return;
     }
     LOGGER.log(Level.INFO, "Got new Droid {0}", droidID);
-    
+
     synchronized (mSchedulabeDroids) {
       mSchedulabeDroids.put(droidID, mJobDistIO.getDroidData(droidID));
       mSchedulabeDroids.notifyAll();
@@ -199,8 +202,9 @@ public abstract class Scheduler {
       }
     }
   }
-  
+
   public boolean isDone() {
+    System.out.println("Scheduler.isDone()");
     // A disabled Scheduler is done! Fact!
     if (!mEnabled) {
       return true;
@@ -213,7 +217,7 @@ public abstract class Scheduler {
 //              mSchedulabeDroids.size()});
     return ((mRunningDroidsList.size() == 0) && !mControl.hasParametersLeft() && mParamCache.empty());
   }
-  
+
   public void abort() {
     for (String droidID : mSchedulabeDroids.keySet()) {
       if (mRunningDroidsList.containsKey(droidID)) {
@@ -224,7 +228,7 @@ public abstract class Scheduler {
     mEnabled = false;
     schedulerThread.interrupt();
   }
-  
+
   public Map<DistributedJobParameter, DistributedJobResult> getResults() {
     return mResults;
   }
@@ -269,7 +273,7 @@ public abstract class Scheduler {
       params.add(param);
       count++;
     }
-    
+
     return params.toArray(new DistributedJobParameter[params.size()]);
   }
 }

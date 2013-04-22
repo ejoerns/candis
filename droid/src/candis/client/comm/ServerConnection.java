@@ -25,7 +25,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * Processes incoming data from socket.
  *
- * Designed to be tun in a sepearte thread.
+ * Designed to be run in a sepearte thread.
  *
  * @author Enrico Joerns
  */
@@ -76,7 +76,7 @@ public class ServerConnection implements Runnable {
       // try to connect
       try {
         mSecureSocket.connect(host, port);
-
+        
         mQueuedMessageConnection = new QueuedMessageConnection(mSecureSocket.getSocket());
         success = true;
       }

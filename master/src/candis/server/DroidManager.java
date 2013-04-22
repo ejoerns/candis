@@ -48,7 +48,6 @@ public final class DroidManager {
 	 * be generated at runtime.
 	 */
 	private Map<String, DroidHandler> mRegisteredDroids = new ConcurrentHashMap<String, DroidHandler>();
-//	private Set<String> mConnectedDroids = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	/**
 	 * Holds Droids that are currently registering but not yet accepted. (e.g.
 	 * checkcode required)

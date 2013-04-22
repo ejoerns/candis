@@ -54,7 +54,7 @@ public class StaticProfiler {
     return new StaticProfile(
             getDeviecID(),
             getModel(),
-            getMemorySize(),
+            getMemorySize() / 1048576, // byte to MByte
             getNumCores(),
             benchmark());
   }

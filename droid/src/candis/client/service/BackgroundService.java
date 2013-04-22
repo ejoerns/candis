@@ -1,12 +1,10 @@
 package candis.client.service;
 
-import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -17,9 +15,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.text.Editable;
 import android.util.Log;
-import android.widget.EditText;
 import android.widget.Toast;
 import candis.client.ClientStateMachine;
 import candis.client.DroidContext;
@@ -82,7 +78,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   /// Indicates thate connection was closed
   public static final int DISCONNECTED = 115;
   ///
-  public static final int PREFERENCE_UPDATE = 200;
+//  public static final int PREFERENCE_UPDATE = 200;
   //---
   public static final int NOTIFICATION_ID = 4711;
   /// For showing and hiding our notification.
@@ -220,7 +216,7 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
   public static Notification getNotification(Context context, CharSequence text) {
 
     // Set the icon, scrolling text and timestamp
-    Notification notification = new Notification(R.drawable.candis_logo, text,
+    Notification notification = new Notification(R.drawable.ic_stat_notify, text,
                                                  System.currentTimeMillis());
 
     // The PendingIntent to launch our activity if the user selects this notification
@@ -396,24 +392,24 @@ public class BackgroundService extends Service implements CertAcceptRequestHandl
             mCertCheckResult.notifyAll();
           }
           break;
-        case PREFERENCE_UPDATE:
-          SharedPreferences.Editor editor = mSharedPref.edit();
-          for (String str : msg.getData().keySet()) {
-            Object obj = msg.getData().get(str);
-            Log.e(TAG, "Got new Key: " + str + ", " + obj);
-            if (obj instanceof String) {
-              editor.putString(str, (String) obj);
-            }
-            else if (obj instanceof Integer) {
-              editor.putInt(str, (Integer) obj);
-            }
-            else {
-              Log.e(TAG, "Can't load sharedPref: " + str);
-            }
-          }
-          editor.apply();
-          editor.commit();
-          break;
+//        case PREFERENCE_UPDATE:
+//          SharedPreferences.Editor editor = mSharedPref.edit();
+//          for (String str : msg.getData().keySet()) {
+//            Object obj = msg.getData().get(str);
+//            Log.e(TAG, "Got new Key: " + str + ", " + obj);
+//            if (obj instanceof String) {
+//              editor.putString(str, (String) obj);
+//            }
+//            else if (obj instanceof Integer) {
+//              editor.putInt(str, (Integer) obj);
+//            }
+//            else {
+//              Log.e(TAG, "Can't load sharedPref: " + str);
+//            }
+//          }
+//          editor.apply();
+//          editor.commit();
+//          break;
         // 
         default:
           super.handleMessage(msg);

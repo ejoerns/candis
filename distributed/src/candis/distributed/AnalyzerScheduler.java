@@ -11,12 +11,16 @@ import java.util.Map;
  *
  * @author Enrico Joerns
  */
-public class AnalyzerScheduler extends ProfilingScheduler {
+public class AnalyzerScheduler extends SimpleScheduler {
 
   private Map<String, List<Long>> mExecutionTimes = new HashMap<String, List<Long>>();
   private Map<String, Integer> mProcessedParameters = new HashMap<String, Integer>();
   private List<TestData> mData = null;
   long start, fulltime;
+
+  public AnalyzerScheduler(DistributedControl control, int parametersPerJob, boolean multicore) {
+    super(control, parametersPerJob, multicore);
+  }
 
   public AnalyzerScheduler(DistributedControl control) {
     super(control);
@@ -59,16 +63,22 @@ public class AnalyzerScheduler extends ProfilingScheduler {
         FileWriter fstream = new FileWriter("/home/enrico/out.txt");
         System.out.println("********* Writing to: " + "/home/enrico/out.txt");
         BufferedWriter out = new BufferedWriter(fstream);
+        FileWriter fstream2 = new FileWriter("/home/enrico/out2.txt");
+        System.out.println("********* Writing to: " + "/home/enrico/out2.txt");
+        BufferedWriter out2 = new BufferedWriter(fstream2);
 
         for (Map.Entry<String, List<Long>> times : mExecutionTimes.entrySet()) {
+          out2.write(times.getKey().substring(0, 9) + "  ");
           TestData data = new TestData();
           data.id = times.getKey();
           data.jobs = times.getValue().size();
           data.params = mProcessedParameters.get(times.getKey());
           long calctime = 0;
           for (long time : times.getValue()) {
+            out2.write(time + "  ");
             calctime += time;
           }
+          out2.write("\n");
           data.tCalc = calctime;
           data.tParamAvg = calctime / data.params;
           data.tJobAvg = calctime / data.jobs;
@@ -78,6 +88,7 @@ public class AnalyzerScheduler extends ProfilingScheduler {
         //
         out.write("ID         jobs     params    tCalc   tJobAvg   tParamAvg\n");
         System.out.println("mData size" + mData.size());
+        long fullcalc = 0;
         for (TestData data : mData) {
           out.write(String.format(
                   "%s\t%d\t%d\t%d\t%d\t%d\n",
@@ -87,9 +98,14 @@ public class AnalyzerScheduler extends ProfilingScheduler {
                   data.tCalc,
                   data.tJobAvg,
                   data.tParamAvg));
+          fullcalc += data.tCalc;
         }
-        //Close the output stream
+        out.write("t_task: " + fulltime + "\n");
+        out.write("t_calc: " + fullcalc + "\n");
+
+        //Close the output streams
         out.close();
+        out2.close();
       }
       catch (Exception e) {//Catch exception if any
         System.err.println("Error: " + e.getMessage());

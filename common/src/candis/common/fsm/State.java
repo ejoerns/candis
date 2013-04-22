@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Implementation of a state for the FSM.
  *
- * It holds all associated Transitions and ActionHanlers.
+ * It holds all associated Transitions and ActionHandlers.
  *
  * @author Enrico Joerns
  */
