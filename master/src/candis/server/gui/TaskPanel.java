@@ -143,11 +143,10 @@ public class TaskPanel {
 		public void onEvent(Event event) {
 			switch (event) {
 				case JOB_DONE:
-					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getCurrentScheduler().getControl().getParametersLeft());
+					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mJobDistIO.getCurrentScheduler().getResults().size());
 					break;
 				case JOB_SENT:
-//					JOptionPane.showMessageDialog(mHolder, "Result!!!!");
-					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mJobDistIO.getCurrentScheduler().getResults().size());
+					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getCurrentScheduler().getControl().getParametersLeft());
 					break;
 				case SCHEDULER_DONE:
 					break;
