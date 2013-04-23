@@ -19,7 +19,7 @@ import java.util.Map;
  *
  * @author Enrico Joerns
  */
-public class ProfilingScheduler extends Scheduler {
+public class ProfilingScheduler extends OldScheduler {
 
   /// Maximum time a job should be processed [ms]
   private static final long MAX_JOB_PROCESS_TIME = 10000;

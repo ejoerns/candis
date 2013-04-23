@@ -9,16 +9,23 @@ import java.util.ArrayList;
 public abstract class DistributedControl {
 
   /**
-   * Requests creation of the Scheduler for it's Project.
+   * Called by Scheduler to give control the chance to setup itself.
    *
-   * @return Initalized scheduler, ready for distribution
+   * Might be used to request user input, generate parameter sets, etc.
    */
-  public abstract Scheduler initScheduler();
+  public abstract void init();
 
   /**
    * Gets called when the scheduler finished its work.
    */
   public abstract void onSchedulerDone();
+
+  /**
+   * Called by Scheduler to get the initial parameter.
+   *
+   * @return
+   */
+  public abstract DistributedJobParameter getInitialParameter();
 
   /**
    * Called by scheduler to get the smallest available parameter.

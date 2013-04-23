@@ -25,7 +25,7 @@ public class CheckCodeHandler implements DroidManagerListener {
 	public void handle(DroidManagerEvent event, final String droidID, final DroidManager manager) {
 		if (event == DroidManagerEvent.CHECK_CODE) {
 			System.out.println("Handler called for " + droidID + " with code " + manager.getCheckCode(droidID));
-				EventQueue.invokeLater(new Runnable() {
+			EventQueue.invokeLater(new Runnable() {
 				@Override
 				public void run() {
 					mCheckCodeDialogs.put(

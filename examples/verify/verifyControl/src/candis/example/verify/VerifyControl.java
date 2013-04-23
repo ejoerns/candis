@@ -1,11 +1,9 @@
 package candis.example.verify;
 
-import candis.distributed.AnalyzerScheduler;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
-import candis.distributed.Scheduler;
 import java.util.Stack;
 
 /**
@@ -16,12 +14,12 @@ public class VerifyControl extends DistributedControl implements ResultReceiver 
 
   private static final int TOTAL_JOBS = 400;
   private static final int INIT_PARAM_INT = 1000;
-  private Scheduler mScheduler;
   private Stack<VerifyJobParameter> mParameterStack = new Stack<VerifyJobParameter>();
   private int mResultsCount;
 
   @Override
-  public Scheduler initScheduler() {
+  public void init() {
+    System.out.println("VerifyControl.init() called");
 
     mParameterStack.clear();
     for (int i = 0; i < TOTAL_JOBS; i++) {
@@ -29,15 +27,6 @@ public class VerifyControl extends DistributedControl implements ResultReceiver 
     }
 
     mResultsCount = 0;
-
-    mScheduler = new AnalyzerScheduler(this);
-
-    DistributedJobParameter init = new VerifyInitParameter(INIT_PARAM_INT);
-    mScheduler.setInitialParameter(init);
-
-    mScheduler.addResultReceiver(this);
-
-    return mScheduler;
   }
 
   @Override
@@ -51,6 +40,11 @@ public class VerifyControl extends DistributedControl implements ResultReceiver 
   public final void onSchedulerDone() {
     doAssert(mResultsCount == TOTAL_JOBS);
     System.out.println("<------ SCHEDULER IS DONE ------>");
+  }
+
+  @Override
+  public DistributedJobParameter getInitialParameter() {
+    return new VerifyInitParameter(INIT_PARAM_INT);
   }
 
   @Override

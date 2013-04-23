@@ -41,11 +41,11 @@ public class TaskPanel {
 	public void addTask(String id) {
 		// add new task element
 		TaskPanelElement tpe = new TaskPanelElement(id, mJobDistIO.getCDBLoader().getTaskName(id));
-		if (mJobDistIO.getCurrentScheduler() == null) {
-			System.out.println("mJobDistIO is null");
+		if (mJobDistIO.getControl() == null) {
+			System.out.println("mJobDistIO.getControl() null");
 		}
 		else {
-			tpe.setParameterCounter(mJobDistIO.getCurrentScheduler().getControl().getParametersLeft());
+			tpe.setParameterCounter(mJobDistIO.getControl().getParametersLeft());
 		}
 		mTaskPanels.put(id, tpe);
 		tpe.addMouseListener(mClickListener);
@@ -143,10 +143,10 @@ public class TaskPanel {
 		public void onEvent(Event event) {
 			switch (event) {
 				case JOB_DONE:
-					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mJobDistIO.getCurrentScheduler().getResults().size());
+//					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mJobDistIO.getCurrentScheduler().getResults().size());
 					break;
 				case JOB_SENT:
-					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getCurrentScheduler().getControl().getParametersLeft());
+					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getControl().getParametersLeft());
 					break;
 				case SCHEDULER_DONE:
 					break;

@@ -2,7 +2,9 @@ package candis.server.gui;
 
 import candis.common.Settings;
 import candis.distributed.JobDistributionIOHandler;
+import candis.distributed.Scheduler;
 import candis.distributed.SchedulerStillRuningException;
+import candis.distributed.SimpleScheduler;
 import candis.distributed.parameter.UserParameterCanceledException;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.distributed.parameter.UserParameterSet;
@@ -33,6 +35,7 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 	private static Logger LOGGER = Logger.getLogger(CandisMasterFrame.class.getName());
 	private final DroidManager mDroidManager;
 	private final JobDistributionIOServer mJobDistIO;
+	private Scheduler mScheduler;
 	private final DroidlistTableModel mDroidlistTableModel;
 	private final DroidInfoTableModel mDroidInfoTableModel;
 	private final OptionsDialog mOptionDialog;
@@ -298,8 +301,11 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 			@Override
 			public void run() {
 				try {
-					mJobDistIO.initScheduler(mTaskPanel.getSelectedTaskID());
-					mJobDistIO.startScheduler();
+					mScheduler = new SimpleScheduler();
+					mJobDistIO.bindScheduler(mScheduler);
+					mScheduler.start(mTaskPanel.getSelectedTaskID());
+//					mJobDistIO.initScheduler(mTaskPanel.getSelectedTaskID());
+//					mJobDistIO.startScheduler();
 					EventQueue.invokeLater(new Runnable() {
 						@Override
 						public void run() {
@@ -307,9 +313,9 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 						}
 					});
 				}
-				catch (SchedulerStillRuningException ex) {
-					LOGGER.log(Level.SEVERE, null, ex);
-				}
+//				catch (SchedulerStillRuningException ex) {
+//					LOGGER.log(Level.SEVERE, null, ex);
+//				}
 				catch (UserParameterCanceledException ex) {
 					LOGGER.log(Level.WARNING, "Parameter Dialog canceled by user");
 					EventQueue.invokeLater(new Runnable() {
@@ -438,11 +444,11 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 
   private void mStopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mStopButtonActionPerformed
 		mStopButton.setEnabled(false);
-		mJobDistIO.stopScheduler();
+		mScheduler.stop();
   }//GEN-LAST:event_mStopButtonActionPerformed
 
   private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
-		mJobDistIO.stopScheduler();
+		mScheduler.stop();
   }//GEN-LAST:event_formWindowClosing
 	/**
 	 * @param args the command line arguments

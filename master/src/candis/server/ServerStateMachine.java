@@ -135,7 +135,8 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		addState(ServerStates.JOB_SENT)
 						.addTransition(
 						Instruction.ACK,
-						ServerStates.JOB_PROCESSING)
+						ServerStates.JOB_PROCESSING,
+						new JobAckedHandler())
 						.addTransition(
 						Instruction.NACK,
 						ServerStates.INITIAL,
@@ -323,13 +324,16 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 				CandisLog.e(TAG, "Invalid task ID " + taskID);
 			}
 
+			// tell jobdist that job was received correctly
+			mJobDistIO.onJobReceived(mDroidID, taskID);
+
 			final byte[] binary = mJobDistIO.getCDBLoader().getDroidBinary((String) data[0]);
 
 			mConnection.sendMessage(
 							new Message(Instruction.SEND_BINARY,
 													mJobDistIO.getCurrentTaskID(),
 													binary, // runnable
-													new DistributedJobParameter[]{mJobDistIO.getCurrentScheduler().getInitialParameter()}));
+													new DistributedJobParameter[]{mJobDistIO.getControl().getInitialParameter()}));
 		}
 	}
 
@@ -346,8 +350,8 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 			gotCalled();
 			CandisLog.v(TAG, "Sending initial parameter for task ID " + mJobDistIO.getCurrentTaskID());
-			assert mJobDistIO.getCurrentScheduler().getInitialParameter() != null;
-			mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getCurrentScheduler().getInitialParameter()));
+			assert mJobDistIO.getControl().getInitialParameter() != null;
+			mConnection.sendMessage(new Message(Instruction.SEND_INITIAL, mJobDistIO.getCurrentTaskID(), mJobDistIO.getControl().getInitialParameter()));
 		}
 	}
 
@@ -384,6 +388,15 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 							runnableID,
 							jobID,
 							bytes));
+		}
+	}
+
+	private class JobAckedHandler extends ActionHandler {
+
+		@Override
+		public void handle(final Object... data) {
+			gotCalled();
+			mJobDistIO.onJobReceived(mDroidID, null);// TODO?
 		}
 	}
 
