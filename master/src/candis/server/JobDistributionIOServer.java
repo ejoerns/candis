@@ -145,10 +145,10 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mProcessingParams.put(droidID, params);
 
 		// start timeout timers
-		TimerTask ackTask = new AckTimerTask(droidID);
-		TimerTask jobTask = new JobTimerTask(droidID);
-		mAckTimers.put(droidID, ackTask);
-		mJobTimers.put(droidID, jobTask);
+		TimerTask ackTask = new AckTimerTask(String.valueOf(mCurrenJobID));
+		TimerTask jobTask = new JobTimerTask(String.valueOf(mCurrenJobID));
+		mAckTimers.put(String.valueOf(mCurrenJobID), ackTask);
+		mJobTimers.put(String.valueOf(mCurrenJobID), jobTask);
 		mTimer.schedule(ackTask, mAckTimeout);
 		mTimer.schedule(jobTask, mJobTimeout);
 		// actually start job
@@ -166,11 +166,12 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 
 		mHandler.onStopJob(String.valueOf(mCurrenJobID), mCurrentTaskID);
 		// cancel timers
-		if (mAckTimers.containsKey(droidID)) {
-			mAckTimers.remove(droidID).cancel();
+		// TODO: jobID!
+		if (mAckTimers.containsKey(String.valueOf(mCurrenJobID))) {
+			mAckTimers.remove(String.valueOf(mCurrenJobID)).cancel();
 		}
-		if (mJobTimers.containsKey(droidID)) {
-			mJobTimers.remove(droidID).cancel();
+		if (mJobTimers.containsKey(String.valueOf(mCurrenJobID))) {
+			mJobTimers.remove(String.valueOf(mCurrenJobID)).cancel();
 		}
 	}
 
@@ -260,11 +261,11 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	public void onJobReceived(String droidID, String jobID) {
 		LOGGER.info(String.format("onJobReceived from %s... for job %s", droidID.substring(0, 9), jobID));
 		// cancel droids Ack timeout timer
-		if (mAckTimers.containsKey(droidID)) {
-			mAckTimers.remove(droidID).cancel();
+		if (mAckTimers.containsKey(jobID)) {
+			mAckTimers.remove(jobID).cancel();
 		}
 		else {
-			LOGGER.warning(String.format("No AckTimer found for droid %s", droidID.substring(0, 9)));
+			LOGGER.warning(String.format("No AckTimer found for job %s", droidID.substring(0, 9)));
 		}
 	}
 
@@ -273,11 +274,11 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	public void onJobDone(String droidID, String jobID, final DistributedJobResult[] results, long exectime) {
 		LOGGER.info(String.format("onJobDone from %s... for job %s", droidID.substring(0, 9), jobID));
 		// cancel droids Job timeout timer
-		if (mJobTimers.containsKey(droidID)) {
-			mJobTimers.remove(droidID).cancel();
+		if (mJobTimers.containsKey(jobID)) {
+			mJobTimers.remove(jobID).cancel();
 		}
 		else {
-			LOGGER.warning(String.format("No JobTimer found for droid %s", droidID.substring(0, 9)));
+			LOGGER.warning(String.format("No JobTimer found for job %s", droidID.substring(0, 9)));
 		}
 		// 
 		if (!mProcessingParams.containsKey(droidID)) {
@@ -333,25 +334,25 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	 */
 	private class AckTimerTask extends TimerTask {
 
-		private String mDroidID;
+		private String mJobID;
 
-		AckTimerTask(String droidID) {
-			mDroidID = droidID;
+		AckTimerTask(String jobID) {
+			mJobID = jobID;
 		}
 
 		@Override
 		public void run() {
-			DroidManager.DroidHandler mHandler = mDroidManager.getDroidHandler(mDroidID);
+			DroidManager.DroidHandler mHandler = mDroidManager.getDroidHandler(mJobID);
 			LOGGER.warning(String.format(
-							"Timeout while waiting for ACK from Droid %s...",
-							mDroidID.substring(0, 9)));
+							"Timeout while waiting for ACK for Job %s...",
+							mJobID));
 			// tell droid to stop
 			if (mHandler != null) {
-				mHandler.onStopJob(null, mDroidID);// TODO: add taskID
+				mHandler.onStopJob(null, mJobID);// TODO: add taskID
 			}
 			// remove parameters from processing list and add back to cache
-			if (mProcessingParams.containsKey(mDroidID)) {
-				mParamCache.addAll(Arrays.asList(mProcessingParams.remove(mDroidID)));
+			if (mProcessingParams.containsKey(mJobID)) {
+				mParamCache.addAll(Arrays.asList(mProcessingParams.remove(mJobID)));
 			}
 		}
 	}
@@ -361,25 +362,25 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	 */
 	private class JobTimerTask extends TimerTask {
 
-		private String mDroidID;
+		private String mJobID;
 
-		JobTimerTask(String droiID) {
-			mDroidID = droiID;
+		JobTimerTask(String jobID) {
+			mJobID = jobID;
 		}
 
 		@Override
 		public void run() {
-			DroidManager.DroidHandler mHandler = mDroidManager.getDroidHandler(mDroidID);
+			DroidManager.DroidHandler mHandler = mDroidManager.getDroidHandler(mJobID);
 			LOGGER.warning(String.format(
-							"Timeout while waiting for Result from Droid %s",
-							mDroidID.substring(0, 9)));
+							"Timeout while waiting for Result for Job %s",
+							mJobID));
 			// tell droid to stop
 			if (mHandler != null) {
-				mHandler.onStopJob(null, mDroidID);// TODO: add taskID
+				mHandler.onStopJob(null, mJobID);// TODO: add taskID
 			}
 			// remove parameters from processing list and add back to cache
-			if (mProcessingParams.containsKey(mDroidID)) {
-				mParamCache.addAll(Arrays.asList(mProcessingParams.remove(mDroidID)));
+			if (mProcessingParams.containsKey(mJobID)) {
+				mParamCache.addAll(Arrays.asList(mProcessingParams.remove(mJobID)));
 			}
 		}
 	}
