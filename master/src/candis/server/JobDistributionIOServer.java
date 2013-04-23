@@ -10,23 +10,19 @@ import candis.distributed.JobHandler;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
 import candis.distributed.SchedulerBinder;
-import candis.distributed.SchedulerStillRuningException;
 import candis.distributed.WorkerQueue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -49,6 +45,24 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	private List<JobDistributionIOHandler> mHanderList = new LinkedList<JobDistributionIOHandler>();
 	/// Holds all registered receivers
 	protected final List<ResultReceiver> mReceivers = new LinkedList<ResultReceiver>();
+	/// Max. time [ms] to wait for an ACK
+	private long mAckTimeout = 1000;
+	/// Max. time [ms] to wait for a Result
+	private long mJobTimeout = 60000;
+	/// Parameter cache
+	private final Queue<DistributedJobParameter> mParamCache = new ConcurrentLinkedQueue<DistributedJobParameter>();
+	/// Holds all active AckTimerTasks
+	private final Map<String, TimerTask> mAckTimers = new ConcurrentHashMap<String, TimerTask>();
+	/// Holds all active AckTimerTasks
+	private final Map<String, TimerTask> mJobTimers = new ConcurrentHashMap<String, TimerTask>();
+	/// Holds all sent parameters for that no result is available yet
+	private final Map<String, DistributedJobParameter[]> mProcessingParams = new ConcurrentHashMap<String, DistributedJobParameter[]>();
+	/// Holds ID of all Droids that are available and idle
+	private final Set<String> mIdleDroids = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+	/// Timer to run TimerTasks
+	private final Timer mTimer = new Timer();
+	///
+	private DistributedControl mControl;
 
 	public JobDistributionIOServer(final DroidManager manager) {
 		mCDBLoader = new CDBLoader();
@@ -64,10 +78,15 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mHanderList.add(handler);
 	}
 
-	private void invoke(JobDistributionIOHandler.Event event) {
-		for (JobDistributionIOHandler h : mHanderList) {
-			h.onEvent(event);
-		}
+	private void invoke(final JobDistributionIOHandler.Event event) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				for (JobDistributionIOHandler h : mHanderList) {
+					h.onEvent(event);
+				}
+			}
+		}).start();
 	}
 
 	/*--------------------------------------------------------------------------*/
@@ -92,63 +111,22 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		}
 		return mControl;
 	}
-	// Called by Scheduler.
-
-	/*--------------------------------------------------------------------------*/
-	/* Scheduler callback methods for Droid control                             */
-	/*--------------------------------------------------------------------------*/
-
-	/*--------------------------------------------------------------------------*/
-	/* Execution queue methods                                                  */
-	/*--------------------------------------------------------------------------*/
 
 	/*--------------------------------------------------------------------------*/
 	/* Scheduler control functions                                              */
 	/*--------------------------------------------------------------------------*/
-//	public void initScheduler(String taskID) throws SchedulerStillRuningException {
-//		if ((mCurrentScheduler == null) || (mCurrentScheduler.isDone())) {
-//			mCurrentTaskID = taskID;
-//			// init scheduler and set self as callback
-//			mDistributedControl = mCDBLoader.getDistributedControl(taskID);
-//			mCurrentScheduler = mDistributedControl.initScheduler();
-//			mCurrentScheduler.setJobDistributionIO(this);
-//			mCurrenJobID = 0;
-//		}
-//		else {
-//			throw new SchedulerStillRuningException("Scheduler still running");
-//		}
-//	}
-	//
-	// ------- NEW IMPLEMENATION -------
-	//
-	/// Max. time [ms] to wait for an ACK
-	private long mAckTimeout = 1000;
-	/// Max. time [ms] to wait for a Result
-	private long mJobTimeout = 60000;
-	/// Parameter cache
-	private final Queue<DistributedJobParameter> mParamCache = new ConcurrentLinkedQueue<DistributedJobParameter>();
-	/// Holds all active AckTimerTasks
-	private final Map<String, TimerTask> mAckTimers = new ConcurrentHashMap<String, TimerTask>();
-	/// Holds all active AckTimerTasks
-	private final Map<String, TimerTask> mJobTimers = new ConcurrentHashMap<String, TimerTask>();
-	/// Holds all sent parameters for that no result is available yet
-	private final Map<String, DistributedJobParameter[]> mProcessingParams = new ConcurrentHashMap<String, DistributedJobParameter[]>();
-	/// Holds ID of all Droids that are available and idle
-	private final Set<String> mIdleDroids = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-	/// Timer to run TimerTasks
-	private final Timer mTimer = new Timer();
-	///
-	private DistributedControl mControl;
-
 	@Override
 	public void startJob(String droidID, DistributedJobParameter[] params) {
 		DroidManager.DroidHandler mHandler = mDroidManager.getDroidHandler(droidID);
 		// if no handler is available, put parameters back to cache and exit.
 		if (mHandler == null) {
-			LOGGER.severe(String.format("startJob() failed, lost handler for droid %s", droidID));
+			LOGGER.severe(String.format("startJob() failed, lost handler for droid %s...", droidID.substring(0, 9)));
 			mParamCache.addAll(Arrays.asList(params));
 			return;
 		}
+
+		// remove droid from list of available
+		mIdleDroids.remove(droidID);
 
 		mCurrenJobID++;
 
@@ -158,11 +136,14 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 						droidID.substring(0, 9),
 						params.length));
 
-		// remove droid from list of available
-		mIdleDroids.remove(droidID);
 		// add parameters to list of unAcked
-		System.out.println("params[0]: " + params[0]);
+		if (mProcessingParams.containsKey(droidID)) {
+			LOGGER.warning(String.format(
+							"Droid %s has already parameters assigned. Will be overwritten.",
+							droidID.substring(0, 9)));
+		}
 		mProcessingParams.put(droidID, params);
+
 		// start timeout timers
 		TimerTask ackTask = new AckTimerTask(droidID);
 		TimerTask jobTask = new JobTimerTask(droidID);
@@ -266,15 +247,18 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mCurrentScheduler = null;
 	}
 
-	// TODO: synchronize
 	@Override
 	public void onDroidConnected(String droidID) {
 		mIdleDroids.add(droidID);
+		// if a scheduler is available, notify about new droid
+		if (mCurrentScheduler != null) {
+			mCurrentScheduler.doNotify();
+		}
 	}
 
-	// TODO: synchronize
 	@Override
 	public void onJobReceived(String droidID, String jobID) {
+		LOGGER.info(String.format("onJobReceived from %s... for job %s", droidID.substring(0, 9), jobID));
 		// cancel droids Ack timeout timer
 		mAckTimers.remove(droidID).cancel();
 	}
@@ -282,19 +266,23 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	// TODO: synchronize
 	@Override
 	public void onJobDone(String droidID, String jobID, final DistributedJobResult[] results, long exectime) {
+		LOGGER.info(String.format("onJobDone from %s... for job %s", droidID.substring(0, 9), jobID));
 		// (re)add to list of idle droids
-		mIdleDroids.add(jobID);
-		System.out.println("Notifying current Scheduler");
-		mCurrentScheduler.doNotify();
 		// 
 		if (!mProcessingParams.containsKey(droidID)) {
 			LOGGER.severe(String.format(
 							"Received unknown result from droid %s",
 							droidID.substring(0, 9)));
+			mIdleDroids.add(droidID);
+			mCurrentScheduler.doNotify();
 			return;
 		}
 
 		final DistributedJobParameter[] params = mProcessingParams.remove(droidID);
+		// inform scheduler that droid is now available again
+		mIdleDroids.add(droidID);
+		System.out.println("Notifying current Scheduler");
+		mCurrentScheduler.doNotify();
 		// notify receivers
 		for (int i = 0; i < results.length; i++) {
 			releaseResult(params[i], results[i]);
@@ -317,14 +305,15 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	 * @param result
 	 */
 	protected void releaseResult(final DistributedJobParameter param, final DistributedJobResult result) {
-		mWorker.add(new Runnable() {
+		// TODO: use thread pool?
+		new Thread(new Runnable() {
 			@Override
 			public void run() {
 				for (ResultReceiver receiver : mReceivers) {
 					receiver.onReceiveResult(param, result);
 				}
 			}
-		});
+		}).start();
 	}
 
 	/**
