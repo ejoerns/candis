@@ -260,19 +260,31 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	public void onJobReceived(String droidID, String jobID) {
 		LOGGER.info(String.format("onJobReceived from %s... for job %s", droidID.substring(0, 9), jobID));
 		// cancel droids Ack timeout timer
-		mAckTimers.remove(droidID).cancel();
+		if (mAckTimers.containsKey(droidID)) {
+			mAckTimers.remove(droidID).cancel();
+		}
+		else {
+			LOGGER.warning(String.format("No AckTimer found for droid %s", droidID.substring(0, 9)));
+		}
 	}
 
 	// TODO: synchronize
 	@Override
 	public void onJobDone(String droidID, String jobID, final DistributedJobResult[] results, long exectime) {
 		LOGGER.info(String.format("onJobDone from %s... for job %s", droidID.substring(0, 9), jobID));
-		// (re)add to list of idle droids
+		// cancel droids Job timeout timer
+		if (mJobTimers.containsKey(droidID)) {
+			mJobTimers.remove(droidID).cancel();
+		}
+		else {
+			LOGGER.warning(String.format("No JobTimer found for droid %s", droidID.substring(0, 9)));
+		}
 		// 
 		if (!mProcessingParams.containsKey(droidID)) {
 			LOGGER.severe(String.format(
 							"Received unknown result from droid %s",
 							droidID.substring(0, 9)));
+			// inform scheduler that droid is now available again
 			mIdleDroids.add(droidID);
 			mCurrentScheduler.doNotify();
 			return;
