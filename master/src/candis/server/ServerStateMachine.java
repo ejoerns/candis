@@ -41,6 +41,8 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	private StaticProfile mReceivedProfile;
 	// ID of associated Droid
 	private String mDroidID;
+	//
+	private String mCurrentJobID;
 
 	/**
 	 * All availbale states for the FSM.
@@ -91,6 +93,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 	@Override
 	public final void init() {
+		super.init();
 		addState(ServerStates.INITIAL);
 		addState(ServerStates.CHECK)
 						.addTransition(
@@ -325,7 +328,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			}
 
 			// tell jobdist that job was received correctly
-			mJobDistIO.onJobReceived(mDroidID, taskID);
+			mJobDistIO.onJobReceived(mDroidID, mCurrentJobID);
 
 			final byte[] binary = mJobDistIO.getCDBLoader().getDroidBinary((String) data[0]);
 
@@ -363,11 +366,10 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		@Override
 		public void handle(final Object... data) {
 			String runnableID = (String) data[0];
-			String jobID = (String) data[1];
+			mCurrentJobID = (String) data[1];
 			DistributedJobParameter[] params = (DistributedJobParameter[]) data[2];
 
 			gotCalled();
-			CandisLog.v(TAG, "Sending job for task ID " + runnableID);
 
 			// Serialize to byte array
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -383,10 +385,11 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			byte[] bytes = baos.toByteArray();
 
 			// send job
+			LOGGER.info(String.format("Sending job %s for task %s", mCurrentJobID, runnableID));
 			mConnection.sendMessage(new Message(
 							Instruction.SEND_JOB,
 							runnableID,
-							jobID,
+							mCurrentJobID,
 							bytes));
 		}
 	}
@@ -396,7 +399,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		@Override
 		public void handle(final Object... data) {
 			gotCalled();
-			mJobDistIO.onJobReceived(mDroidID, null);// TODO?
+			mJobDistIO.onJobReceived(mDroidID, mCurrentJobID);// TODO?
 		}
 	}
 
@@ -412,12 +415,11 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 
 	@Override
 	public void OnNewMessage(Message msg) {
+		LOGGER.fine(String.format("Got Message: %s", msg.getRequest().toString()));
 		if (msg.getData() == null) {
-			Logger.getLogger(ServerStateMachine.class.getName()).log(Level.FINE, "Got Message: " + msg.getRequest());
 			process(((Message) msg).getRequest());
 		}
 		else {
-			Logger.getLogger(ServerStateMachine.class.getName()).log(Level.FINE, "Got Message: " + msg.getRequest());
 			process(msg.getRequest(), (Object[]) msg.getData());
 		}
 	}
@@ -429,7 +431,6 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	//-- DroidManger Droid events
 	@Override
 	public void onSendJob(String taskID, String jobID, DistributedJobParameter[] params) {
-		System.out.println("onSendJob(" + taskID + ", " + jobID + ", " + params + ")");
 		process(ServerTrans.SEND_JOB, taskID, jobID, params);
 	}
 

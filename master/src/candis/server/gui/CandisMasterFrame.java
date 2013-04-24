@@ -444,11 +444,15 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 
   private void mStopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mStopButtonActionPerformed
 		mStopButton.setEnabled(false);
-		mScheduler.stop();
+		if (mScheduler != null) {
+			mScheduler.stop();
+		}
   }//GEN-LAST:event_mStopButtonActionPerformed
 
   private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
-		mScheduler.stop();
+		if (mScheduler != null) {
+			mScheduler.stop();
+		}
   }//GEN-LAST:event_formWindowClosing
 	/**
 	 * @param args the command line arguments

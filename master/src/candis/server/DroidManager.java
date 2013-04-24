@@ -161,13 +161,13 @@ public final class DroidManager {
 
 		// otherwise accept it and add it to list of known if necessary
 		if (!mKnownDroids.containsKey(droidID)) {
-			LOGGER.log(Level.INFO, "Droid {0} added", droidID);
+			LOGGER.log(Level.INFO, "Droid {0}... added", droidID.substring(0, 9));
 			mKnownDroids.put(droidID, new DroidData(false, profile));
 			notifyListeners(DroidManagerEvent.DROID_ADDED, droidID);
 		}
 
 		mRegisteredDroids.put(droidID, handler);
-		LOGGER.log(Level.INFO, "Droid {0} accepted", droidID);
+		LOGGER.log(Level.INFO, "Droid {0}... accepted", droidID.substring(0, 9));
 		// notify droid about acceptance
 		notifyListeners(DroidManagerEvent.DROID_CONNECTED, droidID);
 		mRegisteredDroids.get(droidID).onAccepted();
@@ -200,7 +200,6 @@ public final class DroidManager {
 	 * @return
 	 */
 	public DroidHandler getDroidHandler(String droidID) {
-		System.out.println("getDroidHandler ID: " + droidID);
 		if (!mRegisteredDroids.containsKey(droidID)) {
 			return null;
 		}

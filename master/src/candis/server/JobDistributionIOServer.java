@@ -151,8 +151,10 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mJobTimers.put(String.valueOf(mCurrenJobID), jobTask);
 		mTimer.schedule(ackTask, mAckTimeout);
 		mTimer.schedule(jobTask, mJobTimeout);
+
 		// actually start job
 		mHandler.onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), params);
+
 		invoke(JobDistributionIOHandler.Event.JOB_SENT);
 	}
 
@@ -296,9 +298,18 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mIdleDroids.add(droidID);
 		System.out.println("Notifying current Scheduler");
 		mCurrentScheduler.doNotify();
+
 		// notify receivers
+		invoke(JobDistributionIOHandler.Event.JOB_DONE);
 		for (int i = 0; i < results.length; i++) {
 			releaseResult(params[i], results[i]);
+		}
+
+		// check if task is done
+		if (!mControl.hasParametersLeft()) {
+			// terminate scheduler and notify listeners
+			mCurrentScheduler.stop();
+			invoke(JobDistributionIOHandler.Event.SCHEDULER_DONE);
 		}
 	}
 
