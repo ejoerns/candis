@@ -23,7 +23,7 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
     mContext = context;
     mNM = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
   }
-  
+
   public void setEnableNotifications(boolean enable) {
     mNotificationsEnabled = enable;
   }
@@ -37,12 +37,10 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
     if (mNotificationsEnabled) {
       switch (status) {
         case CONNECTED:
-          System.out.println("got gonnected status!!!!!");
           mNM.notify(CandisNotification.NOTIFICATION_ID,
                      CandisNotification.getNotification(mContext, "Connected."));
           break;
         case DISCONNECTED:
-          System.out.println("got disgonnected status!!!!!");
           mNM.notify(CandisNotification.NOTIFICATION_ID,
                      CandisNotification.getNotification(mContext, "Disconnected."));
           break;

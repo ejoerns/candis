@@ -222,10 +222,16 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
 
     @Override
     public void handle(Object... data) {
-      System.out.println("JobReceivedHandler()");
       mCurrentRunnableID = (String) data[0];
       mCurrentJobID = (String) data[1];
       mCurrentJobParameter = (byte[]) data[2];
+
+      Log.i("JobReceivedHandler", String.format(
+              "Received Job %s, for Task %s with %d params.",
+              mCurrentJobID,
+              mCurrentRunnableID,
+              mCurrentJobParameter.length));
+
       mJobCenter.processJob(mCurrentRunnableID, mCurrentJobID, mCurrentJobParameter);
     }
   }
@@ -256,12 +262,21 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
 
     @Override
     public void handle(Object... data) {
+      String taskID = (String) data[0];
+      String jobID = (String) data[1];
+      DistributedJobResult[] results = (DistributedJobResult[]) data[2];
+      Long exectime = (Long) data[3];
+      Log.i("JobReceivedHandler", String.format(
+              "Sending result for Job %s of Task %s with %d params.",
+              jobID,
+              taskID,
+              results.length));
       mServerConnection.sendMessage(
               new Message(Instruction.SEND_RESULT,
-                          (String) data[0],
-                          (String) data[1],
-                          (DistributedJobResult[]) data[2],
-                          (Long) data[3]));
+                          taskID,
+                          jobID,
+                          results,
+                          exectime));
     }
   }
 
