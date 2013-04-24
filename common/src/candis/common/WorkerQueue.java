@@ -1,4 +1,4 @@
-package candis.distributed;
+package candis.common;
 
 import java.util.LinkedList;
 import java.util.List;

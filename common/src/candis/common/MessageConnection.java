@@ -66,7 +66,7 @@ public class MessageConnection extends ObjectConnection {
       }
       // if class not loadable, simply but raw data in
       catch (ClassNotFoundException ex) {
-        CandisLog.i(TAG, ex.toString());
+        CandisLog.d(TAG, ex.toString());
         data.add(getLastRawData());
       }
     }

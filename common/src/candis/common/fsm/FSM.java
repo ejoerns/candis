@@ -1,7 +1,7 @@
 package candis.common.fsm;
 
 import candis.common.CandisLog;
-import candis.distributed.WorkerQueue;
+import candis.common.WorkerQueue;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
