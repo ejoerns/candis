@@ -11,31 +11,15 @@ import java.util.Map;
  *
  * @author Enrico Joerns
  */
-public class AnalyzerScheduler extends SimpleScheduler implements JobDistributionIO.OnJobDoneListener, JobDistributionIO.OnTaskDoneListener {
+public class DataLogger implements JobDistributionIO.OnJobDoneListener, JobDistributionIO.OnTaskStartedListener, JobDistributionIO.OnTaskDoneListener {
 
   private Map<String, List<Long>> mExecutionTimes = new HashMap<String, List<Long>>();
   private Map<String, Integer> mProcessedParameters = new HashMap<String, Integer>();
   private List<TestData> mData = null;
   long start, fulltime;
 
-  public AnalyzerScheduler(int parametersPerJob, boolean multicore) {
-    super(parametersPerJob, multicore);
-  }
-
-  public AnalyzerScheduler(DistributedControl control) {
-    super();
-  }
-
-  @Override
-  public void start(String taskID) {
+  public void onTaskStarted(String taskID) {
     start = System.currentTimeMillis();
-    super.start(taskID);
-  }
-
-  @Override
-  public void schedule(String[] droidList, JobDistributionIO jobDistIO) {
-    super.schedule(droidList, jobDistIO);
-
   }
 
   public void onJobDone(String droidID, String jobID, String taskID, int results, long exectime) {

@@ -108,10 +108,13 @@ public interface JobDistributionIO {
    */
   public void addTaskDoneListener(OnTaskDoneListener listener);
 
+  public interface Listener {
+  }
+
   /*
    * 
    */
-  public interface OnJobSentListener {
+  public interface OnJobSentListener extends Listener {
 
     void onJobSent(String droidID, String jobID, String taskID, int params);
   }
@@ -119,7 +122,7 @@ public interface JobDistributionIO {
   /*
    * 
    */
-  public interface OnJobDoneListener {
+  public interface OnJobDoneListener extends Listener {
 
     void onJobDone(String droidID, String jobID, String taskID, int results, long exectime);
   }
@@ -127,7 +130,7 @@ public interface JobDistributionIO {
    * 
    */
 
-  public interface OnTaskStartedListener {
+  public interface OnTaskStartedListener extends Listener {
 
     void onTaskStarted(String taskID);
   }
@@ -135,7 +138,7 @@ public interface JobDistributionIO {
   /*
    * 
    */
-  public interface OnTaskDoneListener {
+  public interface OnTaskDoneListener extends Listener {
 
     void onTaskDone(String taskID);
   }
