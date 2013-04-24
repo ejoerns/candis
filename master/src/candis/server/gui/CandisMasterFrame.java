@@ -1,9 +1,8 @@
 package candis.server.gui;
 
 import candis.common.Settings;
-import candis.distributed.JobDistributionIOHandler;
+import candis.distributed.JobDistributionIO;
 import candis.distributed.Scheduler;
-import candis.distributed.SchedulerStillRuningException;
 import candis.distributed.SimpleScheduler;
 import candis.distributed.parameter.UserParameterCanceledException;
 import candis.distributed.parameter.UserParameterRequester;
@@ -58,7 +57,8 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		mOptionDialog = new OptionsDialog(this, false);
 //		mCheckCodeHandler = new CheckCodeHandler(this);
 		mDroidManager.addListener(new CheckCodeHandler(this));
-		mJobDistIO.addHandler(new JobDistIOHandler());
+		JobDistIOHandler jobDistIOHandler = new JobDistIOHandler();
+		mJobDistIO.addTaskDoneListener(jobDistIOHandler);
 		UserParameterRequester.init(this);
 	}
 
@@ -562,18 +562,12 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		}
 	}
 
-	private class JobDistIOHandler implements JobDistributionIOHandler {
+	private class JobDistIOHandler implements JobDistributionIO.OnTaskDoneListener {
 
 		@Override
-		public void onEvent(Event event) {
-			switch (event) {
-				case SCHEDULER_DONE:
-					mExecuteButton.setEnabled(true);
-					mStopButton.setEnabled(false);
-					break;
-				default:
-					break;
-			}
+		public void onTaskDone(String taskID) {
+			mExecuteButton.setEnabled(true);
+			mStopButton.setEnabled(false);
 		}
 	}
 }

@@ -55,6 +55,10 @@ public abstract class Scheduler {
     mJobDistIO = jobDistIO;
   }
 
+  public JobDistributionIO getJobDistIO() {
+    return mJobDistIO;
+  }
+
   public void doNotify() {
     synchronized (mSync) {
       mSync.notify();

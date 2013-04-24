@@ -1,6 +1,6 @@
 package candis.server.gui;
 
-import candis.distributed.JobDistributionIOHandler;
+import candis.distributed.JobDistributionIO;
 import candis.server.JobDistributionIOServer;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
@@ -35,7 +35,10 @@ public class TaskPanel {
 	public TaskPanel(JPanel holder, JobDistributionIOServer jDistIO) {
 		mHolder = holder;
 		mJobDistIO = jDistIO;
-		mJobDistIO.addHandler(new JobDistListener());
+		JobDistListener jobDistListener = new JobDistListener();
+		mJobDistIO.addJobSentListener(jobDistListener);
+		mJobDistIO.addJobDoneListener(jobDistListener);
+		mJobDistIO.addTaskDoneListener(jobDistListener);
 	}
 
 	public void addTask(String id) {
@@ -137,20 +140,24 @@ public class TaskPanel {
 		}
 	}
 
-	private class JobDistListener implements JobDistributionIOHandler {
+	private class JobDistListener implements JobDistributionIO.OnJobSentListener, JobDistributionIO.OnJobDoneListener, JobDistributionIO.OnTaskDoneListener {
+
+		private long mResultCount = 0;
 
 		@Override
-		public void onEvent(Event event) {
-			switch (event) {
-				case JOB_DONE:
-//					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mJobDistIO.getCurrentScheduler().getResults().size());
-					break;
-				case JOB_SENT:
-					mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getControl().getParametersLeft());
-					break;
-				case SCHEDULER_DONE:
-					break;
-			}
+		public void onJobSent(String droidID, String jobID, String taskID, int params) {
+			mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setParameterCounter(mJobDistIO.getControl().getParametersLeft());
+		}
+
+		@Override
+		public void onJobDone(String droidID, String jobID, String taskID, int results, long exectime) {
+			mResultCount++;
+			mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mResultCount);
+		}
+
+		@Override
+		public void onTaskDone(String taskID) {
+			JOptionPane.showMessageDialog(mHolder, "Task done!");
 		}
 	}
 }

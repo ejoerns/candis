@@ -83,4 +83,46 @@ public interface JobDistributionIO {
    * @param millis
    */
   void setJobTimeout(long millis);
+
+  /**
+   *
+   * @param listener
+   */
+  public void addJobSentListener(OnJobSentListener listener);
+
+  /**
+   *
+   * @param listener
+   */
+  public void addJobDoneListener(OnJobDoneListener listener);
+
+  /**
+   *
+   * @param listener
+   */
+  public void addTaskDoneListener(OnTaskDoneListener listener);
+
+  /*
+   * 
+   */
+  public interface OnJobSentListener {
+
+    void onJobSent(String droidID, String jobID, String taskID, int params);
+  }
+
+  /*
+   * 
+   */
+  public interface OnJobDoneListener {
+
+    void onJobDone(String droidID, String jobID, String taskID, int results, long exectime);
+  }
+
+  /*
+   * 
+   */
+  public interface OnTaskDoneListener {
+
+    void onTaskDone(String taskID);
+  }
 }

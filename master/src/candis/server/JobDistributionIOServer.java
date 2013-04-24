@@ -5,12 +5,10 @@ import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DroidData;
 import candis.distributed.JobDistributionIO;
-import candis.distributed.JobDistributionIOHandler;
-import candis.distributed.JobHandler;
 import candis.distributed.ResultReceiver;
 import candis.distributed.Scheduler;
 import candis.distributed.SchedulerBinder;
-import candis.distributed.WorkerQueue;
+import candis.common.WorkerQueue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,7 +40,11 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	/// Thread and list for execution queue
 	private WorkerQueue mWorker;
 	/// Holds all registered handlers
-	private List<JobDistributionIOHandler> mHanderList = new LinkedList<JobDistributionIOHandler>();
+	private List<OnJobSentListener> mJobSentListeners = new LinkedList<OnJobSentListener>();
+	///
+	private List<OnJobDoneListener> mJobDoneListeners = new LinkedList<OnJobDoneListener>();
+	///
+	private List<OnTaskDoneListener> mTaskDoneListeners = new LinkedList<OnTaskDoneListener>();
 	/// Holds all registered receivers
 	protected final List<ResultReceiver> mReceivers = new LinkedList<ResultReceiver>();
 	/// Max. time [ms] to wait for an ACK
@@ -69,24 +71,6 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mDroidManager = manager;
 		mWorker = new WorkerQueue();
 		new Thread(mWorker).start();
-	}
-	/*--------------------------------------------------------------------------*/
-	/* Callback functionality                                                   */
-	/*--------------------------------------------------------------------------*/
-
-	public void addHandler(JobDistributionIOHandler handler) {
-		mHanderList.add(handler);
-	}
-
-	private void invoke(final JobDistributionIOHandler.Event event) {
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				for (JobDistributionIOHandler h : mHanderList) {
-					h.onEvent(event);
-				}
-			}
-		}).start();
 	}
 
 	/*--------------------------------------------------------------------------*/
@@ -155,7 +139,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		// actually start job
 		mHandler.onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), params);
 
-		invoke(JobDistributionIOHandler.Event.JOB_SENT);
+		invokeOnJobSent(droidID, String.valueOf(mCurrenJobID), mCurrentTaskID, params.length);
 	}
 
 	@Override
@@ -261,7 +245,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 
 	@Override
 	public void onJobReceived(String droidID, String jobID) {
-		LOGGER.info(String.format("onJobReceived from %s... for job %s", droidID.substring(0, 9), jobID));
+		LOGGER.fine(String.format("onJobReceived from %s... for job %s", droidID.substring(0, 9), jobID));
 		// cancel droids Ack timeout timer
 		if (mAckTimers.containsKey(jobID)) {
 			mAckTimers.remove(jobID).cancel();
@@ -274,7 +258,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	// TODO: synchronize
 	@Override
 	public void onJobDone(String droidID, String jobID, final DistributedJobResult[] results, long exectime) {
-		LOGGER.info(String.format("onJobDone from %s... for job %s", droidID.substring(0, 9), jobID));
+		LOGGER.fine(String.format("onJobDone from %s... for job %s", droidID.substring(0, 9), jobID));
 		// cancel droids Job timeout timer
 		if (mJobTimers.containsKey(jobID)) {
 			mJobTimers.remove(jobID).cancel();
@@ -300,7 +284,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mCurrentScheduler.doNotify();
 
 		// notify receivers
-		invoke(JobDistributionIOHandler.Event.JOB_DONE);
+		invokeOnJobDone(droidID, jobID, mCurrentTaskID, results.length, exectime);
 		for (int i = 0; i < results.length; i++) {
 			releaseResult(params[i], results[i]);
 		}
@@ -309,7 +293,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		if (!mControl.hasParametersLeft() && mParamCache.isEmpty() && mProcessingParams.isEmpty()) {
 			// terminate scheduler and notify listeners
 			mCurrentScheduler.stop();
-			invoke(JobDistributionIOHandler.Event.SCHEDULER_DONE);
+			invokeOnTaskDone(mCurrentTaskID);
 		}
 	}
 
@@ -335,6 +319,67 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 			public void run() {
 				for (ResultReceiver receiver : mReceivers) {
 					receiver.onReceiveResult(param, result);
+				}
+			}
+		}).start();
+	}
+
+	/*--------------------------------------------------------------------------*/
+	/* Callback functionality                                                   */
+	/*--------------------------------------------------------------------------*/
+	@Override
+	public void addJobSentListener(OnJobSentListener listener) {
+		mJobSentListeners.add(listener);
+	}
+
+	@Override
+	public void addJobDoneListener(OnJobDoneListener listener) {
+		mJobDoneListeners.add(listener);
+	}
+
+	@Override
+	public void addTaskDoneListener(OnTaskDoneListener listener) {
+		mTaskDoneListeners.add(listener);
+	}
+
+	private void invokeOnJobSent(
+					final String droidID,
+					final String jobID,
+					final String taskID,
+					final int params) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				for (OnJobSentListener listener : mJobSentListeners) {
+					listener.onJobSent(droidID, jobID, taskID, params);
+				}
+			}
+		}).start();
+	}
+
+	private void invokeOnJobDone(
+					final String droidID,
+					final String jobID,
+					final String taskID,
+					final int results,
+					final long exectime) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				for (OnJobDoneListener listener : mJobDoneListeners) {
+					listener.onJobDone(droidID, jobID, taskID, results, exectime);
+				}
+			}
+		}).start();
+	}
+
+	private void invokeOnTaskDone(
+					final String taskID) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				for (OnTaskDoneListener listener : mTaskDoneListeners) {
+					listener.onTaskDone(taskID);
 				}
 			}
 		}).start();

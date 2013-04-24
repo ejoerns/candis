@@ -1,7 +1,6 @@
 package candis.distributed;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -19,37 +18,30 @@ import java.util.Map;
  *
  * @author Enrico Joerns
  */
-public class ProfilingScheduler extends OldScheduler {
+public class ProfilingScheduler extends Scheduler implements JobDistributionIO.OnJobDoneListener {
 
   /// Maximum time a job should be processed [ms]
   private static final long MAX_JOB_PROCESS_TIME = 10000;
   /// Holds profiled droids with corresponding number of parameters to send
   private Map<String, Integer> mProfiledDroids = new HashMap<String, Integer>();
 
-  public ProfilingScheduler(DistributedControl control) {
-    super(control);
+  public ProfilingScheduler() {
+    super();
   }
 
   @Override
-  protected void schedule(Map<String, DroidData> droidList, JobDistributionIO jobDistIO) {
-    Iterator<Map.Entry<String, DroidData>> it = droidList.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry<String, DroidData> droid = it.next();
-      DroidData data = droid.getValue();
-      String droidID = droid.getKey();
-      // TODO: flag setzen
-      it.remove();
+  void schedule(String[] droidIDs, JobDistributionIO jobDistIO) {
+    for (String droidID : droidIDs) {
+      DroidData data = jobDistIO.getDroidData(droidID);
       // send single parameter for profiling
       if (!mProfiledDroids.containsKey(droidID)) {// TODO: send one task per core
         System.out.println("" + data.getProfile().processors + " Profiling parameters sent for " + droidID);
-        DistributedJobParameter[] params = getParameters(data.getProfile().processors);
-        mRunningDroidsList.put(droidID, params); // TODO: place better
+        DistributedJobParameter[] params = jobDistIO.getParameters(data.getProfile().processors);
         jobDistIO.startJob(droidID, params);
       }
       // otherwise start with calculated number of parameters
       else {
-        DistributedJobParameter[] params = getParameters(mProfiledDroids.get(droidID));
-        mRunningDroidsList.put(droidID, params);
+        DistributedJobParameter[] params = jobDistIO.getParameters(mProfiledDroids.get(droidID));
         System.out.println("Sending Job with " + params.length + " parameters");
         jobDistIO.startJob(droidID, params);
       }
@@ -57,9 +49,14 @@ public class ProfilingScheduler extends OldScheduler {
   }
 
   @Override
-  public void onJobDone(String droidID, String jobID, DistributedJobResult[] results, long exectime) {
+  public void setJobDistIO(JobDistributionIO jobDistIO) {
+    super.setJobDistIO(jobDistIO);
+    jobDistIO.addJobDoneListener(this);
+  }
+
+  public void onJobDone(String droidID, String jobID, String taskID, int results, long exectime) {
     if (!mProfiledDroids.containsKey(droidID)) {
-      exectime /= results.length;// exectime is per job, not per parameter
+      exectime /= results;// exectime is per job, not per parameter
       if (exectime == 0) {
         exectime = 1;
       }
@@ -68,6 +65,5 @@ public class ProfilingScheduler extends OldScheduler {
       System.out.println("*** Droid should be able to process " + paramcount + " parameters");
       mProfiledDroids.put(droidID, paramcount);
     }
-    super.onJobDone(droidID, jobID, results, exectime);
   }
 }
