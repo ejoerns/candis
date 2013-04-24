@@ -297,9 +297,14 @@ public class ServerConnection {
       else {
         LOGGER.warning("Pong timed out, restarting connection.");
         cancel();
-        synchronized (object) {
-          object.notify();
-        }
+        mWorkerQueue.add(new Runnable() {
+          public void run() {
+            _disconnect();
+            if (mConnectEnabled) {
+              _connect();
+            }
+          }
+        });
       }
     }
   }
