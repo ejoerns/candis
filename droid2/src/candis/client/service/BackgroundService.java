@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 import candis.client.CandisSettings;
 import candis.client.ClientFSM;
@@ -96,15 +97,21 @@ public class BackgroundService extends Service {
 
     // register receiver for battery and wifi status updates
     mSystemStatusController = new SystemStatusReceiver();
+    PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+    final PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+    wl.setReferenceCounted(false);
+
     mSystemStatusController.addListener(new SystemStatusReceiver.Listener() {
       public void OnSystemStatusUpdate() {
         if (SystemStatusReceiver.network_connected) {
           Log.e(TAG, "CONNECT IT DUDE!");
+          wl.acquire();
           mConnection.connect();
         }
         else {
           Log.e(TAG, "DISCONNECT IT DUDE!");
 //          mConnection.disconnect();
+          wl.release();
         }
       }
     });
