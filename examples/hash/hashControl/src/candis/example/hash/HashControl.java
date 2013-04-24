@@ -1,14 +1,11 @@
 package candis.example.hash;
 
-import candis.distributed.AnalyzerScheduler;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
-import candis.distributed.Scheduler;
 import candis.distributed.parameter.BooleanUserParameter;
 import candis.distributed.parameter.IntegerUserParameter;
-import candis.distributed.parameter.RegexValidator;
 import candis.distributed.parameter.StringListUserParameter;
 import candis.distributed.parameter.StringUserParameter;
 import candis.distributed.parameter.UserParameterRequester;
@@ -24,7 +21,6 @@ import java.util.logging.Logger;
  */
 public class HashControl extends DistributedControl implements ResultReceiver {
 
-  private Scheduler mScheduler;
   public String mResultValue;
   private int mMaxDepth;
   private BruteForceStringGenerator mStringGenerator;
@@ -34,9 +30,10 @@ public class HashControl extends DistributedControl implements ResultReceiver {
   int prepart = 0;
   int prepart2 = 0;
   private int mParamsDone = 0;
+  private HashInitParameter init;
 
   @Override
-  public Scheduler initScheduler() {
+  public void init() {
     UserParameterSet parameters = new UserParameterSet();
     // 900150983cd24fb0d6963f7d28e17f72 = md5("abc");
     // e99a18c428cb38d5f260853678922e03 = md5("abc123")
@@ -107,8 +104,6 @@ public class HashControl extends DistributedControl implements ResultReceiver {
     if (type.getValue().toString().equals("sha1")) {
       typeValue = HashType.SHA1;
     }
-//    mScheduler = new ProfilingScheduler(this);
-    mScheduler = new AnalyzerScheduler(this, 20, false);
 
     mStringGenerator = new BruteForceStringGenerator(start.getIntegerValue() - depth.getIntegerValue(), alphabet.toCharArray());
     mMaxDepth = stop.getIntegerValue();
@@ -128,13 +123,10 @@ public class HashControl extends DistributedControl implements ResultReceiver {
       mTotal += prepart - 1;
     }
 
-    HashInitParameter init = new HashInitParameter(typeValue, hexStringToByteArray(hashvalue.getStringValue()), alphabet.toCharArray());
-    mScheduler.setInitialParameter(init);
-    mScheduler.addResultReceiver(this);
+    init = new HashInitParameter(typeValue, hexStringToByteArray(hashvalue.getStringValue()), alphabet.toCharArray());
 
     System.out.println("" + mTotal + " parameters added");
 
-    return mScheduler;
   }
 
   @Override
@@ -150,7 +142,7 @@ public class HashControl extends DistributedControl implements ResultReceiver {
       catch (UnsupportedEncodingException ex) {
         Logger.getLogger(HashControl.class.getName()).log(Level.SEVERE, null, ex);
       }
-      mScheduler.abort();
+//      mScheduler.abort();
     }
   }
 
@@ -199,5 +191,10 @@ public class HashControl extends DistributedControl implements ResultReceiver {
   @Override
   public final boolean hasParametersLeft() {
     return ((mTotal - mParamsDone) > 0) ? true : false;
+  }
+
+  @Override
+  public DistributedJobParameter getInitialParameter() {
+    return init;
   }
 }

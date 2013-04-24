@@ -1,12 +1,9 @@
 package candis.example.xslt;
 
-import candis.distributed.AnalyzerScheduler;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.ResultReceiver;
-import candis.distributed.Scheduler;
-import candis.distributed.SimpleScheduler;
 import candis.distributed.parameter.FileUserParameter;
 import candis.distributed.parameter.UserParameterRequester;
 import candis.distributed.parameter.UserParameterSet;
@@ -20,12 +17,11 @@ public class XSLTControl extends DistributedControl implements ResultReceiver {
 
   private static final int TOTAL_JOBS = 100;
   private int mParametersSent = 0;
-  private Scheduler mScheduler;
   private FileUserParameter mXSLTFile;
   private FileUserParameter mXMLFile;
 
   @Override
-  public Scheduler initScheduler() {
+  public void init() {
 
     // input filenames
     UserParameterSet parameters = new UserParameterSet();
@@ -38,15 +34,6 @@ public class XSLTControl extends DistributedControl implements ResultReceiver {
     UserParameterRequester.getInstance().request(parameters);
 
     mParametersSent = 0;
-
-    mScheduler = new AnalyzerScheduler(this, 10, false);
-
-    DistributedJobParameter init = new XSLTInitParameter(new File((String) mXSLTFile.getValue()));
-    mScheduler.setInitialParameter(init);
-
-    mScheduler.addResultReceiver(this);
-
-    return mScheduler;
   }
 
   @Override
@@ -63,6 +50,11 @@ public class XSLTControl extends DistributedControl implements ResultReceiver {
   public final DistributedJobParameter getParameter() {
     mParametersSent++;
     return new XSLTJobParameter(new File((String) mXMLFile.getValue()));
+  }
+
+  @Override
+  public final DistributedJobParameter getInitialParameter() {
+    return new XSLTInitParameter(new File((String) mXSLTFile.getValue()));
   }
 
   @Override
