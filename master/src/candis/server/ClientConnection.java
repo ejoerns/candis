@@ -89,7 +89,7 @@ public class ClientConnection implements Runnable {
 						break;
 					}
 
-					LOGGER.log(Level.INFO, "Client request: {0}", msg.getRequest());
+					LOGGER.log(Level.FINE, "Client request: {0}", msg.getRequest());
 				}
 
 				notifyListeners(Status.DISCONNECTED);
