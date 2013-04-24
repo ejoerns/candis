@@ -26,8 +26,7 @@ public abstract class Scheduler {
     mThread = new Thread(new Runnable() {
       public void run() {
         LOGGER.info(String.format("Scheduler for task %s started.", taskID));
-        mJobDistIO.setControl(taskID);
-        mJobDistIO.getControl().init();// TODO: place here?
+        mJobDistIO.startTask(taskID);
 
         mEnabled = true;
         while (mEnabled) {

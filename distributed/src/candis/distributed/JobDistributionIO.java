@@ -24,7 +24,7 @@ public interface JobDistributionIO {
    * @param droidID
    * @return
    */
-  void setControl(String droidID);
+  void startTask(String droidID);
 
   /**
    *

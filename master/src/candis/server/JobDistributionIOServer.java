@@ -198,11 +198,15 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	}
 
 	@Override
-	public void setControl(String taskID) {
+	public void startTask(String taskID) {
 		mCurrentTaskID = taskID;
+		// load control and init
 		mControl = mCDBLoader.getDistributedControl(taskID);
 		System.out.println("Control loaded: " + mControl.getClass());
 		mControl.init();
+
+		// invoke listeners
+		invokeOnTaskStarted(taskID);
 	}
 
 	/**
