@@ -63,6 +63,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
 
   @Override
   public final void init() {
+    super.init();
     addState(ClientStates.IDLE);
     addState(ClientStates.REGISTRATING)
             .addTransition(

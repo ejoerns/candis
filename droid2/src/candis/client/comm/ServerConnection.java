@@ -3,7 +3,7 @@ package candis.client.comm;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.QueuedMessageConnection;
-import candis.distributed.WorkerQueue;
+import candis.common.WorkerQueue;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.LinkedList;
