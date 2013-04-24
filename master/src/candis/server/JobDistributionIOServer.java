@@ -306,7 +306,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		}
 
 		// check if task is done
-		if (!mControl.hasParametersLeft()) {
+		if (!mControl.hasParametersLeft() && mParamCache.isEmpty() && mProcessingParams.isEmpty()) {
 			// terminate scheduler and notify listeners
 			mCurrentScheduler.stop();
 			invoke(JobDistributionIOHandler.Event.SCHEDULER_DONE);
