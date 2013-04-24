@@ -1,6 +1,7 @@
 package candis.common.fsm;
 
 import candis.common.CandisLog;
+import candis.distributed.WorkerQueue;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +44,7 @@ public abstract class FSM {
   /// Fallback state
   private StateEnum mErrorState;
   private ActionHandler mErrorHandler;
+  private WorkerQueue mWorkQueue = new WorkerQueue();
 
   public FSM() {
   }
@@ -50,7 +52,9 @@ public abstract class FSM {
   /**
    * Must be implemented to init the FSM
    */
-  public abstract void init();
+  public void init() {
+    new Thread(mWorkQueue).start();
+  }
 
   /**
    * Adds a new state to the FSM.
@@ -151,7 +155,34 @@ public abstract class FSM {
    * @param obj Data payload to provide to a possibly registered ActionHandler
    * @throws StateMachineException Something went wrong
    */
-  public final synchronized void process(final Transition trans, Object... obj) throws StateMachineException {
+  public final void process(final Transition trans, final Object... obj) throws StateMachineException {
+    mWorkQueue.add(new Runnable() {
+      public void run() {
+        _process(trans, obj);
+      }
+    });
+  }
+
+  /**
+   * Processes transition.
+   *
+   * Main method to interact with the FSM. Processes incoming Transition
+   * and switches to new state depending on current state and its declared
+   * Transitions.
+   *
+   * @param trans Transition to process
+   * @param obj Data payload to provide to a possibly registered ActionHandler
+   * @throws StateMachineException Something went wrong
+   */
+  public final void process(final Transition trans) throws StateMachineException {
+    mWorkQueue.add(new Runnable() {
+      public void run() {
+        _process(trans, (Serializable) null);
+      }
+    });
+  }
+
+  public final void _process(final Transition trans, Object... obj) throws StateMachineException {
     CandisLog.v(TAG, String.format(
             "process() Trans: %s, Obj: %s", trans, obj));
     // Check if transition is empty
@@ -185,20 +216,5 @@ public abstract class FSM {
       setState(mErrorState);
       mErrorHandler.handle(obj);
     }
-  }
-
-  /**
-   * Processes transition.
-   *
-   * Main method to interact with the FSM. Processes incoming Transition
-   * and switches to new state depending on current state and its declared
-   * Transitions.
-   *
-   * @param trans Transition to process
-   * @param obj Data payload to provide to a possibly registered ActionHandler
-   * @throws StateMachineException Something went wrong
-   */
-  public final synchronized void process(final Transition trans) throws StateMachineException {
-    process(trans, (Serializable) null);
   }
 }
