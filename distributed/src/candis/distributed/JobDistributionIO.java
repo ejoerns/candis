@@ -100,6 +100,12 @@ public interface JobDistributionIO {
    *
    * @param listener
    */
+  public void addTaskStartedListener(OnTaskStartedListener listener);
+
+  /**
+   *
+   * @param listener
+   */
   public void addTaskDoneListener(OnTaskDoneListener listener);
 
   /*
@@ -116,6 +122,14 @@ public interface JobDistributionIO {
   public interface OnJobDoneListener {
 
     void onJobDone(String droidID, String jobID, String taskID, int results, long exectime);
+  }
+  /*
+   * 
+   */
+
+  public interface OnTaskStartedListener {
+
+    void onTaskStarted(String taskID);
   }
 
   /*

@@ -44,6 +44,8 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	///
 	private List<OnJobDoneListener> mJobDoneListeners = new LinkedList<OnJobDoneListener>();
 	///
+	private List<OnTaskStartedListener> mTaskStartedListeners = new LinkedList<OnTaskStartedListener>();
+	///
 	private List<OnTaskDoneListener> mTaskDoneListeners = new LinkedList<OnTaskDoneListener>();
 	/// Holds all registered receivers
 	protected final List<ResultReceiver> mReceivers = new LinkedList<ResultReceiver>();
@@ -338,6 +340,11 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 	}
 
 	@Override
+	public void addTaskStartedListener(OnTaskStartedListener listener) {
+		mTaskStartedListeners.add(listener);
+	}
+
+	@Override
 	public void addTaskDoneListener(OnTaskDoneListener listener) {
 		mTaskDoneListeners.add(listener);
 	}
@@ -368,6 +375,18 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 			public void run() {
 				for (OnJobDoneListener listener : mJobDoneListeners) {
 					listener.onJobDone(droidID, jobID, taskID, results, exectime);
+				}
+			}
+		}).start();
+	}
+
+	private void invokeOnTaskStarted(
+					final String taskID) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				for (OnTaskStartedListener listener : mTaskStartedListeners) {
+					listener.onTaskStarted(taskID);
 				}
 			}
 		}).start();
