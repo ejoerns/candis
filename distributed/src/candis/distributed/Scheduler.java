@@ -28,22 +28,17 @@ public abstract class Scheduler {
         LOGGER.info(String.format("Scheduler for task %s started.", taskID));
         mJobDistIO.setControl(taskID);
         mJobDistIO.getControl().init();// TODO: place here?
+
         mEnabled = true;
         while (mEnabled) {
           synchronized (mSync) {
-            System.out.println("Bling Bling");
-            if (mJobDistIO.getControl().hasParametersLeft()) {
-              System.out.println("hasParameter -> schedule");
-              schedule(mJobDistIO.getAvailableDroids(), mJobDistIO);
-            }
+            schedule(mJobDistIO.getAvailableDroids(), mJobDistIO);
             try {
-              System.out.println("***** Scheduler waiting ******");
               mSync.wait();
             }
             catch (InterruptedException ex) {
-//              if (mEnabled) {
               LOGGER.info("Scheduler thread terminated");
-//              }
+              mEnabled = false;
             }
           }
         }
@@ -53,7 +48,6 @@ public abstract class Scheduler {
   }
 
   public void stop() {
-    mEnabled = false;
     mThread.interrupt();
   }
 
