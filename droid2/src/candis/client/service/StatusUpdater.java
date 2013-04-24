@@ -29,8 +29,10 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
   }
 
   public void notify(String msg) {
-    mNM.notify(CandisNotification.NOTIFICATION_ID,
-               CandisNotification.getNotification(mContext, msg));
+    if (mNotificationsEnabled) {
+      mNM.notify(CandisNotification.NOTIFICATION_ID,
+                 CandisNotification.getNotification(mContext, msg));
+    }
   }
 
   public void OnStatusUpdate(ServerConnection.Status status) {
@@ -56,23 +58,19 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
   }
 
   public void onBinaryReceived(String runnableID) {
-    mNM.notify(CandisNotification.NOTIFICATION_ID,
-               CandisNotification.getNotification(mContext, "Runnable received " + runnableID));
+    notify("Runnable received ".concat(runnableID));
   }
 
   public void onInitialParameterReceived(String runnableID) {
-    mNM.notify(CandisNotification.NOTIFICATION_ID,
-               CandisNotification.getNotification(mContext, "Initial param received " + runnableID));
+    notify("Initial param received ".concat(runnableID));
   }
 
   public void onJobExecutionStart(String runnableID, String jobID) {
-    mNM.notify(CandisNotification.NOTIFICATION_ID,
-               CandisNotification.getNotification(mContext, "Started Job " + jobID));
+    notify("Started Job ".concat(jobID));
   }
 
   public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult[] result, long exectime) {
-    mNM.notify(CandisNotification.NOTIFICATION_ID,
-               CandisNotification.getNotification(mContext, "Finished Job " + exectime + "ms"));
+    notify(String.format("Finished Job %d ms", exectime));
   }
 
   public void onBinaryRequired(String taskID) {
