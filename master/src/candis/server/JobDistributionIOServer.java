@@ -123,12 +123,15 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 						params.length));
 
 		// add parameters to list of unAcked
-		if (mProcessingParams.containsKey(droidID)) {
+		if (mProcessingParams.containsKey(String.valueOf(mCurrenJobID))) {
 			LOGGER.warning(String.format(
 							"Droid %s has already parameters assigned. Will be overwritten.",
 							droidID.substring(0, 9)));
 		}
-		mProcessingParams.put(droidID, params);
+		mProcessingParams.put(String.valueOf(mCurrenJobID), params);
+
+		// actually start job
+		mHandler.onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), params);
 
 		// start timeout timers
 		TimerTask ackTask = new AckTimerTask(String.valueOf(mCurrenJobID));
@@ -137,10 +140,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 		mJobTimers.put(String.valueOf(mCurrenJobID), jobTask);
 		mTimer.schedule(ackTask, mAckTimeout);
 		mTimer.schedule(jobTask, mJobTimeout);
-
-		// actually start job
-		mHandler.onSendJob(mCurrentTaskID, String.valueOf(mCurrenJobID), params);
-
+		
 		invokeOnJobSent(droidID, String.valueOf(mCurrenJobID), mCurrentTaskID, params.length);
 	}
 
@@ -273,7 +273,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 			LOGGER.warning(String.format("No JobTimer found for job %s", droidID.substring(0, 9)));
 		}
 		// 
-		if (!mProcessingParams.containsKey(droidID)) {
+		if (!mProcessingParams.containsKey(jobID)) {
 			LOGGER.severe(String.format(
 							"Received unknown result from droid %s",
 							droidID.substring(0, 9)));
@@ -283,7 +283,7 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 			return;
 		}
 
-		final DistributedJobParameter[] params = mProcessingParams.remove(droidID);
+		final DistributedJobParameter[] params = mProcessingParams.remove(jobID);
 		// inform scheduler that droid is now available again
 		mIdleDroids.add(droidID);
 		System.out.println("Notifying current Scheduler");
@@ -455,11 +455,16 @@ public class JobDistributionIOServer implements JobDistributionIO, SchedulerBind
 							mJobID));
 			// tell droid to stop
 			if (mHandler != null) {
-				mHandler.onStopJob(null, mJobID);// TODO: add taskID
+				mHandler.onStopJob(mCurrentTaskID, mJobID);
 			}
 			// remove parameters from processing list and add back to cache
 			if (mProcessingParams.containsKey(mJobID)) {
 				mParamCache.addAll(Arrays.asList(mProcessingParams.remove(mJobID)));
+			}
+			else {
+				LOGGER.warning(String.format(
+								"Failed to put parameters for Job %s back to cache",
+								mJobID));
 			}
 		}
 	}
