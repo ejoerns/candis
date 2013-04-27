@@ -12,8 +12,8 @@
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   
-  <application android:name="candis.client.CandisApp" android:label="@string/app_name" android:icon="@drawable/ic_launcher">
-    <activity android:name="candis.client.activity.MainActivity"
+  <application android:name="candis.client.android.CandisApp" android:label="@string/app_name" android:icon="@drawable/ic_launcher">
+    <activity android:name="candis.client.android.activity.MainActivity"
                   android:label="@string/app_name">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
@@ -21,14 +21,14 @@
       </intent-filter>
       <intent-filter>
         <action
-          android:name="candis.client.service.BackgroundService" />
+          android:name="candis.client.android.service.BackgroundService" />
       </intent-filter>
     </activity>
-    <activity android:name="candis.client.activity.EditPreferences"></activity>
-    <activity android:name="candis.client.activity.EditPreferencesHC"></activity>
+    <activity android:name="candis.client.android.activity.EditPreferences"></activity>
+    <activity android:name="candis.client.android.activity.EditPreferencesHC"></activity>
 
     <service android:enabled="true"
-             android:name="candis.client.service.BackgroundService"
+             android:name="candis.client.android.service.BackgroundService"
              android:launchMode="singleInstance"
              android:process=":remote" /><!-- run in seperate process! -->
 
