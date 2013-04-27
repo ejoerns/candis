@@ -38,16 +38,18 @@ public class TestHashRunnable implements DistributedRunnable {
   public DistributedJobResult execute(DistributedJobParameter parameter) {
     // Cast incomming Parameter
     TestHashJobParameter p = (TestHashJobParameter) parameter;
-    for (int i = 0; i < LOOPS && !shouldStopNow; i++) {
-      try {
+    try {
+      byte[] initFeed = mInitial.string.getBytes("UTF-8");
+      byte[] paramFeed = p.string.getBytes("UTF-8");
+      for (int i = 0; i < LOOPS && !shouldStopNow; i++) {
         mMessageDigest.reset();
-        mMessageDigest.update(mInitial.string.getBytes("UTF-8"));
-        mMessageDigest.update(p.string.getBytes("UTF-8"));
+        mMessageDigest.update(initFeed);
+        mMessageDigest.update(paramFeed);
         mMessageDigest.digest();
       }
-      catch (UnsupportedEncodingException ex) {
-        Logger.getLogger(TestHashRunnable.class.getName()).log(Level.SEVERE, null, ex);
-      }
+    }
+    catch (UnsupportedEncodingException ex) {
+      Logger.getLogger(TestHashRunnable.class.getName()).log(Level.SEVERE, null, ex);
     }
     return new TestHashJobResult(false);
   }

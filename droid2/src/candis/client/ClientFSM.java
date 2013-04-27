@@ -271,7 +271,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
               "Sending result for Job %s of Task %s with %d params.",
               jobID,
               taskID,
-              results.length));
+              (results == null) ? 0 : results.length));
       mServerConnection.sendMessage(
               new Message(Instruction.SEND_RESULT,
                           taskID,

@@ -151,7 +151,7 @@ public class TaskPanel {
 
 		@Override
 		public void onJobDone(String droidID, String jobID, String taskID, int results, long exectime) {
-			mResultCount++;
+			mResultCount += results;
 			mTaskPanels.get(mJobDistIO.getCurrentTaskID()).setResultCounter(mResultCount);
 		}
 

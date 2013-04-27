@@ -1,7 +1,9 @@
 package candis.server.gui;
 
 import candis.common.Settings;
+import candis.distributed.DataLogger;
 import candis.distributed.JobDistributionIO;
+import candis.distributed.ProfilingScheduler;
 import candis.distributed.Scheduler;
 import candis.distributed.SimpleScheduler;
 import candis.distributed.parameter.UserParameterCanceledException;
@@ -59,6 +61,11 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 		mDroidManager.addListener(new CheckCodeHandler(this));
 		JobDistIOHandler jobDistIOHandler = new JobDistIOHandler();
 		mJobDistIO.addTaskDoneListener(jobDistIOHandler);
+		DataLogger dataLogger = new DataLogger();
+		mJobDistIO.addTaskStartedListener(dataLogger);
+		mJobDistIO.addTaskDoneListener(dataLogger);
+		mJobDistIO.addJobDoneListener(dataLogger);
+
 		UserParameterRequester.init(this);
 	}
 
@@ -301,7 +308,10 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 			@Override
 			public void run() {
 				try {
-					mScheduler = new SimpleScheduler();
+//					mScheduler = new SimpleScheduler(20, false);
+					mJobDistIO.setAckTimeout(10000);
+					mJobDistIO.setJobTimeout(120000);
+					mScheduler = new ProfilingScheduler(20000);
 					mJobDistIO.bindScheduler(mScheduler);
 					mScheduler.start(mTaskPanel.getSelectedTaskID());
 //					mJobDistIO.initScheduler(mTaskPanel.getSelectedTaskID());

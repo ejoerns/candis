@@ -15,7 +15,7 @@ import java.io.File;
  */
 public class XSLTControl extends DistributedControl implements ResultReceiver {
 
-  private static final int TOTAL_JOBS = 100;
+  private static final int TOTAL_JOBS = 600;
   private int mParametersSent = 0;
   private FileUserParameter mXSLTFile;
   private FileUserParameter mXMLFile;

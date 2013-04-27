@@ -202,6 +202,7 @@ public class ServerConnection {
 
     try {
       mQueuedMessageConnection.sendMessage(msg);
+      mPongFlag = true;
     }
     catch (IOException ex) {
       LOGGER.log(Level.SEVERE, null, ex);
@@ -221,8 +222,8 @@ public class ServerConnection {
           // wait for new message
           Message msg = mQueuedMessageConnection.readMessage();
 
+          mPongFlag = true;
           if (msg.getRequest() == Instruction.PONG) {
-            mPongFlag = true;
             continue;
           }
 

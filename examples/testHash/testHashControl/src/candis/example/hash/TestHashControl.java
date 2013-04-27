@@ -24,7 +24,7 @@ public class TestHashControl extends DistributedControl implements ResultReceive
   public void init() {
     UserParameterSet uparams = new UserParameterSet();
     IntegerUserParameter jobs = new IntegerUserParameter("hash.trylen.start", "Parameter", "Specify the minimal length of the brutefoce string",
-                                                         100, 1, Integer.MAX_VALUE, 1, null);
+                                                         1000, 1, Integer.MAX_VALUE, 1, null);
     uparams.AddParameter(jobs);
 
     UserParameterRequester.getInstance().request(uparams);

@@ -25,7 +25,7 @@ import javax.xml.transform.stream.StreamSource;
 public class XSLTRunnable implements DistributedRunnable {
 
   private byte[] mXSLTData;
-  private static final int TEST_LOOPS = 10;
+  private static final int TEST_LOOPS = 1;
 
   @Override
   public void stopJob() {
