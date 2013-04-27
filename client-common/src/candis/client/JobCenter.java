@@ -1,8 +1,6 @@
 package candis.client;
 
-import android.content.Context;
 import android.util.Log;
-import candis.client.service.BackgroundService;
 import candis.common.ClassloaderObjectInputStream;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -44,11 +42,6 @@ public class JobCenter {
   private static final Logger LOGGER = Logger.getLogger(TAG);
   /// maximum number of tasks held in cache
   private static final int MAX_TASK_CACHE = 5;// TODO: currently no implemented
-  // ---
-  /// context, needed for file storage
-  private final Context mContext;
-  /// Wrapper to pass ClassLoader
-  // --- Maps that holds all info for tasks
   private final Map<String, TaskContext> mTaskCache = new HashMap<String, TaskContext>();
   /// List of all registered handlers
   private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
@@ -57,13 +50,15 @@ public class JobCenter {
    * Holds mUsableCores threads for jobs processing.
    */
   private ExecutorService mThreadPool;
-//  final ArrayList<DistributedJobResult> results = new ArrayList<DistributedJobResult>();
   final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
   final Object execdone = new Object();
   private int mUsableCores;
+  private final File mFilesDir;
+  private final File mCacheDir;
 
-  public JobCenter(final Context context) {
-    mContext = context;
+  public JobCenter(File filesDir, File cacheDir) {
+    mFilesDir = filesDir;
+    mCacheDir = cacheDir;
     mUsableCores = DroidContext.getInstance().getProfile().processors;
     mThreadPool = Executors.newFixedThreadPool(mUsableCores);
     loadTaskCache();
@@ -140,8 +135,8 @@ public class JobCenter {
    */
   public void addRunnable(final String runnableID, final byte[] binary, final byte[] iparam) {
     String filename = runnableID.concat(".jar");
-    Log.v(TAG, String.format("Saving jar to file %s/%s", mContext.getFilesDir(), filename));
-    final File dexInternalStoragePath = new File(mContext.getFilesDir(), filename);
+    Log.v(TAG, String.format("Saving jar to file %s/%s", mFilesDir, filename));
+    final File dexInternalStoragePath = new File(mFilesDir, filename);
 
     if (mTaskCache.containsKey(runnableID)) {
       Log.w(TAG, String.format("Warning: Task with ID %s already loaded", runnableID));
@@ -394,13 +389,14 @@ public class JobCenter {
 
     Log.i(TAG,
           "XXX: Calling DexClassLoader with jarfile: " + jarfile.getAbsolutePath());
-    final File tmpDir = mContext.getDir("dex", 0);
+    final File tmpDir = new File(mFilesDir, "dex");
+    tmpDir.mkdirs();
 
     mTaskCache.get(runnableID).classLoader = new DexClassLoader(
             jarfile.getAbsolutePath(),
             tmpDir.getAbsolutePath(),
             null,
-            BackgroundService.class.getClassLoader());
+            JobCenter.class.getClassLoader());
 //    mTaskCache.get(mCurrentRunnableID).classLoader = mTaskCache.get(runnableID).classLoader;
 //    setRunnableID(runnableID);    
 
@@ -412,7 +408,7 @@ public class JobCenter {
       // load dexfile
       DexFile dx = DexFile.loadDex(
               path,
-              File.createTempFile("opt", "dex", mContext.getCacheDir()).getPath(),
+              File.createTempFile("opt", "dex", mCacheDir).getPath(),
               0);
 
       // extract all available classes

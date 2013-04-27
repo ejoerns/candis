@@ -1,10 +1,7 @@
 package candis.client;
 
-import android.content.Context;
-import android.util.Log;
 import candis.client.comm.ServerConnection;
 import candis.client.comm.ServerConnection.Status;
-import candis.client.service.ActivityCommunicator;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.ActionHandler;
@@ -21,16 +18,18 @@ import java.util.logging.Logger;
  */
 public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCenterHandler {
 
+  private static final String TAG = ClientFSM.class.getName();
+  private static final Logger LOGGER = Logger.getLogger(TAG);
   private final ServerConnection mServerConnection;
   private final JobCenter mJobCenter;
   /* State to restore after registration. */
   private StateEnum mRestoreState;
-  private ActivityCommunicator mActivityComm;
+//  private ActivityCommunicator mActivityComm;
 
-  public ClientFSM(Context context, ServerConnection sconn, ActivityCommunicator acomm) {
+  public ClientFSM(JobCenter jobCenter, ServerConnection sconn) {
     mServerConnection = sconn;
-    mActivityComm = acomm;
-    mJobCenter = new JobCenter(context);
+//    mActivityComm = acomm;
+    mJobCenter = jobCenter;
   }
 
   private enum ClientStates implements StateEnum {
@@ -138,7 +137,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
 
     @Override
     public void handle(Object... data) {
-      Log.e("TransitionErrorHandler", "UNEXPECTED TRANSITION -> FALLBACK TO IDLE");
+      LOGGER.severe("UNEXPECTED TRANSITION -> FALLBACK TO IDLE");
       mServerConnection.sendMessage(new Message(Instruction.NACK));
     }
   }
@@ -155,7 +154,8 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
 
     @Override
     public void handle(Object... data) {
-      mActivityComm.displayCheckcode((String) data[0]);
+      // TODO: ...
+//      mActivityComm.displayCheckcode((String) data[0]);
     }
   }
 
@@ -227,7 +227,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
       mCurrentJobID = (String) data[1];
       mCurrentJobParameter = (byte[]) data[2];
 
-      Log.i("JobReceivedHandler", String.format(
+      LOGGER.info(String.format(
               "Received Job %s, for Task %s with %d params.",
               mCurrentJobID,
               mCurrentRunnableID,
@@ -267,7 +267,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
       String jobID = (String) data[1];
       DistributedJobResult[] results = (DistributedJobResult[]) data[2];
       Long exectime = (Long) data[3];
-      Log.i("JobReceivedHandler", String.format(
+      LOGGER.info(String.format(
               "Sending result for Job %s of Task %s with %d params.",
               jobID,
               taskID,

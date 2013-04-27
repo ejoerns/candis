@@ -1,4 +1,4 @@
-package candis.client.service;
+package candis.client.android.service;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

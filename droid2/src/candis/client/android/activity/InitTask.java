@@ -1,4 +1,4 @@
-package candis.client.activity;
+package candis.client.android.activity;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -11,9 +11,11 @@ import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 import candis.client.DeviceProfiler;
+//import candis.client.DeviceProfiler;
 import candis.client.DroidContext;
+import candis.client.android.AndroidDeviceProfiler;
 import candis.common.DroidID;
-import candis.distributed.droid.StaticProfile;
+import candis.distributed.droid.DeviceProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
 
@@ -83,9 +85,9 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
       publishProgress("Starting Profiler...", Toast.LENGTH_SHORT);
     }
     // load or generate profile
-    StaticProfile profile;
+    DeviceProfile profile;
     if (mGeneradeProfile) {
-      profile = new DeviceProfiler(mActivity.getApplicationContext()).profile();
+      profile = new AndroidDeviceProfiler(mActivity.getApplicationContext()).profile();
       DeviceProfiler.writeProfile(mProfileFile, profile);
 //      publishProgress("Profile generated", Toast.LENGTH_SHORT);
     }

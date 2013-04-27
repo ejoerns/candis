@@ -1,4 +1,4 @@
-package candis.client.activity;
+package candis.client.android.activity;
 
 import android.app.ActivityManager;
 import android.content.Context;
@@ -15,8 +15,8 @@ import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import candis.client.R;
-import candis.client.service.ActivityCommunicator;
-import candis.client.service.BackgroundService;
+import candis.client.android.service.ActivityCommunicator;
+import candis.client.android.service.BackgroundService;
 import candis.common.Settings;
 import java.io.File;
 import java.util.concurrent.ExecutionException;

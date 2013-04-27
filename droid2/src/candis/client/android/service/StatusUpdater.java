@@ -1,9 +1,9 @@
-package candis.client.service;
+package candis.client.android.service;
 
 import android.app.NotificationManager;
 import android.content.Context;
 import candis.client.JobCenterHandler;
-import candis.client.activity.CandisNotification;
+import candis.client.android.CandisNotification;
 import candis.client.comm.ServerConnection;
 import candis.common.Message;
 import candis.distributed.DistributedJobResult;

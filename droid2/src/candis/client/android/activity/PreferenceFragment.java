@@ -1,4 +1,4 @@
-package candis.client.activity;
+package candis.client.android.activity;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;

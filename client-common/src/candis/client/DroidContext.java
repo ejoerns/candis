@@ -1,7 +1,7 @@
 package candis.client;
 
 import candis.common.DroidID;
-import candis.distributed.droid.StaticProfile;
+import candis.distributed.droid.DeviceProfile;
 import java.io.Serializable;
 
 /**
@@ -15,7 +15,7 @@ import java.io.Serializable;
 public class DroidContext implements Serializable {
 
   private DroidID mID;
-  private StaticProfile mProfile;
+  private DeviceProfile mProfile;
   private static DroidContext mInstance = null;
 
   protected DroidContext() {
@@ -41,11 +41,11 @@ public class DroidContext implements Serializable {
     return mID;
   }
 
-  public void setProfile(final StaticProfile profile) {
+  public void setProfile(final DeviceProfile profile) {
     mProfile = profile;
   }
 
-  public StaticProfile getProfile() {
+  public DeviceProfile getProfile() {
     return mProfile;
   }
 }

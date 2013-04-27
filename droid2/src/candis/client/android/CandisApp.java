@@ -1,4 +1,4 @@
-package candis.client;
+package candis.client.android;
 
 import android.app.Application;
 import android.content.Context;

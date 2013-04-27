@@ -1,4 +1,4 @@
-package candis.client.activity;
+package candis.client.android.activity;
 
 import android.os.Bundle;
 import android.preference.EditTextPreference;

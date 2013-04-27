@@ -1,4 +1,4 @@
-package candis.client.service;
+package candis.client.android.service;
 
 import android.app.Service;
 import static android.content.Context.MODE_MULTI_PROCESS;
@@ -14,8 +14,9 @@ import candis.client.CandisSettings;
 import candis.client.ClientFSM;
 import candis.client.DeviceProfiler;
 import candis.client.DroidContext;
+import candis.client.JobCenter;
 import candis.client.R;
-import candis.client.activity.CandisNotification;
+import candis.client.android.CandisNotification;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.ServerConnection;
 import candis.client.comm.ServerConnection.Status;
@@ -166,7 +167,9 @@ public class BackgroundService extends Service {
                                          trustmanager);
       mConnection.addReceiver(mStatusUpdater);
       // init state machine
-      mStateMachine = new ClientFSM(getApplicationContext(), mConnection, mActivityCommunicator);
+      mStateMachine = new ClientFSM(
+              new JobCenter(getApplicationContext().getFilesDir(), getApplicationContext().getCacheDir()),
+              mConnection);
       mStateMachine.init();
       mStateMachine.getJobCenter().setMulticore(mSharedPref.getBoolean("pref_key_multithread", true));
 

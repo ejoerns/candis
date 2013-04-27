@@ -1,4 +1,4 @@
-package candis.client.activity;
+package candis.client.android.activity;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -11,7 +11,7 @@ import android.support.v4.app.DialogFragment;
 import android.util.Log;
 import candis.client.R;
 import candis.client.comm.ReloadableX509TrustManager;
-import candis.client.service.ActivityCommunicator;
+import candis.client.android.service.ActivityCommunicator;
 import java.security.cert.X509Certificate;
 import java.util.logging.Level;
 import java.util.logging.Logger;

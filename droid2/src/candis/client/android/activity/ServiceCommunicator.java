@@ -1,4 +1,4 @@
-package candis.client.activity;
+package candis.client.android.activity;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -14,8 +14,8 @@ import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.widget.Toast;
-import candis.client.service.ActivityCommunicator;
-import candis.client.service.BackgroundService;
+import candis.client.android.service.ActivityCommunicator;
+import candis.client.android.service.BackgroundService;
 import java.security.cert.X509Certificate;
 import java.util.logging.Level;
 import java.util.logging.Logger;

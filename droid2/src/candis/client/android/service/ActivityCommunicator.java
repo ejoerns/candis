@@ -1,4 +1,4 @@
-package candis.client.service;
+package candis.client.android.service;
 
 import android.app.NotificationManager;
 import android.content.Context;
@@ -10,7 +10,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 import candis.client.ClientFSM;
-import candis.client.activity.CandisNotification;
+import candis.client.android.CandisNotification;
 import candis.client.comm.ReloadableX509TrustManager;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
