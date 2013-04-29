@@ -53,7 +53,8 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
     CHECKCODE_ENTERED,
     BINARY_REQUIRED,
     JOB_DONE,
-    JOB_STARTED
+    JOB_STARTED,
+    JOB_REJECTED
   }
 
   public JobCenter getJobCenter() {
@@ -299,24 +300,31 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
   }
 
   //--- JobCenter callbacks
-  public void onAction(int action, String runnableID) {
-  }
-
+  @Override
   public void onBinaryReceived(String runnableID) {
   }
 
+  @Override
   public void onInitialParameterReceived(String runnableID) {
   }
 
+  @Override
   public void onJobExecutionStart(String runnableID, String jobID) {
     process(Transitions.JOB_STARTED);
   }
 
+  @Override
   public void onJobExecutionDone(String runnableID, String jobID, DistributedJobResult[] results, long exectime) {
     process(Transitions.JOB_DONE, runnableID, jobID, results, exectime);
   }
 
+  @Override
   public void onBinaryRequired(String taskID) {
     process(Transitions.BINARY_REQUIRED, taskID);
+  }
+
+  @Override
+  public void onJobRejected(String taskID, String jobID) {
+    process(Transitions.JOB_REJECTED, taskID, jobID);
   }
 }

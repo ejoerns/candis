@@ -18,12 +18,13 @@ import java.io.ObjectInputStream;
 import java.io.OptionalDataException;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -45,26 +46,29 @@ public class JobCenter {
   private static final String TASKE_NAME_POSTFIX = ".jar";
   private static final String IPARAM_NAME_POSTFIX = ".par";
   /// maximum number of tasks held in cache
-  private final Map<String, TaskFile> mTaskCache = new HashMap<String, TaskFile>();
-  private TaskProvider mTaskProvider;
+  private final Set<String> mTaskCache = Collections.newSetFromMap(new HashMap<String, Boolean>());
+  private final TaskFileManipulator mTaskFileManiuplator;
+  private final TaskProvider mTaskProvider;
   /// List of all registered handlers
   private final List<JobCenterHandler> mHandlerList = new LinkedList<JobCenterHandler>();
   /// Holds mUsableCores threads for jobs processing.
-  private ExecutorService mThreadPool;
-  final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(5);
-  final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
-  final Object execdone = new Object();
+  private final ExecutorService mThreadPool;
+  private final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(5);
+  private final Queue<DistributedJobParameter> parameters = new ConcurrentLinkedQueue<DistributedJobParameter>();
   private int mUsableCores;
   private final File mFilesDir;
   private final File mCacheDir;
+  private Thread mJobThread;
+  private final List<ExecutionChecker> mExecCheckers = new LinkedList<ExecutionChecker>();
 
   public JobCenter(File filesDir, File cacheDir) {
     mFilesDir = filesDir;
     mCacheDir = cacheDir;
     mUsableCores = DroidContext.getInstance().getProfile().processors;
     mThreadPool = Executors.newFixedThreadPool(mUsableCores);
-    mTaskProvider = new TaskProvider(mCacheDir, mTaskCache);
-    loadTaskCache();
+    mTaskFileManiuplator = new TaskFileManipulator(mFilesDir);
+    mTaskProvider = new TaskProvider(mCacheDir);
+    populateTaskCache();
   }
 
   /**
@@ -90,7 +94,7 @@ public class JobCenter {
    * Note: If more than MAX_TASK_CACHE runnables were found, all
    * remaining runnables will be deleted.
    */
-  private void loadTaskCache() {
+  private void populateTaskCache() {
     // load all available jobs.
     int fileCount = 0;
     for (File taskFile : jarFinder(mFilesDir.getAbsolutePath())) {
@@ -108,8 +112,7 @@ public class JobCenter {
       }
       // if everything is okay, add to current cache map
       else {
-        TaskFile file = new TaskFile(mFilesDir, taskID);
-        mTaskCache.put(TAG, file);
+        mTaskCache.add(taskID);
       }
     }
   }
@@ -124,6 +127,7 @@ public class JobCenter {
     File dir = new File(dirName);
 
     return dir.listFiles(new FilenameFilter() {
+      @Override
       public boolean accept(File dir, String filename) {
         return filename.endsWith(".jar");
       }
@@ -135,29 +139,27 @@ public class JobCenter {
    *
    * @param binary
    */
-  public void addRunnable(final String runnableID, final byte[] binary, final byte[] iparam) {
+  public void addRunnable(final String taskID, final byte[] binary, final byte[] iparam) {
 
     // If runnable is already in cache, skip
-    if (mTaskCache.containsKey(runnableID)) {
-      Log.w(TAG, String.format("Warning: Task with ID %s already loaded", runnableID));
+    if (mTaskCache.contains(taskID)) {
+      Log.w(TAG, String.format("Warning: Task with ID %s already loaded", taskID));
       return;
     }
 
     // store in file and add to cache map
-    TaskFile taskFile = new TaskFile(mFilesDir, runnableID);
-    taskFile.store(binary, iparam);
+    mTaskFileManiuplator.store(taskID, binary, iparam);
 
     if (mTaskCache.size() >= MAX_TASK_CACHE) {
       // TODO: delte oldest one
     }
 
-    mTaskCache.put(runnableID, taskFile);
+    mTaskCache.add(taskID);
 
     // notify listeners
     for (JobCenterHandler handler : mHandlerList) {
-      handler.onBinaryReceived(runnableID);
+      handler.onBinaryReceived(taskID);
     }
-
   }
 
   /**
@@ -168,37 +170,46 @@ public class JobCenter {
    * Calls onJobExecutionDone() when processing finished.
    * Assures that order of results matches order of parameters.
    *
-   * @param runnableID
+   * @param taskID
    * @param jobID
    * @param param Return true if task available, otherwise false
    */
-  public void processJob(final String runnableID, final String jobID, byte[] param) {
-    if (!mTaskCache.containsKey(runnableID)) {
-      // notify handlers about missing binary
+  public void processJob(final String taskID, final String jobID, byte[] param) {
+
+    if (!mTaskCache.contains(taskID)) {
       for (JobCenterHandler handler : mHandlerList) {
-        System.out.println("Notifying handler... " + handler);
-        handler.onBinaryRequired(runnableID);
+        handler.onBinaryRequired(taskID);
       }
       return;
     }
 
-    final DistributedJobParameter[] params = mTaskProvider.deserializeJobParameters(runnableID, param);
+    final DistributedJobParameter[] params;
+    try {
+      params = mTaskProvider.deserializeJobParameters(taskID, param);
+    }
+    catch (TaskNotFoundException ex) {
+      LOGGER.severe("Failed loading Task " + taskID);
+      for (JobCenterHandler handler : mHandlerList) {
+        handler.onJobRejected(taskID, jobID);
+      }
+      return;
+    }
 
-    // Check if task can be executed
+    // Check if task can be  onJobRejected(taskID);executed
     if (!checkExecution()) {
       return;
     }
 
     // notify handlers about start
     for (JobCenterHandler handler : mHandlerList) {
-      handler.onJobExecutionStart(runnableID, jobID);
+      handler.onJobExecutionStart(taskID, jobID);
     }
 
     parameters.clear();
     parameters.addAll(Arrays.asList(params));
     final DistributedJobResult[] results = new DistributedJobResult[parameters.size()];
 
-    new Thread(new Runnable() {
+    mJobThread = new Thread(new Runnable() {
       public void run() {
         long startTime, endTime;
         startTime = System.currentTimeMillis();
@@ -210,10 +221,11 @@ public class JobCenter {
         if (usedThreads == 0) {
           LOGGER.warning("Scheduling on 0 Threads, thus canceled");
           for (JobCenterHandler handler : mHandlerList) {
-            handler.onJobExecutionDone(null, null, null, 0);
+            handler.onJobExecutionDone(taskID, jobID, null, 0);
           }
           return;
         }
+
         LOGGER.info(String.format("usedThreads: %d", usedThreads));
         final int paramsPerThread = (parameters.size() + (usedThreads - 1)) / usedThreads;
         LOGGER.info(String.format("paramsPerThread: %d", paramsPerThread));
@@ -225,12 +237,12 @@ public class JobCenter {
 
           mThreadPool.execute(new Runnable() {
             public void run() {
-              Log.i(TAG, "Running Thread for Job for Task " + runnableID + " with TaskID " + runnableID);
-//              Log.i(TAG, "Threads: " + mThreadPool.getActiveCount());
+              Log.i(TAG, "Running Thread for Job for Task " + taskID + " with TaskID " + taskID);
+
               DistributedRunnable currentTask;
               try {
-                currentTask = mTaskProvider.newRunnableInstance(runnableID);
-                currentTask.setInitialParameter(mTaskProvider.getInitialParam(runnableID));
+                currentTask = mTaskProvider.newRunnableInstance(taskID);
+                currentTask.setInitialParameter(mTaskProvider.getInitialParam(taskID));
                 // execute job for all parameters, assure order
                 for (int j = 0; j < paramsPerThread && !parameters.isEmpty(); j++) {
                   DistributedJobParameter runParam;
@@ -251,6 +263,9 @@ public class JobCenter {
               catch (IllegalAccessException ex) {
                 LOGGER.log(Level.SEVERE, null, ex);
               }
+              catch (TaskNotFoundException ex) {
+                LOGGER.log(Level.SEVERE, null, ex);
+              }
             }
           });
         }
@@ -261,19 +276,29 @@ public class JobCenter {
           endTime = System.currentTimeMillis();
           for (JobCenterHandler handler : mHandlerList) {
             handler.onJobExecutionDone(
-                    runnableID,
+                    taskID,
                     jobID,
                     results,
                     endTime - startTime);
           }
         }
         catch (InterruptedException ex) {
-          LOGGER.log(Level.SEVERE, null, ex);
+          LOGGER.log(Level.INFO, null, ex);
         }
         System.out.print("Yeah, they finished!...");
       }
-    }).start();
+    });
+    mJobThread.start();
+  }
 
+  /**
+   * Stops currently running job.
+   */
+  public void stopCurrentJob() {
+    mThreadPool.shutdownNow();
+    if (mJobThread != null) {
+      mJobThread.interrupt();
+    }
   }
 
   /**
@@ -283,17 +308,7 @@ public class JobCenter {
    * @return true if known, otherwise false
    */
   public boolean isTaskAvailable(String runnableID) {
-    return mTaskCache.containsKey(runnableID);
-  }
-
-  /**
-   * Checks if the execution is ok.
-   *
-   * @todo Move to FSM level
-   * @return
-   */
-  private boolean checkExecution() {
-    return true;
+    return mTaskCache.contains(runnableID);
   }
 
   /**
@@ -321,27 +336,60 @@ public class JobCenter {
     mHandlerList.add(handler);
   }
 
-  private static class TaskFile {
+  /**
+   * Checks if the execution is ok.
+   *
+   * @todo Move to FSM level
+   * @return
+   */
+  private boolean checkExecution() {
+    for (ExecutionChecker checker : mExecCheckers) {
+      if (checker.checkExecution() == false) {
+        return false;
+      }
+    }
+    return true;
+  }
 
-    private File mRunnable;
-    private File mIParam;
+  public void addExecutionChecker(ExecutionChecker checker) {
+    mExecCheckers.add(checker);
+  }
 
-    public TaskFile(File cacheDir, String taskID) {
-      mRunnable = new File(cacheDir, taskID.concat(TASKE_NAME_POSTFIX));
-      mIParam = new File(cacheDir, taskID.concat(IPARAM_NAME_POSTFIX));
+  public interface ExecutionChecker {
+
+    /**
+     *
+     * @return Must return true if check is ok, otherwise false
+     */
+    public boolean checkExecution();
+  }
+
+  /**
+   * Allows to save and modify tasks.
+   */
+  private static class TaskFileManipulator {
+
+    private File mCacheDir;
+
+    public TaskFileManipulator(File cacheDir) {
+      mCacheDir = cacheDir;
     }
 
-    public File getRunnableFile() {
-      return mRunnable;
+    public File getRunnableFile(String taskID) {
+      return new File(mCacheDir, taskID.concat(TASKE_NAME_POSTFIX));
     }
 
-    public File getInitParamFile() {
-      return mIParam;
+    public File getInitParamFile(String taskID) {
+      return new File(mCacheDir, taskID.concat(IPARAM_NAME_POSTFIX));
     }
 
-    private void store(byte[] binary, byte[] iparam) {
-      writeByteArrayToFile(binary, mRunnable);
-      writeByteArrayToFile(iparam, mIParam);
+    private void store(String taskID, byte[] binary, byte[] iparam) {
+      writeByteArrayToFile(binary, getRunnableFile(taskID));
+      writeByteArrayToFile(iparam, getInitParamFile(taskID));
+    }
+
+    private void storeInitParam(String taskID, byte[] iparam) {
+      writeByteArrayToFile(iparam, getInitParamFile(taskID));
     }
 
     private static void writeByteArrayToFile(final byte[] data, final File filename) {
@@ -374,9 +422,12 @@ public class JobCenter {
 
   /**
    * Provides access to stored Task files.
+   *
+   * New instances of DistributedRunnables, initial parameters
    */
   private static class TaskProvider {
 
+    // Holds the ID of the currently loaded task.
     private String mCurrentTaskID;
     /// Holds the runnable Class for Task
     private Class mRunnableClass;
@@ -387,7 +438,9 @@ public class JobCenter {
     /// Directory for tempory data 
     private final File mTmpDir;
     /// Map of all tasks available on disk.
-    private final Map<String, TaskFile> mTaskCache;
+//    private final Map<String, TaskFileManipulator> mTaskCache;
+    ///
+    private final TaskFileManipulator mTFManipulator;
 
     /**
      * Creates new TaskProvider.
@@ -395,9 +448,9 @@ public class JobCenter {
      * @param tmpDir Directory in which temporary data may be stored.
      * @param taskCache Map of all tasks available on disk.
      */
-    public TaskProvider(File tmpDir, Map<String, TaskFile> taskCache) {
+    public TaskProvider(File tmpDir) {
       mTmpDir = tmpDir;
-      mTaskCache = taskCache;
+      mTFManipulator = new TaskFileManipulator(mTmpDir);
     }
 
     /**
@@ -407,7 +460,7 @@ public class JobCenter {
      * returned.
      * @return Initial parameter
      */
-    public DistributedJobParameter getInitialParam(String taskID) {
+    public DistributedJobParameter getInitialParam(String taskID) throws TaskNotFoundException {
       loadTask(taskID);
       return mInitialParam;
     }
@@ -420,30 +473,25 @@ public class JobCenter {
      * @throws InstantiationException
      * @throws IllegalAccessExceptions
      */
-    public DistributedRunnable newRunnableInstance(String taskID) throws InstantiationException, IllegalAccessException {
+    public DistributedRunnable newRunnableInstance(String taskID) throws InstantiationException, IllegalAccessException, TaskNotFoundException {
       loadTask(taskID);
       return (DistributedRunnable) mRunnableClass.newInstance();
     }
 
-    public void setInitialParam(String taskID, DistributedJobParameter iparam) {
-      loadTask(taskID);
-      mInitialParam = iparam;
-    }
-
-    private void loadTask(String taskID) {
+    private void loadTask(String taskID) throws TaskNotFoundException {
       // if already loaded, return without loading
       if (taskID.equals(mCurrentTaskID)) {
         return;
       }
       mCurrentTaskID = taskID;
 
-      loadClassesFromJar(mTaskCache.get(taskID).getRunnableFile());
+      loadClassesFromJar(mTFManipulator.getRunnableFile(taskID));
 
       // load initial parameter from file
       RandomAccessFile file = null;
       try {
         try {
-          file = new RandomAccessFile(mTaskCache.get(taskID).getInitParamFile(), "r");
+          file = new RandomAccessFile(mTFManipulator.getInitParamFile(taskID), "r");
           byte[] rawdata = new byte[(int) file.length()];
           file.read(rawdata);
           mInitialParam = deserializeJobParameters(taskID, rawdata)[0];
@@ -456,6 +504,7 @@ public class JobCenter {
       }
       catch (FileNotFoundException ex) {
         LOGGER.log(Level.SEVERE, null, ex);
+        throw new TaskNotFoundException();
       }
       catch (IOException ex) {
         LOGGER.log(Level.SEVERE, null, ex);
@@ -468,7 +517,7 @@ public class JobCenter {
      * @param runnableID runnable ID to deserialize for
      * @return Loaded DistributedJobParameter
      */
-    private DistributedJobParameter[] deserializeJobParameters(String taskID, byte[] rawdata) {
+    private DistributedJobParameter[] deserializeJobParameters(String taskID, byte[] rawdata) throws TaskNotFoundException {
       //
       loadTask(taskID);
 
@@ -500,9 +549,7 @@ public class JobCenter {
      * @param runnableID
      * @param jarfile
      */
-    private void loadClassesFromJar(final File jarfile) {
-
-//      mTaskClasses.clear();
+    private void loadClassesFromJar(final File jarfile) throws TaskNotFoundException {
 
       LOGGER.info("Calling DexClassLoader with jarfile: " + jarfile.getAbsolutePath());
       final File tmpDir = new File(mTmpDir, "dex");
@@ -537,7 +584,6 @@ public class JobCenter {
             if (loadedClass == null) {
               LOGGER.severe("loadedClass is null");
             }
-//            mTaskClasses.add(loadedClass);
             // add task class to task list
             if (DistributedRunnable.class.isAssignableFrom(loadedClass)) {
               mRunnableClass = loadedClass;
@@ -550,7 +596,11 @@ public class JobCenter {
       }
       catch (IOException e) {
         LOGGER.severe(e.getMessage());
+        throw new TaskNotFoundException();
       }
     }
+  }
+
+  public static class TaskNotFoundException extends FileNotFoundException {
   }
 }
