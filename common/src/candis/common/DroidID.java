@@ -7,7 +7,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,131 +16,111 @@ import java.util.logging.Logger;
  *
  * @author Enrico Joerns
  */
-public class DroidID implements Serializable {
+public class DroidID {
 
-	/// Length of ID in bits
-	public static final int ID_LENGTH = 4096;
-	private final byte mBytes[];
+  /// Length of ID in bits
+  public static final int ID_LENGTH = 4096;
+  private final byte[] mBytes;
 
-	public DroidID() {
-		mBytes = new byte[ID_LENGTH / 8];
-	}
+  private DroidID(byte[] bytes) {
+    mBytes = bytes;
+  }
 
-	/**
-	 * Copy constructor
-	 *
-	 * @param id
-	 */
-	public DroidID(final DroidID id) {
-		mBytes = id.getBytes();
-	}
+  /**
+   * Reads random ID from file.
+   *
+   * @param file Name of file to read data from
+   * @return
+   */
+  public static DroidID readFromFile(final File file) throws FileNotFoundException {
+    byte[] bytes = new byte[ID_LENGTH / 8];
+    InputStream in = new FileInputStream(file);
+    try {
+      in.read(bytes);
+    }
+    catch (IOException ex) {
+      Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    finally {
+      try {
+        in.close();
+      }
+      catch (IOException ex) {
+        Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+    return new DroidID(bytes);
+  }
 
-	/**
-	 * Writes random ID to file.
-	 *
-	 * @param file Name of file to store data to
-	 * @param id
-	 */
-	public static void writeToFile(final File file, final DroidID id) throws FileNotFoundException {
-		OutputStream out = new FileOutputStream(file);
-		try {
-			out.write(id.mBytes);
-		}
-		catch (IOException ex) {
-			Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		finally {
-			try {
-				out.close();
-			}
-			catch (IOException ex) {
-				Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
-			}
-		}
-	}
+  public static DroidID readFromFile(final String file) throws FileNotFoundException {
+    return readFromFile(new File(file));
+  }
 
-	public static void writeToFile(final String file, final DroidID id) throws FileNotFoundException {
-		writeToFile(new File(file), id);
-	}
+  /**
+   * Generates and saves new id with ID_LENGTH bit random sequence.
+   *
+   * @param file File name for new generated id file
+   * @return RandomID that was written to file
+   */
+  public static DroidID generate(final File file) throws FileNotFoundException {
+    byte[] bytes = new byte[ID_LENGTH / 8];
+    SecureRandom random = new SecureRandom();
+    random.nextBytes(bytes);
 
-	/**
-	 * Reads random ID from file.
-	 *
-	 * @param file Name of file to read data from
-	 * @return
-	 */
-	public static DroidID readFromFile(final File file) throws FileNotFoundException {
-		InputStream in = new FileInputStream(file);
-		DroidID randId = new DroidID();
-		try {
-			in.read(randId.mBytes);
-		}
-		catch (IOException ex) {
-			Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		finally {
-			try {
-				in.close();
-			}
-			catch (IOException ex) {
-				Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
-			}
-		}
-		return randId;
-	}
+    DroidID id = new DroidID(bytes);
 
-	public static DroidID readFromFile(final String file) throws FileNotFoundException {
-		return readFromFile(new File(file));
-	}
+    OutputStream out = new FileOutputStream(file);
+    try {
+      out.write(id.mBytes);
+    }
+    catch (IOException ex) {
+      Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    finally {
+      try {
+        out.close();
+      }
+      catch (IOException ex) {
+        Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
+      }
+    }
+    return id;
+  }
 
-	/**
-	 * Creates new id file with 4096 bit random sequence.
-	 *
-	 * @param file
-	 * @return RandomID that was written to file
-	 */
-	public static DroidID init(final File file) {
-		SecureRandom random = new SecureRandom();
-		DroidID id = new DroidID();
-		random.nextBytes(id.mBytes);
+  public static DroidID generate(final String file) throws FileNotFoundException {
+    return generate(new File(file));
+  }
 
-		OutputStream out = null;
-		try {
-			out = new FileOutputStream(file);
-			out.write(id.mBytes);
-		}
-		catch (IOException ex) {
-			Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		finally {
-			try {
-				out.close();
-			}
-			catch (IOException ex) {
-				Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
-			}
-		}
-		return id;
-	}
+  /**
+   * Returns the byte array representing the droid ID
+   *
+   * @return ID array of length ID_LENGTH
+   */
+  public byte[] getBytes() {
+    return mBytes;
+  }
 
-	public static DroidID init(final String file) {
-		return init(new File(file));
-	}
+  /**
+   * Returns SHA-1 hash of the ID.
+   *
+   * For non-critical identification the full id normally is to long.
+   * For this the SHA-1 of the id is intended.
+   *
+   * @return SHA-1 hash of id bytes
+   */
+  public String toSHA1() {
+    return Utilities.toSHA1String(mBytes);
+  }
 
-	/**
-	 *
-	 * @param b
-	 */
-	public byte[] getBytes() {
-		return mBytes;
-	}
-
-	public String toSHA1() {
-		return Utilities.toSHA1String(mBytes);
-	}
-
-	@Override
-	public String toString() {
-		return toSHA1();
-	}
+  /**
+   * Returns string representation of ID.
+   *
+   * This is identical to toSHA1().
+   *
+   * @return String representaiton of ID
+   */
+  @Override
+  public String toString() {
+    return toSHA1();
+  }
 }

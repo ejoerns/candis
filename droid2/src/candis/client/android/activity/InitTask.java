@@ -18,6 +18,8 @@ import candis.common.DroidID;
 import candis.distributed.droid.DeviceProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * InitTask, checks for ID, profile, ?truststore? and generates if not
@@ -64,11 +66,18 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
       mGenerateID = true;
 //      publishProgress("Generating ID...", Toast.LENGTH_SHORT);
     }
+
     // load or generate ID
     DroidID id = null;
     if (mGenerateID) {
-      id = DroidID.init(mIDFile);
-      publishProgress("Generated ID (SHA-1): " + id.toSHA1(), Toast.LENGTH_LONG);
+      try {
+        id = DroidID.generate(mIDFile);
+        publishProgress("Generated ID (SHA-1): " + id.toSHA1(), Toast.LENGTH_LONG);
+      }
+      catch (FileNotFoundException ex) {
+        Logger.getLogger(InitTask.class.getName()).log(Level.SEVERE, null, ex);
+        publishProgress("ID generation failed", Toast.LENGTH_LONG);
+      }
     }
     else {
       try {
@@ -78,12 +87,14 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
         Log.e(TAG, ex.toString());
       }
     }
+
     // check for profile file
     if (!mProfileFile.exists()) {
       Log.v(TAG, "Pofile file " + mProfileFile + " does not exist. Run Profiling...");
       mGeneradeProfile = true;
       publishProgress("Starting Profiler...", Toast.LENGTH_SHORT);
     }
+
     // load or generate profile
     DeviceProfile profile;
     if (mGeneradeProfile) {

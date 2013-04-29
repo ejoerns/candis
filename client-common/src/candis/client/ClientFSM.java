@@ -190,7 +190,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
       // send registration message to master
       mServerConnection.sendMessage(
               Message.create(Instruction.REGISTER,
-                             DroidContext.getInstance().getID(),
+                             DroidContext.getInstance().getID().getBytes(),
                              DroidContext.getInstance().getProfile()));
     }
   }
@@ -201,7 +201,7 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
     public void handle(Object... data) {
       // send registration message to master
       mServerConnection.sendMessage(
-              Message.create(Instruction.UNREGISTER, DroidContext.getInstance().getID()));
+              Message.create(Instruction.UNREGISTER, DroidContext.getInstance().getID().toSHA1()));
     }
   }
 
