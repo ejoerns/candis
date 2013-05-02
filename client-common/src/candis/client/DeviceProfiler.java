@@ -8,11 +8,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OptionalDataException;
 import java.io.StreamCorruptedException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Provides functionality to get static profile information from the device.
+ * Provides functionality to get static getProfile information from the device.
  *
  * @author Enrico Joerns
  */
@@ -21,19 +23,30 @@ public abstract class DeviceProfiler {
   private static final String TAG = DeviceProfiler.class.getName();
   private static final Logger LOGGER = Logger.getLogger(TAG);
 
+  public DeviceProfiler() {
+  }
+
   /**
-   * Runs profiling tests and returns a StaticProfile object including all
-   * collected informations.
+   * If a profile file exists, profile will be loaded and returned.
+   * Otherwise a new device profile is generated and saved.
    *
-   * @return
+   * @return Loaded or generated device profile
    */
-  public DeviceProfile profile() {
-    return new DeviceProfile(
-            getDeviecID(),
-            getModel(),
-            getMemorySize(),
-            getNumCores(),
-            0);// TODO: remove field
+  public DeviceProfile getProfile(File profileFile) throws FileNotFoundException {
+
+    DeviceProfile profile;
+    if (profileFile.exists()) {
+      profile = readProfile(profileFile);
+    }
+    else {
+      profile = new DeviceProfile(
+              getDeviecID(),
+              getModel(),
+              getMemorySize(),
+              getNumCores(),
+              0);// TODO: remove field
+    }
+    return profile;
   }
 
   /**
@@ -71,49 +84,47 @@ public abstract class DeviceProfiler {
   public abstract String getModel();
 
   /**
-   * Reads profile data from given file.
+   * Reads getProfile data from given file.
    *
-   * @param f File to read profile from
+   * @param f File to read getProfile from
    * @return StaticProfile instance
    */
-  public static DeviceProfile readProfile(File f) {
+  public static DeviceProfile readProfile(File f) throws FileNotFoundException {
     ObjectInputStream ois = null;
+    Object obj = null;
+    DeviceProfile profile = null;
     try {
-      ois = new ObjectInputStream(new FileInputStream(f));
+      try {
+        ois = new ObjectInputStream(new FileInputStream(f));
 
-      Object obj = ois.readObject();
+        obj = ois.readObject();
+      }
+      finally {
+        if (ois != null) {
+          ois.close();
+        }
+      }
 
       if (obj instanceof DeviceProfile) {
-        return (DeviceProfile) obj;
+        profile = (DeviceProfile) obj;
       }
       else {
         LOGGER.severe("invalid profile file");
-        return null;
       }
     }
     catch (StreamCorruptedException ex) {
       LOGGER.severe(ex.toString());
     }
-    catch (FileNotFoundException ex) {
-      LOGGER.severe("Profile file " + f + " not found!");
+    catch (OptionalDataException ex) {
+      Logger.getLogger(DeviceProfiler.class.getName()).log(Level.SEVERE, null, ex);
     }
     catch (IOException ex) {
-      LOGGER.severe(ex.toString());
+      Logger.getLogger(DeviceProfiler.class.getName()).log(Level.SEVERE, null, ex);
     }
     catch (ClassNotFoundException ex) {
-      LOGGER.severe(ex.toString());
+      Logger.getLogger(DeviceProfiler.class.getName()).log(Level.SEVERE, null, ex);
     }
-    finally {
-      if (ois != null) {
-        try {
-          ois.close();
-        }
-        catch (IOException ex) {
-          LOGGER.severe(ex.toString());
-        }
-      }
-    }
-    return null;
+    return profile;
   }
 
   /**

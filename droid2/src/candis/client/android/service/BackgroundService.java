@@ -10,17 +10,16 @@ import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
-import candis.client.CandisSettings;
 import candis.client.ClientFSM;
-import candis.client.DeviceProfiler;
 import candis.client.DroidContext;
 import candis.client.JobCenter;
 import candis.client.R;
+import candis.client.android.AndroidDeviceProfiler;
+import candis.client.android.AndroidTaskProvider;
 import candis.client.android.CandisNotification;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.ServerConnection;
 import candis.client.comm.ServerConnection.Status;
-import candis.common.DroidID;
 import candis.common.Message;
 import candis.common.Settings;
 import java.io.File;
@@ -39,10 +38,10 @@ public class BackgroundService extends Service {
   private boolean mRunning = false;
   private SystemStatusReceiver mSystemStatusController;
   private SharedPreferences mSharedPref;
-  private ServerConnection mConnection;
+//  private ServerConnection mConnection;
   private ActivityCommunicator mActivityCommunicator;
   private StatusUpdater mStatusUpdater;
-  private ClientFSM mStateMachine;
+//  private ClientFSM mStateMachine;
 
   /**
    * When binding to the service, we return an interface to our messenger
@@ -65,7 +64,7 @@ public class BackgroundService extends Service {
     super.onCreate();
 
     // Load settings from .properties
-    Settings.load(this.getResources().openRawResource(R.raw.settings));
+//    Settings.load(this.getResources().openRawResource(R.raw.settings));
 
     // loader shared preferences
 //    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -77,10 +76,16 @@ public class BackgroundService extends Service {
     mStatusUpdater.setEnableNotifications(mSharedPref.getBoolean("pref_key_notifications", true));
 
     try {
-      DroidContext.getInstance().setID(DroidID.readFromFile(
-              new File(this.getFilesDir(), Settings.getString("idstore"))));
-      DroidContext.getInstance().setProfile(DeviceProfiler.readProfile(
-              new File(this.getFilesDir(), Settings.getString("profilestore"))));
+//      DroidContext.getInstance().setID(DroidID.readFromFile(
+//              new File(this.getFilesDir(), Settings.getString("idstore"))));
+//      DroidContext.getInstance().setProfile(DeviceProfiler.readProfile(
+//              new File(this.getFilesDir(), Settings.getString("profilestore"))));
+      DroidContext.createInstance(
+              getResources().openRawResource(R.raw.settings), 
+              getFilesDir(), 
+              getCacheDir(), 
+              new AndroidDeviceProfiler(this), 
+              new AndroidTaskProvider(getCacheDir()));
     }
     catch (FileNotFoundException ex) {
       mStatusUpdater.notify("Failed to load profile data");
@@ -107,7 +112,9 @@ public class BackgroundService extends Service {
         if (SystemStatusReceiver.network_connected) {
           Log.e(TAG, "CONNECT IT DUDE!");
           wl.acquire();
-          mConnection.connect();
+          DroidContext.getInstance().getConnection().connect(
+                  mSharedPref.getString("pref_key_servername", "not found"),
+                  Integer.valueOf(mSharedPref.getString("pref_key_serverport", "0")));
         }
         else {
           Log.e(TAG, "DISCONNECT IT DUDE!");
@@ -148,48 +155,47 @@ public class BackgroundService extends Service {
     Log.v(TAG, "onDestroy()");
     super.onDestroy();
     unregisterReceiver(mSystemStatusController);
-    mStateMachine.process(ClientFSM.Transitions.UNREGISTER);
-    mConnection.disconnect();
+    DroidContext.getInstance().getClientFSM().process(ClientFSM.Transitions.UNREGISTER);
+    DroidContext.getInstance().getConnection().disconnect();
   }
 
   public void init() {
     // Init trustmanager and connection
     ReloadableX509TrustManager trustmanager;
     try {
-      // init trustmanager
-      trustmanager = new ReloadableX509TrustManager(
-              new File(getApplicationContext().getFilesDir(),
-                       Settings.getString("truststore")));
-      trustmanager.setCertAcceptHandler(mActivityCommunicator);
-      // init connection
-      mConnection = new ServerConnection(mSharedPref.getString("pref_key_servername", "not found"),
-                                         Integer.valueOf(mSharedPref.getString("pref_key_serverport", "0")),
-                                         trustmanager);
-      mConnection.addReceiver(mStatusUpdater);
-      // init state machine
-      mStateMachine = new ClientFSM(
-              new JobCenter(getApplicationContext().getFilesDir(), getApplicationContext().getCacheDir()),
-              mConnection);
-      mStateMachine.init();
-      mStateMachine.getJobCenter().setMulticore(mSharedPref.getBoolean("pref_key_multithread", true));
+      // getInstance trustmanager
+//      trustmanager = new ReloadableX509TrustManager(
+//              new File(getApplicationContext().getFilesDir(),
+//                       Settings.getString("truststore")));
+      DroidContext dcontext = DroidContext.getInstance();
+      dcontext.getTrustManager().setCertAcceptHandler(mActivityCommunicator);
+      // getInstance connection
+//      mConnection = new ServerConnection(trustmanager);
+      dcontext.getConnection().addReceiver(mStatusUpdater);
+      // getInstance state machine
+//      mStateMachine = new ClientFSM(
+//              new JobCenter(getApplicationContext().getFilesDir(), getApplicationContext().getCacheDir()),
+//              mConnection);
+      dcontext.getClientFSM().init();
+      dcontext.getJobCenter().setMulticore(mSharedPref.getBoolean("pref_key_multithread", true));
 
       // fsm must receive messages
-      mConnection.addReceiver(mStateMachine);
+      dcontext.getConnection().addReceiver(dcontext.getClientFSM());
       // fsm must receive activity messages
-      mActivityCommunicator.setFSM(mStateMachine);
+      mActivityCommunicator.setFSM(dcontext.getClientFSM());
 
       // we want some status updates about execution of tasks
-      mStateMachine.getJobCenter().addHandler(mStatusUpdater);
+      dcontext.getJobCenter().addHandler(mStatusUpdater);
 
       /* finally add handler to register at master automatically at incoming
        * CONNECTED event.*/
-      mConnection.addReceiver(new ServerConnection.Receiver() {
+      dcontext.getConnection().addReceiver(new ServerConnection.Receiver() {
         public void OnNewMessage(Message msg) {
         }
 
         public void OnStatusUpdate(Status status) {
           if (status == Status.CONNECTED) {
-            mStateMachine.process(ClientFSM.Transitions.REGISTER);
+            DroidContext.getInstance().getClientFSM().process(ClientFSM.Transitions.REGISTER);
           }
         }
       });

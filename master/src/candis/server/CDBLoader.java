@@ -1,7 +1,7 @@
 package candis.server;
 
-import candis.common.CandisLog;
 import candis.common.ClassloaderObjectInputStream;
+import candis.common.Utilities;
 import candis.distributed.DistributedControl;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
@@ -15,7 +15,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.OptionalDataException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
@@ -209,7 +208,7 @@ public class CDBLoader {
 
 
 			for (int i = 0; i < newCDBContext.getLibCount(); i++) {
-				classList = getClassNamesInJar(newCDBContext.getLib(i).getPath());
+				classList = Utilities.getClassNamesInJar(newCDBContext.getLib(i));
 
 				for (String classname : classList) {
 					// finds the DistributedControl instance
@@ -229,7 +228,7 @@ public class CDBLoader {
 			}
 
 			// load server binary
-			classList = getClassNamesInJar(newCDBContext.getServerBin().getPath());
+			classList = Utilities.getClassNamesInJar(newCDBContext.getServerBin());
 
 			for (String classname : classList) {
 				System.out.println("Trying to load class: " + classname);
@@ -323,13 +322,13 @@ public class CDBLoader {
 
 			// load server binary
 			entry = zipFile.getEntry(serverBinary);
-			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
+			Utilities.copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 							new FileOutputStream(cdbContext.getServerBin())));
 			LOGGER.log(Level.FINE, "Extracted server binary: {0}", entry.getName());
 
 			// load droid binary
 			entry = zipFile.getEntry(droidBinary);
-			copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
+			Utilities.copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 							new FileOutputStream(cdbContext.getDroidBin())));
 			LOGGER.log(Level.FINE, "Extracted droid binary: {0}", entry.getName());
 
@@ -339,7 +338,7 @@ public class CDBLoader {
 				File libName = cdbContext.getLibByNumber(libNumber);
 				cdbContext.addLib(libName);
 				entry = zipFile.getEntry(lib);
-				copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
+				Utilities.copyInputStream(zipFile.getInputStream(entry), new BufferedOutputStream(
 								new FileOutputStream(libName)));
 				LOGGER.log(Level.FINE, "Extracted lib: {0}", entry.getName());
 				libNumber++;
@@ -352,94 +351,6 @@ public class CDBLoader {
 		catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, null, ex);
 		}
-	}
-
-	/**
-	 *
-	 * @param in Inputstream to read from
-	 * @param out Outputstream to copy to
-	 * @throws IOException
-	 */
-	private static void copyInputStream(InputStream in, OutputStream out)
-					throws IOException {
-		final byte[] buffer = new byte[1024];
-		int len;
-
-		while ((len = in.read(buffer)) >= 0) {
-			out.write(buffer, 0, len);
-		}
-
-		in.close();
-		out.close();
-	}
-
-	/**
-	 * Finds all class names in a jar file.
-	 *
-	 * @param jarName Jar file to search in
-	 * @return List of all full class names
-	 */
-	public static List<String> getClassNamesInJar(final String jarName) {
-		final List<String> classes = new ArrayList<String>();
-		JarInputStream jarFile = null;
-		try {
-			jarFile = new JarInputStream(new FileInputStream(jarName));
-			JarEntry jarEntry;
-
-			while (true) {
-				jarEntry = jarFile.getNextJarEntry();
-				if (jarEntry == null) {
-					break;
-				}
-				if (jarEntry.getName().endsWith(".class")) {
-					LOGGER.log(Level.FINE, "Found class: " + jarEntry.getName().replaceAll("/", "\\."));
-					classes.add(removeFileExtension(jarEntry.getName().replaceAll("/", "\\.")));
-				}
-			}
-		}
-		catch (Exception e) {
-
-			LOGGER.log(Level.WARNING, "hier ist was doof", e);
-		}
-		finally {
-			try {
-				if (jarFile != null) {
-					jarFile.close();
-				}
-			}
-			catch (IOException ex) {
-				LOGGER.log(Level.SEVERE, null, ex);
-			}
-		}
-		return classes;
-	}
-
-	/**
-	 * Removes the filename extension from filename.
-	 *
-	 * @param fname filename to process
-	 * @return filename without extension
-	 */
-	public static String removeFileExtension(String fname) {
-
-		String filename;
-
-		// Remove the path upto the filename.
-		final int lastSepIdx = fname.lastIndexOf(System.getProperty("file.separator"));
-		if (lastSepIdx == -1) {
-			filename = fname;
-		}
-		else {
-			filename = fname.substring(lastSepIdx + 1);
-		}
-
-		// Remove the extension.
-		final int extensionIndex = filename.lastIndexOf('.');
-		if (extensionIndex == -1) {
-			return filename;
-		}
-
-		return filename.substring(0, extensionIndex);
 	}
 
 	public static String toHex(byte[] a) {

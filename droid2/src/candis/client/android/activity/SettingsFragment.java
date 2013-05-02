@@ -3,6 +3,7 @@ package candis.client.android.activity;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
+import android.util.Log;
 import candis.client.DroidContext;
 import candis.client.R;
 
@@ -26,7 +27,12 @@ public class SettingsFragment extends PreferenceFragment {
     // Load the preferences from an XML resource
     addPreferencesFromResource(R.xml.preferences);
     addPreferencesFromResource(R.xml.preferences2);
-    
+
+    if (DroidContext.getInstance() == null) {
+      Log.e(TAG, "Empty DroidContext");
+      return;
+    }
+
     Preference preference;
     preference = getPreferenceManager().findPreference("pref_key_droid_id");
     preference.setSummary(DroidContext.getInstance().getID().toSHA1());

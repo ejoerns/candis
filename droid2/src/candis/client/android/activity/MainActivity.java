@@ -64,7 +64,7 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
             .commit();
 
     // Load settings from R.raw.settings
-    Settings.load(this.getResources().openRawResource(R.raw.settings));
+//    Settings.load(this.getResources().openRawResource(R.raw.settings));
 
     // loader shared preferences
 //    mSharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -81,9 +81,12 @@ public class MainActivity extends FragmentActivity implements PreferenceFragment
      * needed to start the service etc.
      */
     InitTask initTask = new InitTask(
-            this,
-            new File(this.getFilesDir(), Settings.getString("idstore")),
-            new File(this.getFilesDir(), Settings.getString("profilestore")),
+            getApplicationContext(),
+            getResources().openRawResource(R.raw.settings),
+            getFilesDir(),
+            getCacheDir(),
+            //            new File(this.getFilesDir(), Settings.getString("idstore")),
+            //            new File(this.getFilesDir(), Settings.getString("profilestore")),
             new Handler());
     initTask.execute();
     try {

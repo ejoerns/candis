@@ -57,21 +57,33 @@ public class DroidID {
   }
 
   /**
-   * Generates and saves new id with ID_LENGTH bit random sequence.
+   * Loads id from file if file exists, if not, generates new id and saves it to file.
    *
    * @param file File name for new generated id file
    * @return RandomID that was written to file
    */
-  public static DroidID generate(final File file) throws FileNotFoundException {
-    byte[] bytes = new byte[ID_LENGTH / 8];
-    SecureRandom random = new SecureRandom();
-    random.nextBytes(bytes);
+  public static DroidID getInstance(final File file) throws FileNotFoundException {
+    DroidID id;
+    if (file.exists()) {
+      id = DroidID.readFromFile(file);
+    }
+    else {
+      id = DroidID.doGenerate();
+      id.writeToFile(file);
+    }
 
-    DroidID id = new DroidID(bytes);
+    return id;
+  }
+
+  public static DroidID getInstance(final String file) throws FileNotFoundException {
+    return getInstance(new File(file));
+  }
+
+  public void writeToFile(final File file) throws FileNotFoundException {
 
     OutputStream out = new FileOutputStream(file);
     try {
-      out.write(id.mBytes);
+      out.write(mBytes);
     }
     catch (IOException ex) {
       Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
@@ -84,11 +96,13 @@ public class DroidID {
         Logger.getLogger(DroidID.class.getName()).log(Level.SEVERE, null, ex);
       }
     }
-    return id;
   }
 
-  public static DroidID generate(final String file) throws FileNotFoundException {
-    return generate(new File(file));
+  public static DroidID doGenerate() {
+    byte[] bytes = new byte[ID_LENGTH / 8];
+    SecureRandom random = new SecureRandom();
+    random.nextBytes(bytes);
+    return new DroidID(bytes);
   }
 
   /**

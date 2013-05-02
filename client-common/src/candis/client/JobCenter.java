@@ -5,8 +5,8 @@ import candis.common.ClassloaderObjectInputStream;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
 import candis.distributed.DistributedRunnable;
-import dalvik.system.DexClassLoader;
-import dalvik.system.DexFile;
+//import dalvik.system.DexClassLoader;
+//import dalvik.system.DexFile;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -61,13 +61,13 @@ public class JobCenter {
   private Thread mJobThread;
   private final List<ExecutionChecker> mExecCheckers = new LinkedList<ExecutionChecker>();
 
-  public JobCenter(File filesDir, File cacheDir) {
+  public JobCenter(File filesDir, File cacheDir, TaskProvider tprovider) {
     mFilesDir = filesDir;
     mCacheDir = cacheDir;
-    mUsableCores = DroidContext.getInstance().getProfile().processors;
+    mUsableCores = 1;
     mThreadPool = Executors.newFixedThreadPool(mUsableCores);
     mTaskFileManiuplator = new TaskFileManipulator(mFilesDir);
-    mTaskProvider = new TaskProvider(mCacheDir);
+    mTaskProvider = tprovider;
     populateTaskCache();
   }
 
@@ -367,7 +367,7 @@ public class JobCenter {
   /**
    * Allows to save and modify tasks.
    */
-  private static class TaskFileManipulator {
+  public static class TaskFileManipulator {
 
     private File mCacheDir;
 
@@ -416,187 +416,6 @@ public class JobCenter {
           catch (Exception e) {
           }
         }
-      }
-    }
-  }
-
-  /**
-   * Provides access to stored Task files.
-   *
-   * New instances of DistributedRunnables, initial parameters
-   */
-  private static class TaskProvider {
-
-    // Holds the ID of the currently loaded task.
-    private String mCurrentTaskID;
-    /// Holds the runnable Class for Task
-    private Class mRunnableClass;
-    /// Holds initial parameter for Task
-    private DistributedJobParameter mInitialParam;
-    /// Holds the Taks classloader
-    private ClassLoader mClassLoader;
-    /// Directory for tempory data 
-    private final File mTmpDir;
-    /// Map of all tasks available on disk.
-//    private final Map<String, TaskFileManipulator> mTaskCache;
-    ///
-    private final TaskFileManipulator mTFManipulator;
-
-    /**
-     * Creates new TaskProvider.
-     *
-     * @param tmpDir Directory in which temporary data may be stored.
-     * @param taskCache Map of all tasks available on disk.
-     */
-    public TaskProvider(File tmpDir) {
-      mTmpDir = tmpDir;
-      mTFManipulator = new TaskFileManipulator(mTmpDir);
-    }
-
-    /**
-     * Returns the initial parameter associated with the specified task.
-     *
-     * @param taskID ID of task for that the initial parameter should be
-     * returned.
-     * @return Initial parameter
-     */
-    public DistributedJobParameter getInitialParam(String taskID) throws TaskNotFoundException {
-      loadTask(taskID);
-      return mInitialParam;
-    }
-
-    /**
-     * Creates new instance of a runnable for specified task.
-     *
-     * @param taskID ID of task for that the runnable should be created.
-     * @return New instance of DistributedRunnable
-     * @throws InstantiationException
-     * @throws IllegalAccessExceptions
-     */
-    public DistributedRunnable newRunnableInstance(String taskID) throws InstantiationException, IllegalAccessException, TaskNotFoundException {
-      loadTask(taskID);
-      return (DistributedRunnable) mRunnableClass.newInstance();
-    }
-
-    private void loadTask(String taskID) throws TaskNotFoundException {
-      // if already loaded, return without loading
-      if (taskID.equals(mCurrentTaskID)) {
-        return;
-      }
-      mCurrentTaskID = taskID;
-
-      loadClassesFromJar(mTFManipulator.getRunnableFile(taskID));
-
-      // load initial parameter from file
-      RandomAccessFile file = null;
-      try {
-        try {
-          file = new RandomAccessFile(mTFManipulator.getInitParamFile(taskID), "r");
-          byte[] rawdata = new byte[(int) file.length()];
-          file.read(rawdata);
-          mInitialParam = deserializeJobParameters(taskID, rawdata)[0];
-        }
-        finally {
-          if (file != null) {
-            file.close();
-          }
-        }
-      }
-      catch (FileNotFoundException ex) {
-        LOGGER.log(Level.SEVERE, null, ex);
-        throw new TaskNotFoundException();
-      }
-      catch (IOException ex) {
-        LOGGER.log(Level.SEVERE, null, ex);
-      }
-    }
-
-    /**
-     * Deserializes the provided serialized DistributedJobParameter
-     *
-     * @param runnableID runnable ID to deserialize for
-     * @return Loaded DistributedJobParameter
-     */
-    private DistributedJobParameter[] deserializeJobParameters(String taskID, byte[] rawdata) throws TaskNotFoundException {
-      //
-      loadTask(taskID);
-
-      //
-      ObjectInputStream objInstream;
-      Object obj = null;
-      try {
-        objInstream = new ClassloaderObjectInputStream(
-                new ByteArrayInputStream(rawdata),
-                mClassLoader);
-        obj = objInstream.readObject();
-        objInstream.close();
-      }
-      catch (OptionalDataException ex) {
-        Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      catch (ClassNotFoundException ex) {
-        Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      catch (IOException ex) {
-        Logger.getLogger(JobCenter.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      return (DistributedJobParameter[]) obj;
-    }
-
-    /**
-     * As it name claims, it loads classes from the given jar.
-     *
-     * @param runnableID
-     * @param jarfile
-     */
-    private void loadClassesFromJar(final File jarfile) throws TaskNotFoundException {
-
-      LOGGER.info("Calling DexClassLoader with jarfile: " + jarfile.getAbsolutePath());
-      final File tmpDir = new File(mTmpDir, "dex");
-      tmpDir.mkdirs();
-
-      // set new classloader
-      mClassLoader = new DexClassLoader(
-              jarfile.getAbsolutePath(),
-              tmpDir.getAbsolutePath(),
-              null,
-              JobCenter.class.getClassLoader());
-
-      // load all available classes
-      String path = jarfile.getPath();
-
-      try {
-        // load dexfile
-        DexFile dx = DexFile.loadDex(
-                path,
-                File.createTempFile("opt", "dex", mTmpDir).getPath(),
-                0);
-
-        // extract all available classes
-        for (Enumeration<String> classNames = dx.entries(); classNames.hasMoreElements();) {
-          String className = classNames.nextElement();
-          LOGGER.info(String.format("found class: %s", className));
-          try {
-            // TODO: do only forName() here?
-            final Class<Object> loadedClass = (Class<Object>) mClassLoader.loadClass(className);
-            LOGGER.info(String.format("Loaded class: %s", className));
-            // add associated classes to task class list
-            if (loadedClass == null) {
-              LOGGER.severe("loadedClass is null");
-            }
-            // add task class to task list
-            if (DistributedRunnable.class.isAssignableFrom(loadedClass)) {
-              mRunnableClass = loadedClass;
-            }
-          }
-          catch (ClassNotFoundException ex) {
-            LOGGER.severe(ex.getMessage());
-          }
-        }
-      }
-      catch (IOException e) {
-        LOGGER.severe(e.getMessage());
-        throw new TaskNotFoundException();
       }
     }
   }

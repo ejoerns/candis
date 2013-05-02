@@ -1,6 +1,6 @@
 package candis.distributed;
 
-import candis.distributed.droid.StaticProfile;
+import candis.distributed.droid.DeviceProfile;
 
 /**
  * Class (bean) to hold droid data.
@@ -12,14 +12,14 @@ import candis.distributed.droid.StaticProfile;
 public class DroidData {
 
 	private boolean blacklist;
-	private StaticProfile profile;
+	private DeviceProfile profile;
 
-	public DroidData(boolean blacklist, StaticProfile profile) {
+	public DroidData(boolean blacklist, DeviceProfile profile) {
 		this.blacklist = blacklist;
 		this.profile = profile;
 	}
 	
-	public DroidData(StaticProfile profile) {
+	public DroidData(DeviceProfile profile) {
 		this(false, profile);
 	}
 
@@ -31,11 +31,11 @@ public class DroidData {
 		return this.blacklist;
 	}
 
-	public void setProfile(final StaticProfile profile) {
+	public void setProfile(final DeviceProfile profile) {
 		this.profile = profile;
 	}
 
-	public StaticProfile getProfile() {
+	public DeviceProfile getProfile() {
 		return this.profile;
 	}
 }

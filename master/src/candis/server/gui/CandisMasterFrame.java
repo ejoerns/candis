@@ -308,10 +308,10 @@ public class CandisMasterFrame extends javax.swing.JFrame implements UserParamet
 			@Override
 			public void run() {
 				try {
-//					mScheduler = new SimpleScheduler(20, false);
+					mScheduler = new SimpleScheduler(50, false);
 					mJobDistIO.setAckTimeout(10000);
 					mJobDistIO.setJobTimeout(120000);
-					mScheduler = new ProfilingScheduler(20000);
+//					mScheduler = new ProfilingScheduler(20000);
 					mJobDistIO.bindScheduler(mScheduler);
 					mScheduler.start(mTaskPanel.getSelectedTaskID());
 //					mJobDistIO.initScheduler(mTaskPanel.getSelectedTaskID());

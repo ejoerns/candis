@@ -10,39 +10,38 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
-import candis.client.DeviceProfiler;
 //import candis.client.DeviceProfiler;
 import candis.client.DroidContext;
 import candis.client.android.AndroidDeviceProfiler;
-import candis.common.DroidID;
-import candis.distributed.droid.DeviceProfile;
+import candis.client.android.AndroidTaskProvider;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * InitTask, checks for ID, profile, ?truststore? and generates if not
+ * InitTask, checks for ID, getProfile, ?truststore? and generates if not
  * existing.
  */
-class InitTask extends AsyncTask<Void, Object, DroidContext> {
+class InitTask extends AsyncTask<Void, Object, Void> {
 
   private static final String TAG = InitTask.class.getName();
   private final Context mActivity;
-  private final File mIDFile;
-  private final File mProfileFile;
+  private final File mDataDir;
+  private final File mCacheDir;
   private boolean mGenerateID = false;
   private boolean mGeneradeProfile = false;
-  private final DroidContext mDroidContext;
   private Toast mToast;
   private SharedPreferences mSharedPref;
   private Handler mHandler;
+  private InputStream mSettingsInput;
 
-  public InitTask(final Context act, final File idfile, final File profilefile, final Handler handler) {
+  public InitTask(final Context act, InputStream settings, final File filesDir, final File cacheDir, final Handler handler) {
     mActivity = act;
-    mIDFile = idfile;
-    mProfileFile = profilefile;
-    mDroidContext = DroidContext.getInstance();
+    mSettingsInput = settings;
+    mDataDir = filesDir;
+    mCacheDir = cacheDir;
     mHandler = handler;
   }
 
@@ -58,56 +57,15 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
    * @return DroidContext containing loaded or generated data
    */
   @Override
-  protected DroidContext doInBackground(Void... params) {
+  protected Void doInBackground(Void... params) {
     System.out.println("InitTask started...");
-    // check for profile file
-    if (!mIDFile.exists()) {
-      Log.v(TAG, "ID file " + mIDFile + " does not exist. Will be generated...");
-      mGenerateID = true;
-//      publishProgress("Generating ID...", Toast.LENGTH_SHORT);
+    // check for getProfile file
+    try {
+      DroidContext.createInstance(mSettingsInput, mDataDir, mCacheDir, new AndroidDeviceProfiler(mActivity), new AndroidTaskProvider(mCacheDir));
     }
-
-    // load or generate ID
-    DroidID id = null;
-    if (mGenerateID) {
-      try {
-        id = DroidID.generate(mIDFile);
-        publishProgress("Generated ID (SHA-1): " + id.toSHA1(), Toast.LENGTH_LONG);
-      }
-      catch (FileNotFoundException ex) {
-        Logger.getLogger(InitTask.class.getName()).log(Level.SEVERE, null, ex);
-        publishProgress("ID generation failed", Toast.LENGTH_LONG);
-      }
+    catch (FileNotFoundException ex) {
+      Logger.getLogger(InitTask.class.getName()).log(Level.SEVERE, null, ex);
     }
-    else {
-      try {
-        id = DroidID.readFromFile(mIDFile);
-      }
-      catch (FileNotFoundException ex) {
-        Log.e(TAG, ex.toString());
-      }
-    }
-
-    // check for profile file
-    if (!mProfileFile.exists()) {
-      Log.v(TAG, "Pofile file " + mProfileFile + " does not exist. Run Profiling...");
-      mGeneradeProfile = true;
-      publishProgress("Starting Profiler...", Toast.LENGTH_SHORT);
-    }
-
-    // load or generate profile
-    DeviceProfile profile;
-    if (mGeneradeProfile) {
-      profile = new AndroidDeviceProfiler(mActivity.getApplicationContext()).profile();
-      DeviceProfiler.writeProfile(mProfileFile, profile);
-//      publishProgress("Profile generated", Toast.LENGTH_SHORT);
-    }
-    else {
-      profile = DeviceProfiler.readProfile(mProfileFile);
-    }
-    mDroidContext.setID(id);
-    Log.v(TAG, "InitTask: id now: " + id.toSHA1());
-    mDroidContext.setProfile(profile);
 
     // TODO: only for debugging...
     publishProgress("Initialization done", Toast.LENGTH_SHORT);
@@ -116,7 +74,8 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
     checkInitialHostname();
 
     Log.v(TAG, "InitTask done...");
-    return mDroidContext;
+
+    return (Void) null;
   }
 
   /**
@@ -144,21 +103,21 @@ class InitTask extends AsyncTask<Void, Object, DroidContext> {
     mHandler.post(new Runnable() {
       public void run() {
         final EditText input = new EditText(mActivity);
-        new AlertDialog.Builder(mActivity)
-                .setTitle("Server Address")
-                .setMessage("Enter address of server here")
-                .setView(input)
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int whichButton) {
-            // store in shared preference
-            mSharedPref.edit().putString("pref_key_servername", input.getText().toString()).commit();
-          }
-        })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-          public void onClick(DialogInterface dialog, int whichButton) {
-            // Do nothing.
-          }
-        }).show();
+//        new AlertDialog.Builder(mActivity)
+//                .setTitle("Server Address")
+//                .setMessage("Enter address of server here")
+//                .setView(input)
+//                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+//          public void onClick(DialogInterface dialog, int whichButton) {
+//            // store in shared preference
+//            mSharedPref.edit().putString("pref_key_servername", input.getText().toString()).commit();
+//          }
+//        })
+//                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+//          public void onClick(DialogInterface dialog, int whichButton) {
+//            // Do nothing.
+//          }
+//        }).show();
       }
     });
 

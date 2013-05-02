@@ -26,7 +26,7 @@ public class AndroidDeviceProfiler extends DeviceProfiler {
   private final AtomicBoolean accepted = new AtomicBoolean(false);
 
   public AndroidDeviceProfiler(final Context act) {
-//    super();
+    super();
     mContext = act;
   }
 

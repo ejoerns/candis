@@ -1,7 +1,7 @@
 package candis.server;
 
 import candis.distributed.DroidData;
-import candis.distributed.droid.StaticProfile;
+import candis.distributed.droid.DeviceProfile;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -18,7 +18,7 @@ public class DroidHashMapEntryType {
 	@XmlAttribute(name = "id-sha1")
 	public String key;
 	@XmlElement(name = "profile")
-	public StaticProfile value;
+	public DeviceProfile value;
 
 	public DroidHashMapEntryType() {
 	}

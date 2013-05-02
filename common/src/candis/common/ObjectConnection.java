@@ -30,45 +30,35 @@ public class ObjectConnection extends Connection {
   }
 
   /*
-   * Wandelt ein Serializable Objekt in ein Byte-Array um.
+   * Converts Serializable object to byte array.
    *
-   * Verschickt dieses Byte-Array mit sendChunk().
+   * Sends byte array with sendChunk().
    *
    */
-  public void sendObject(Serializable object) {
+  public void sendObject(Serializable object) throws IOException {
 
+    byte[] bytes;
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ObjectOutputStream oos = null;
     try {
-
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ObjectOutputStream oos = new ObjectOutputStream(baos);
+      oos = new ObjectOutputStream(baos);
       oos.writeObject(object);
-      oos.close();
 
-      byte[] bytes = baos.toByteArray();
-
-      CandisLog.v(TAG, "sending " + bytes.length + " bytes ...");
-
-      sendChunk(bytes);                                              // datenarray wird weitergegeben
-
+      bytes = baos.toByteArray();
     }
-    catch (IOException ex) {
-
-      CandisLog.e(TAG, "Sending object failed!");
-      CandisLog.e(TAG, ex.getMessage());
-      try {
-        closeSocket();
-      }
-      catch (IOException ioex) {
-        CandisLog.e(TAG, ioex.getMessage());
+    finally {
+      if (oos != null) {
+        oos.close();
       }
     }
+
+    CandisLog.v(TAG, String.format("sending %d bytes...", bytes.length));
+
+    sendChunk(bytes);
   }
 
   /*
-   * Liest Byte Array mit recieveChunk aus dem Stream.
-   *
-   * Gibt serialisierbares Objekt zurück.
-   *
+   * Reads byte array and returns serializable object.
    */
   public Serializable receiveObject() throws IOException, ClassNotFoundException {
 
@@ -79,9 +69,19 @@ public class ObjectConnection extends Connection {
       return null;
     }
 
-    CandisLog.v(TAG, "recieved " + mRawData.length + " bytes ...");
+    CandisLog.v(TAG, String.format("recieved %d bytes...", mRawData.length));
 
-    Object obj = new ObjectInputStream(new ByteArrayInputStream(mRawData)).readObject();
+    ObjectInputStream ois = null;
+    Object obj;
+    try {
+      ois = new ObjectInputStream(new ByteArrayInputStream(mRawData));
+      obj = ois.readObject();
+    }
+    finally {
+      if (ois != null) {
+        ois.close();
+      }
+    }
 
     return (Serializable) obj;
   }

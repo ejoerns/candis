@@ -4,13 +4,14 @@ import candis.common.CandisLog;
 import candis.common.DroidID;
 import candis.common.Instruction;
 import candis.common.Message;
+import candis.common.Utilities;
 import candis.common.fsm.ActionHandler;
 import candis.common.fsm.FSM;
 import candis.common.fsm.StateEnum;
 import candis.common.fsm.Transition;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DistributedJobResult;
-import candis.distributed.droid.StaticProfile;
+import candis.distributed.droid.DeviceProfile;
 import candis.server.ClientConnection.Status;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 	/// Holds last states for known droid to allow restore of last state.
 	private static final Map<String, StateEnum> mDroidStateMap = new HashMap<String, StateEnum>();
 	// Holds device profile of droid
-	private StaticProfile mReceivedProfile;
+	private DeviceProfile mReceivedProfile;
 	// ID of associated Droid
 	private String mDroidID;
 	//
@@ -193,8 +194,8 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		@Override
 		public void handle(Object... obj) {
 			gotCalled();
-			final String droidID = ((DroidID) obj[0]).toSHA1();
-			final StaticProfile profile = (StaticProfile) obj[1];
+			final String droidID = Utilities.toSHA1String((byte[]) obj[0]);
+			final DeviceProfile profile = (DeviceProfile) obj[1];
 
 			mDroidID = droidID;
 			mReceivedProfile = profile;
@@ -212,7 +213,7 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 		@Override
 		public void handle(Object... obj) {
 			gotCalled();
-			final String droidID = ((DroidID) obj[0]).toSHA1();
+			final String droidID = (String) obj[0];
 
 			// unregister...
 			mDroidManager.unregister(droidID);

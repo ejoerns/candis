@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
@@ -96,7 +97,9 @@ public final class ReloadableX509TrustManager
     LOGGER.log(Level.SEVERE, "checkServerTrusted....");
 
     try {
+      LOGGER.log(Level.SEVERE, "###START: " + chain + ", " + authType);
       mTrustManager.checkServerTrusted(chain, authType);
+      LOGGER.log(Level.SEVERE, "###STOP");
     }
     catch (java.security.cert.CertificateException cx) {
       LOGGER.log(Level.FINEST, "CertificateException");
@@ -124,7 +127,13 @@ public final class ReloadableX509TrustManager
   private void reloadTrustManager() throws Exception {
 
     // load keystore from specified cert store (or default)
-    KeyStore ts = KeyStore.getInstance("BKS");
+    KeyStore ts;
+    try {
+      ts = KeyStore.getInstance("BKS");
+    }
+    catch (KeyStoreException ex) {
+      ts = KeyStore.getInstance("JKS");
+    }
     InputStream in;
     // Check if file exists and is not empty
     try {
@@ -230,7 +239,13 @@ public final class ReloadableX509TrustManager
     try {
       if (permanent) {
         // import the cert into file trust store
-        KeyStore ts = KeyStore.getInstance("BKS");
+        KeyStore ts;
+        try {
+          ts = KeyStore.getInstance("BKS");
+        }
+        catch (KeyStoreException ex) {
+          ts = KeyStore.getInstance("JKS");
+        }
 
         // load truststore from file
         FileInputStream cert_istream = new FileInputStream(mTSFile);

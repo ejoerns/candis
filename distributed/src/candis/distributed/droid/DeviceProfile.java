@@ -7,7 +7,7 @@ import java.io.Serializable;
  *
  * @author Enrico Joerns
  */
-public class StaticProfile implements Serializable {
+public class DeviceProfile implements Serializable {
 
 	public final String id;
 	public final String model;
@@ -24,7 +24,7 @@ public class StaticProfile implements Serializable {
 	 * @param proc Total number of processors
 	 * @param bench Benchmark result
 	 */
-	public StaticProfile(
+	public DeviceProfile(
 					final String id,
 					final String model,
 					final long mem,
@@ -37,8 +37,8 @@ public class StaticProfile implements Serializable {
 		this.benchmark = bench;
 	}
 
-	public StaticProfile() {
-		this("not_set", "not_set", 0, 0, 0);
+	private DeviceProfile() {
+		this("", "", 0, 0, 0);
 	}
 
 	@Override

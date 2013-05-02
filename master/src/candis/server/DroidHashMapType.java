@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -36,6 +37,9 @@ public class DroidHashMapType {
 	public Map<String, DroidData> getHashMap() {
 		Map<String, DroidData> map = new HashMap<String, DroidData>();
 		for (DroidHashMapEntryType e : entry) {
+			if (e == null) {
+				Logger.getLogger(DroidHashMapType.class.getName()).severe("e is null");
+			}
 			map.put(e.key, new DroidData(e.blacklisted, e.value));
 		}
 		return map;

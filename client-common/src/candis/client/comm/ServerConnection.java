@@ -48,20 +48,21 @@ public class ServerConnection {
   private long mReconnectDelay = RECONNECT_DELAY_MIN;
   private WorkerQueue mWorkerQueue;
 
-  public ServerConnection(String hostname, int port, X509TrustManager trustmanager) {
-    mHostname = hostname;
-    mPort = port;
+  public ServerConnection(X509TrustManager trustmanager) {
     mTrustManager = trustmanager;
     mWorkerQueue = new WorkerQueue();
     new Thread(mWorkerQueue).start();
   }
 
-  public void connect() {
+  public void connect(String hostname, int port) {
     System.out.println("connect() called");
     if (mConnectEnabled) {
       return;
     }
     mConnectEnabled = true;
+
+    mHostname = hostname;
+    mPort = port;
     mReconnectDelay = RECONNECT_DELAY_MIN;
 
     mWorkerQueue.add(new Runnable() {

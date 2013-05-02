@@ -75,4 +75,8 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
 
   public void onBinaryRequired(String taskID) {
   }
+
+  public void onJobRejected(String taskID, String jobID) {
+    notify(String.format("Rejected Job %d", taskID));
+  }
 }

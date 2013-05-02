@@ -4,7 +4,7 @@ import candis.common.DroidID;
 import candis.common.Utilities;
 import candis.distributed.DistributedJobParameter;
 import candis.distributed.DroidData;
-import candis.distributed.droid.StaticProfile;
+import candis.distributed.droid.DeviceProfile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.security.SecureRandom;
@@ -53,7 +53,7 @@ public final class DroidManager {
 	 * checkcode required)
 	 */
 	private Map<String, DroidHandler> mPendingDroids = new ConcurrentHashMap<String, DroidHandler>();
-	private Map<String, StaticProfile> mPendingDroidData = new ConcurrentHashMap<String, StaticProfile>();
+	private Map<String, DeviceProfile> mPendingDroidData = new ConcurrentHashMap<String, DeviceProfile>();
 	/**
 	 * Holds all pending (send but not verified) checkcodes.
 	 */
@@ -139,7 +139,7 @@ public final class DroidManager {
 	 * @param droidID
 	 * @param handler
 	 */
-	public void register(String droidID, StaticProfile profile, DroidHandler handler) {
+	public void register(String droidID, DeviceProfile profile, DroidHandler handler) {
 		LOGGER.log(Level.INFO, "Droid {0} registering...", droidID);
 
 		// if not known, get known to it
@@ -210,7 +210,7 @@ public final class DroidManager {
 	/**
 	 * Generates a checkcode that must be verified with the client.
 	 *
-	 * @param droidID ID of droid to generate code for
+	 * @param droidID ID of droid to getInstance code for
 	 * @return Generated code.
 	 */
 	private String generateCheckcode(String droidID) {
@@ -392,7 +392,7 @@ public final class DroidManager {
 		return isDroidBlacklisted(rid.toString());
 	}
 
-	public StaticProfile getStaticProfile(final String droidID) {
+	public DeviceProfile getStaticProfile(final String droidID) {
 		if (!mKnownDroids.containsKey(droidID)) {
 			return null;
 		}

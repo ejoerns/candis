@@ -1,7 +1,7 @@
 package candis.server.gui;
 
 import candis.distributed.DroidData;
-import candis.distributed.droid.StaticProfile;
+import candis.distributed.droid.DeviceProfile;
 import candis.server.DroidManager;
 import candis.server.DroidManagerEvent;
 import candis.server.DroidManagerListener;
@@ -90,7 +90,7 @@ public class DroidlistTableModel extends AbstractTableModel implements DroidMana
 			mTableDataList.clear();
 		}
 		for (Map.Entry<String, DroidData> entry : manager.getKnownDroids().entrySet()) {
-			StaticProfile profile;
+			DeviceProfile profile;
 			ImageIcon icon;
 			// determin correct icon
 			if (manager.isDroidConnected(entry.getKey())) {
