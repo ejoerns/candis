@@ -66,7 +66,7 @@ public class JobCenter {
     mCacheDir = cacheDir;
     mUsableCores = 1;
     mThreadPool = Executors.newFixedThreadPool(mUsableCores);
-    mTaskFileManiuplator = new TaskFileManipulator(mFilesDir);
+    mTaskFileManiuplator = new TaskFileManipulator(mCacheDir);
     mTaskProvider = tprovider;
     populateTaskCache();
   }
@@ -237,7 +237,7 @@ public class JobCenter {
 
           mThreadPool.execute(new Runnable() {
             public void run() {
-              Log.i(TAG, "Running Thread for Job for Task " + taskID + " with TaskID " + taskID);
+              LOGGER.info("Running Thread for Job for Task " + taskID + " with TaskID " + taskID);
 
               DistributedRunnable currentTask;
               try {
@@ -398,24 +398,20 @@ public class JobCenter {
       try {
         //create an object of BufferedOutputStream
         bos = new BufferedOutputStream(new FileOutputStream(filename));
-        bos.write(data);
-        System.out.println(String.format("File '%s' written", filename));
+        try {
+          bos.write(data);
+        }
+        finally {
+          bos.flush();
+          bos.close();
+        }
+        LOGGER.info("File " + filename.getAbsolutePath() + " written");
       }
       catch (FileNotFoundException fnfe) {
         System.out.println("Specified file not found" + fnfe);
       }
       catch (IOException ioe) {
         System.out.println("Error while writing file" + ioe);
-      }
-      finally {
-        if (bos != null) {
-          try {
-            bos.flush();
-            bos.close();
-          }
-          catch (Exception e) {
-          }
-        }
       }
     }
   }

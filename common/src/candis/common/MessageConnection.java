@@ -18,7 +18,6 @@ public class MessageConnection extends ObjectConnection {
   private static final String TAG = MessageConnection.class.getName();
   private int msgID = 3;
   private static final int MAX_MSG_ID = 10;
-  private static final LinkedList mMessageBuffer = new LinkedList();
 
   public MessageConnection(Socket socket) throws IOException {
     super(socket);
@@ -29,10 +28,6 @@ public class MessageConnection extends ObjectConnection {
   }
 
   public void sendMessage(final Message msg) throws IOException {
-//		LOGGER.fine(String.format("##SEND to %s:%s: %s",
-//															mSocket.getInetAddress(),
-//															mSocket.getPort(),
-//															msg.getRequest()));
     // write single objects to allow catching errors on receiver side
     CandisLog.v(TAG, "## Sending Request: " + msg.getRequest());
     sendObject(msg.getRequest());
@@ -42,18 +37,30 @@ public class MessageConnection extends ObjectConnection {
     }
   }
 
+  /**
+   *
+   * @return Received Message, or NO_MSG if receiving failed.
+   * @throws IOException
+   */
   public Message readMessage() throws IOException {
     Instruction inst;
     try {
       // calc message id (mod MAX_MSG_ID)
       msgID = (msgID + 1) % MAX_MSG_ID;
       inst = (Instruction) receiveObject();
-      CandisLog.v(TAG, "## Received Request: " + inst.toString());
+
+      // catch null messages
+      if (inst == null) {
+        CandisLog.w(TAG, "Received null Message");
+        inst = Instruction.NO_MSG;
+      }
+      CandisLog.v(TAG, "## Received Request: " + inst);
     }
     catch (ClassNotFoundException ex) {
       CandisLog.e(TAG, ex.toString());
       inst = Instruction.NO_MSG;
     }
+    
     List<Serializable> data = new LinkedList<Serializable>();
     // receive all data packages
     for (int idx = 0; idx < inst.len; idx++) {

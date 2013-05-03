@@ -67,7 +67,7 @@ public final class SecureSocket {// TODO: maybe extend SocketImpl later...
 
     mSocket = sf.createSocket(host, port);
     LOGGER.log(Level.INFO, String.format(
-            "Connected to %s:%d", mSocket.getInetAddress(), mSocket.getPort()));
+            "Connected to %s:%d on port %d", mSocket.getInetAddress(), mSocket.getPort(), mSocket.getLocalPort()));
 
     mConnected = true;
   }

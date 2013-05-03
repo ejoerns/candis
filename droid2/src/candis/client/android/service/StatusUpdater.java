@@ -5,14 +5,13 @@ import android.content.Context;
 import candis.client.JobCenterHandler;
 import candis.client.android.CandisNotification;
 import candis.client.comm.ServerConnection;
-import candis.common.Message;
 import candis.distributed.DistributedJobResult;
 
 /**
  *
  * @author Enrico Joerns
  */
-public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandler {
+public class StatusUpdater implements ServerConnection.Listener, JobCenterHandler {
 
   private boolean mNotificationsEnabled = true;
   private final NotificationManager mNM;
@@ -48,9 +47,6 @@ public class StatusUpdater implements ServerConnection.Receiver, JobCenterHandle
           break;
       }
     }
-  }
-
-  public void OnNewMessage(Message msg) {
   }
 
   //- JobCenter handler stuff

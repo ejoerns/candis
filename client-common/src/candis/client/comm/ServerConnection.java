@@ -35,6 +35,7 @@ public class ServerConnection {
   private final X509TrustManager mTrustManager;
   private QueuedMessageConnection mQueuedMessageConnection;
   private List<Receiver> mReceivers = new LinkedList<Receiver>();
+  private List<Listener> mListeners = new LinkedList<Listener>();
   private Timer mReconnectTimer = new Timer();
   private Thread mQMCThread;
   private Thread mReceiverThread;
@@ -221,17 +222,22 @@ public class ServerConnection {
       while (!Thread.interrupted()) {
         try {
           // wait for new message
-          Message msg = mQueuedMessageConnection.readMessage();
-
+          final Message msg = mQueuedMessageConnection.readMessage();
           mPongFlag = true;
+
+          // handle pong message internally
           if (msg.getRequest() == Instruction.PONG) {
             continue;
           }
 
           // notify listeners
-          for (Receiver r : mReceivers) {
-            r.OnNewMessage(msg);
-          }
+          mWorkerQueue.add(new Runnable() {
+            public void run() {
+              for (Receiver r : mReceivers) {
+                r.OnNewMessage(msg);
+              }
+            }
+          });
         }
         // The thread was interrupted
         catch (InterruptedIOException ex) {
@@ -292,7 +298,7 @@ public class ServerConnection {
       // if pong was received, ok, send new ping
       if (mPongFlag) {
         mPongFlag = false;
-        LOGGER.warning("Ping sent...");
+        LOGGER.fine("Ping sent...");
         sendMessage(new Message(Instruction.PING));
       }
       // if no pong was received, we assume a timeout and reconnect
@@ -311,22 +317,25 @@ public class ServerConnection {
     }
   }
 
-  public enum Status {
-
-    CONNECTED,
-    DISCONNECTED
-  }
-
   /**
-   * Adds a receiver that will receive messages and connection status updates.
+   * Adds a receiver that will receive messages.
    *
    * @param rec Receiver to add
    */
   public void addReceiver(Receiver rec) {
     if (rec != null) {
-      LOGGER.info(String.format("Adding receiver... %s", rec.toString()));
-      System.out.println("Adding receiver... " + rec);
       mReceivers.add(rec);
+    }
+  }
+
+  /**
+   * Adds a listener that will receive connection status updates.
+   *
+   * @param listener
+   */
+  public void addListener(Listener listener) {
+    if (listener != null) {
+      mListeners.add(listener);
     }
   }
 
@@ -338,8 +347,8 @@ public class ServerConnection {
   private void notifyListeners(final Status status) {
     new Thread(new Runnable() {
       public void run() {
-        for (Receiver r : mReceivers) {
-          r.OnStatusUpdate(status);
+        for (Listener listener : mListeners) {
+          listener.OnStatusUpdate(status);
         }
       }
     }).start();
@@ -356,6 +365,18 @@ public class ServerConnection {
      * @param msg
      */
     public abstract void OnNewMessage(Message msg);
+  }
+
+  public enum Status {
+
+    CONNECTED,
+    DISCONNECTED
+  }
+
+  /*
+   * 
+   */
+  public interface Listener {
 
     /**
      * Invoked when connection status changes.

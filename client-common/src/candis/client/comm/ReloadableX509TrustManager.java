@@ -106,6 +106,11 @@ public final class ReloadableX509TrustManager
       addServerCertAndReload(chain[0], true);
       mTrustManager.checkServerTrusted(chain, authType);
     }
+    catch (RuntimeException ex) {
+      LOGGER.log(Level.WARNING, null, ex);
+      addServerCertAndReload(chain[0], true);
+      mTrustManager.checkServerTrusted(chain, authType);
+    }
     LOGGER.log(Level.SEVERE, "checkServerTrusted() DONE");
   }
 

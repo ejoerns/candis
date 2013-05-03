@@ -12,7 +12,6 @@ import android.os.PowerManager;
 import android.util.Log;
 import candis.client.ClientFSM;
 import candis.client.DroidContext;
-import candis.client.JobCenter;
 import candis.client.R;
 import candis.client.android.AndroidDeviceProfiler;
 import candis.client.android.AndroidTaskProvider;
@@ -20,9 +19,6 @@ import candis.client.android.CandisNotification;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.ServerConnection;
 import candis.client.comm.ServerConnection.Status;
-import candis.common.Message;
-import candis.common.Settings;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -163,25 +159,12 @@ public class BackgroundService extends Service {
     // Init trustmanager and connection
     ReloadableX509TrustManager trustmanager;
     try {
-      // getInstance trustmanager
-//      trustmanager = new ReloadableX509TrustManager(
-//              new File(getApplicationContext().getFilesDir(),
-//                       Settings.getString("truststore")));
       DroidContext dcontext = DroidContext.getInstance();
       dcontext.getTrustManager().setCertAcceptHandler(mActivityCommunicator);
-      // getInstance connection
-//      mConnection = new ServerConnection(trustmanager);
-      dcontext.getConnection().addReceiver(mStatusUpdater);
-      // getInstance state machine
-//      mStateMachine = new ClientFSM(
-//              new JobCenter(getApplicationContext().getFilesDir(), getApplicationContext().getCacheDir()),
-//              mConnection);
+      dcontext.getConnection().addListener(mStatusUpdater);
       dcontext.getClientFSM().init();
       dcontext.getJobCenter().setMulticore(mSharedPref.getBoolean("pref_key_multithread", true));
 
-      // fsm must receive messages
-      dcontext.getConnection().addReceiver(dcontext.getClientFSM());
-      // fsm must receive activity messages
       mActivityCommunicator.setFSM(dcontext.getClientFSM());
 
       // we want some status updates about execution of tasks
@@ -189,10 +172,7 @@ public class BackgroundService extends Service {
 
       /* finally add handler to register at master automatically at incoming
        * CONNECTED event.*/
-      dcontext.getConnection().addReceiver(new ServerConnection.Receiver() {
-        public void OnNewMessage(Message msg) {
-        }
-
+      dcontext.getConnection().addListener(new ServerConnection.Listener() {
         public void OnStatusUpdate(Status status) {
           if (status == Status.CONNECTED) {
             DroidContext.getInstance().getClientFSM().process(ClientFSM.Transitions.REGISTER);

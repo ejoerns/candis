@@ -35,7 +35,6 @@ package candis.client.pc.gui;
 
 import candis.client.ClientFSM;
 import candis.client.DroidContext;
-import candis.client.JobCenter;
 import candis.client.comm.ReloadableX509TrustManager;
 import candis.client.comm.ServerConnection;
 import candis.client.pc.PCDeviceProfiler;
@@ -45,9 +44,9 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URL;
+import java.security.cert.X509Certificate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.X509TrustManager;
 import javax.swing.*;
 
 public class TrayIconDemo {
@@ -81,7 +80,7 @@ public class TrayIconDemo {
       }
     });
 
-    DroidContext context = null;
+    DroidContext context;
     try {
       File fileDir = new File(System.getProperty("user.home") + "/candis");
       fileDir.mkdir();
@@ -96,9 +95,43 @@ public class TrayIconDemo {
     }
     catch (FileNotFoundException ex) {
       Logger.getLogger(TrayIconDemo.class.getName()).log(Level.SEVERE, null, ex);
+      return;
     }
-    context.getConnection().connect("192.168.2.107", 9999);
+    
+    context.getTrustManager().setCertAcceptHandler(new ReloadableX509TrustManager.Handler() {
+      @Override
+      public void OnCheckServerCert(final X509Certificate cert, final ReloadableX509TrustManager tm) {
+        SwingUtilities.invokeLater(new Runnable() {
+          @Override
+          public void run() {
+            int result = JOptionPane.showConfirmDialog(null, cert.getIssuerDN());
+            System.out.println("The result is: " + result);
+            // Yes
+            if (result == 0) {
+              tm.acceptCertificate(true);
+            }
+            else {
+              tm.acceptCertificate(false);
+            }
+          }
+        });
+      }
+    });
+    
+    context.getConnection().addListener(new ServerConnection.Listener() {
+      @Override
+      public void OnStatusUpdate(ServerConnection.Status status) {
+        switch (status) {
+          case CONNECTED:
+            DroidContext.getInstance().getClientFSM().process(ClientFSM.Transitions.REGISTER);
+            break;
+          case DISCONNECTED:
+            break;
+        }
+      }
+    });
     context.getClientFSM().init();
+    context.getConnection().connect("192.168.2.107", 9999);
   }
 
   private static void createAndShowGUI() {

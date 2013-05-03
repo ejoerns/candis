@@ -45,6 +45,8 @@ public class DroidContext {
     mJobCenter = new JobCenter(mFilesDir, mCacheDir, provier);
     mConnection = new ServerConnection(mTrustManager);
     mClientFSM = new ClientFSM(mJobCenter, mConnection);
+    // connecting
+    mConnection.addReceiver(mClientFSM);
   }
 
   public static DroidContext getInstance() {

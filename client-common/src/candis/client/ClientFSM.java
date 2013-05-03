@@ -1,7 +1,6 @@
 package candis.client;
 
 import candis.client.comm.ServerConnection;
-import candis.client.comm.ServerConnection.Status;
 import candis.common.Instruction;
 import candis.common.Message;
 import candis.common.fsm.ActionHandler;
@@ -250,13 +249,17 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
 
     @Override
     public void handle(Object... data) {
+      String droidID = (String) data[0];
+      byte[] runnable = (byte[]) data[1];
+      byte[] iparam = (byte[]) data[2];
+      
       if (!((String) data[0]).equals(mCurrentRunnableID)) {
-        System.out.println("ERROR, wrong runnable ID " + (String) data[0] + " != " + mCurrentRunnableID);
+        System.out.println("ERROR, wrong runnable ID " + droidID + " != " + mCurrentRunnableID);
         // TODO: handle...
       }
-      mJobCenter.addRunnable((String) data[0], (byte[]) data[1], (byte[]) data[2]);
+      mJobCenter.addRunnable(droidID, runnable, iparam);
 
-      mJobCenter.processJob((String) data[0], mCurrentJobID, mCurrentJobParameter);
+      mJobCenter.processJob(droidID, mCurrentJobID, mCurrentJobParameter);
     }
   }
 
@@ -293,10 +296,6 @@ public class ClientFSM extends FSM implements ServerConnection.Receiver, JobCent
       Logger.getLogger(ClientFSM.class.getName()).log(Level.SEVERE, "Got Message: " + msg.getRequest());
       process(msg.getRequest(), (Object[]) msg.getData());
     }
-  }
-
-  @Override
-  public void OnStatusUpdate(Status status) {
   }
 
   //--- JobCenter callbacks

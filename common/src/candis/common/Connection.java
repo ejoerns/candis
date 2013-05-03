@@ -22,13 +22,6 @@ public class Connection {
   public Connection(final Socket socket) throws IOException {
     this(socket.getInputStream(), socket.getOutputStream());
     mSocket = socket;
-    //    mSocket = socket;
-    //    try {
-    //      mSocket.setSoTimeout(5000);                      // Unterbricht blockierendes read() beim Client wenn Server nichts sendet.
-    //    }
-    //    catch (SocketException ex) {
-    //    }
-    //    }
   }
 
   public Connection(InputStream in, OutputStream out) {
@@ -50,7 +43,7 @@ public class Connection {
   }
 
   /**
-   * Empfängt Datenpakete (blocking).
+   * Receives data packets (blocking).
    *
    * @return Byte-Array
    */
@@ -67,31 +60,27 @@ public class Connection {
 
     // read header
     for (int i = 0; i < 4; i++) {
-      header[i] = (byte) mInputStream.read();                   // 4 byte header wird zuerst gelesen
-			if(header[i] == -1) {
-				throw new IOException("End of stream");
-			}
-      // If read failed, try again.
+      header[i] = (byte) mInputStream.read();
       if (header[i] == -1) {
-        i--;
+        throw new IOException("End of stream");
       }
     }
-    int dataLength = byteArrayToInt(header);       // Puffergröße wird bestimmt
+    int dataLength = byteArrayToInt(header);
 
     if (dataLength > 0) {
-      bytes = new byte[dataLength];                  // Datenpuffer
+      bytes = new byte[dataLength];
     }
     else {
-      System.out.println("EE: Array size zero or negative!");
+      LOGGER.warning("Array size zero or negative!");
       return null;
     }
 
     // read bytes from input stream to byte array
     do {
-			int read = mInputStream.read(bytes, offset, dataLength - offset);
-			if(read == -1) {
-				throw new IOException("End of stream");
-			}
+      int read = mInputStream.read(bytes, offset, dataLength - offset);
+      if (read == -1) {
+        throw new IOException("End of stream");
+      }
       offset += read;
 
     }
@@ -106,7 +95,7 @@ public class Connection {
    * @param bytes 4-Byte-Array
    * @return Integer
    */
-  private int byteArrayToInt(byte[] bytes) {
+  private static int byteArrayToInt(byte[] bytes) {
 
     int value = (0xFF & bytes[0]) << 24;
     value += (0xFF & bytes[1]) << 16;
@@ -122,7 +111,7 @@ public class Connection {
    * @param value Integer-Wert
    * @return 4-Byte-Array
    */
-  protected final byte[] intToByteArray(int value) {
+  protected static byte[] intToByteArray(int value) {
 
     byte[] bytes = new byte[4];
     bytes[0] = (byte) (value >>> 24);
