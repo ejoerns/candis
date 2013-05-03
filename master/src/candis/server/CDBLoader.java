@@ -133,9 +133,12 @@ public class CDBLoader {
 	/**
 	 * Returns loaded droid binary file.
 	 *
-	 * @return loaded droid binary
+	 * @param cdbID
+	 * @param dex true if a dex should be returned (for android), false if a
+	 * common jar should be returned
+	 * @return
 	 */
-	public final byte[] getDroidBinary(String cdbID) {
+	public final byte[] getDroidBinary(String cdbID, boolean dex) {
 		byte[] buffer = null;
 
 		if (!mKnownTaskIDs.contains(cdbID)) {
@@ -143,7 +146,14 @@ public class CDBLoader {
 			return null;
 		}
 
-		final File file = mCDBContextMap.get(cdbID).getDroidBin();
+		// either get dex or jar (lib0)
+		final File file;
+		if (dex) {
+			file = mCDBContextMap.get(cdbID).getDroidBin();
+		}
+		else {
+			file = mCDBContextMap.get(cdbID).getLib(0);
+		}
 		try {
 			final RandomAccessFile rfile = new RandomAccessFile(file, "r");
 			buffer = new byte[(int) file.length()];

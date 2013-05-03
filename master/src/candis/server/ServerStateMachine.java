@@ -331,13 +331,37 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			// tell jobdist that job was received correctly
 			mJobDistIO.onJobReceived(mDroidID, mCurrentJobID);
 
-			final byte[] binary = mJobDistIO.getCDBLoader().getDroidBinary((String) data[0]);
+			// get binary bytes
+			byte[] binaryBytes;
+			if (mDroidManager.getStaticProfile(mDroidID).model.equals("PC")) {
+				binaryBytes = mJobDistIO.getCDBLoader().getDroidBinary(taskID, false);
+			}
+			else {
+				binaryBytes = mJobDistIO.getCDBLoader().getDroidBinary(taskID, true);
+			}
+
+			// serialize iparam to byte array
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos;
+			try {
+				oos = new ObjectOutputStream(baos);
+				try {
+					oos.writeObject(new DistributedJobParameter[]{mJobDistIO.getControl().getInitialParameter()});
+				}
+				finally {
+					oos.close();
+				}
+			}
+			catch (IOException ex) {
+				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
+			}
+			byte[] iparamBytes = baos.toByteArray();
 
 			mConnection.sendMessage(
 							new Message(Instruction.SEND_BINARY,
 													mJobDistIO.getCurrentTaskID(),
-													binary, // runnable
-													new DistributedJobParameter[]{mJobDistIO.getControl().getInitialParameter()}));
+													binaryBytes, // runnable
+													iparamBytes));
 		}
 	}
 
@@ -377,8 +401,12 @@ public class ServerStateMachine extends FSM implements ClientConnection.Receiver
 			ObjectOutputStream oos;
 			try {
 				oos = new ObjectOutputStream(baos);
-				oos.writeObject(params);
-				oos.close();
+				try {
+					oos.writeObject(params);
+				}
+				finally {
+					oos.close();
+				}
 			}
 			catch (IOException ex) {
 				Logger.getLogger(ServerStateMachine.class.getName()).log(Level.SEVERE, null, ex);
